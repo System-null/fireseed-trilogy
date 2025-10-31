@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>Fireseed Trilogy Capsule Form — v0.2.7c</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Fireseed Capsule — v0.2.7c</h1>
+    <p>首次需联网运行 <code>npm run vendors</code> 拉取官方 <b>ajv@8.17.1</b> 与 <b>js-yaml@4.1.0</b>；之后可离线使用。</p>
+    <form id="capsule-form">
+      <div class="row">
+        <label>ID</label>
+        <input type="text" id="id" placeholder="uuid 或 nanoid" required />
+      </div>
+      <div class="row">
+        <label>Owner Name</label>
+        <input type="text" id="owner_name" required />
+      </div>
+      <div class="row">
+        <label>Email</label>
+        <input type="email" id="owner_email" />
+      </div>
+      <div class="row">
+        <label>Language</label>
+        <select id="lang">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Philosophy Ref</label>
+        <input type="text" id="philosophy_ref" placeholder="System Exodus — Ch.4.2" />
+      </div>
+      <div class="row">
+        <label>Summary</label>
+        <textarea id="summary"></textarea>
+      </div>
+      <div class="row">
+        <label>Details</label>
+        <textarea id="details"></textarea>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="consent" /> 我已阅读并同意提交条款 / I consent</label>
+      </div>
+      <div class="row">
+        <button type="button" id="validateBtn">Validate</button>
+        <button type="button" id="saveJsonBtn">Save JSON</button>
+        <button type="button" id="saveYamlBtn">Save YAML</button>
+      </div>
+    </form>
+
+    <pre id="log"></pre>
+  </main>
+
+  <!-- Local vendor copies (written by npm run vendors) -->
+  <script src="../vendor/ajv/ajv2020.min.js"></script>
+  <script src="../vendor/js-yaml/js-yaml.min.js"></script>
+
+  <script src="../src/app.js"></script>
+</body>
+</html>

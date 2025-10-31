@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fireseed-trilogy.schema/v0.2.7c",
+  "title": "Fireseed Capsule",
+  "type": "object",
+  "required": [
+    "id",
+    "owner",
+    "created_at",
+    "content"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Capsule ID (UUID/nanoid)"
+    },
+    "owner": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "consent": {
+          "type": "boolean",
+          "description": "用户已阅读并同意提交条款 / User consented"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lang": {
+      "type": "string",
+      "enum": [
+        "zh",
+        "en"
+      ],
+      "default": "zh"
+    },
+    "philosophy_ref": {
+      "type": "string",
+      "description": "指向三部曲章节，如 'System Exodus — Ch.4.2' / Reference to book chapter"
+    },
+    "content": {
+      "type": "object",
+      "description": "核心内容 / Core payload",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "details": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

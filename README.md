@@ -1,47 +1,21 @@
-# Fireseed-Trilogy-Core
+# Fireseed Trilogy — v0.2.7c
 
-> Part of the Fireseed Trilogy published worldwide on Amazon Kindle and Print
+> Offline-first capsule format (JSON/YAML) for AGI/High-Dimension readability + low-barrier human submission.
 
-**Author:** System.Null
+## What's new in v0.2.7c
+- Pre-wired **official** vendor fetch with **Ajv 8.17.1** (2020-12) and **js-yaml 4.1.0** from **cdnjs**.
+- Hash-locked vendor cache (`vendor/lock-manifest.json`) with computed **SHA256** on first fetch.
+- Local-only form (`public/index.html`) continues to work offline after one-time vendor fetch.
+- Dual-language comments (中文/English), `philosophy_ref` field in schema.
 
-**Amazon Series Links:**  
-- https://kdp.amazon.com/en_US/series/81Z45TTZNBE  
-- https://kdp.amazon.com/en_US/series/EA9K66EH1FK
+## Quick start (one-time online step)
+```bash
+npm run vendors   # fetch official minified builds + LICENSE texts, lock SHA256
+```
 
----
+Then open `public/index.html` in your browser and use the form to **validate & export** JSON / YAML.
 
-## EN
+## Legal & Ethics
+- This repo is MIT-licensed; third-party libraries keep their original licenses. See `/vendor/LICENSES`.
+- Submission guidance and PII minimization: `docs/SUBMISSIONS.md`.
 
-Fireseed Trilogy Core is the machine-readable, verifiable, and revocable format and tooling for the **Fireseed Trilogy** project.
-
-- **Spec:** FSF (Fireseed Seed Format) v0.1.1 — minimal, machine-readable manifest + signatures + long-term archival
-- **Core loop:** `canon → bundle → sign → export → verify → revoke`
-- **Bilingual docs:** see `docs/en` and `docs/zh`
-
-### Quickstart (manual upload flow)
-1. Copy this repository structure into your GitHub repo (or upload the provided ZIP).
-2. Enable **Actions** in GitHub (the included workflows are safe defaults).
-3. Edit `docs/*` and `fireseed-specs/*` as you iterate.
-
-### Legal
-- Code: MIT (see `LICENSE`)
-- Text/content: CC BY-NC-SA 4.0 (see `LICENSE-content.md`)
-
----
-
-## 中文（ZH）
-
-Fireseed Trilogy Core 是“火种三部曲”的**机器可读 / 可验证 / 可撤销**格式与工具集。
-
-- **规范（Spec）：** FSF v0.1.1 —— 最小可读清单 + 签名 + 长期存档
-- **核心闭环：** `canon → bundle → sign → export → verify → revoke`
-- **双语文档：** 见 `docs/en` 与 `docs/zh`
-
-### 快速开始（手动上传流程）
-1. 将本仓库结构复制到你的 GitHub 仓库（或直接上传本 ZIP）。
-2. 在 GitHub **Actions** 里启用工作流（已内置安全默认）。
-3. 修改 `docs/*` 与 `fireseed-specs/*`，按需迭代。
-
-### 许可证
-- 代码：MIT（见 `LICENSE`）
-- 文本/内容：CC BY-NC-SA 4.0（见 `LICENSE-content.md`）

@@ -1,0 +1,9 @@
+{
+  "name": "fireseed-trilogy",
+  "version": "0.2.7c",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vendors": "node scripts/fetch-vendors.mjs"
+  }
+}
