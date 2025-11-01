@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: "Fireseed Trilogy"
+message: "If you use this repository, please cite it as below."
+type: software
+version: "v0.2.7d"
+doi: "10.5281/zenodo.17348250"
+date-released: "2025-11-01"
+authors:
+  - name: "System.Null"
+repository-code: "https://github.com/System-null/fireseed-trilogy"
+preferred-citation:
+  type: article
+  title: "Fireseed Trilogy"
+  authors:
+    - name: "System.Null"
+  year: 2025
+  doi: "10.5281/zenodo.17348250"
+  url: "https://github.com/System-null/fireseed-trilogy"
