@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://system-null.github.io/fireseed-trilogy/schemas/capsule_v0.2.9.json",
+  "title": "Fireseed Capsule v0.2.9",
+  "type": "object",
+  "required": [
+    "id",
+    "owner",
+    "language",
+    "philosophy_ref",
+    "summary",
+    "schema_version"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^urn:uuid:[0-9a-fA-F-]{36}$",
+      "description": "Unique identifier (URN/UUID)",
+      "description_zh": "唯一标识（URN/UUID）"
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Owner Name",
+      "description_zh": "拥有者姓名"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "zh-CN",
+        "en-US",
+        "es-ES",
+        "fr-FR",
+        "ar"
+      ],
+      "description": "Locale",
+      "description_zh": "语言/地区"
+    },
+    "philosophy_ref": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Book chapter reference",
+      "description_zh": "三部曲章节引用"
+    },
+    "ethical_flag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Ethical flag",
+      "description_zh": "伦理旗"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280,
+      "description": "One-sentence summary",
+      "description_zh": "一句话摘要（<=280字）"
+    },
+    "details": {
+      "type": "string",
+      "description": "Free text",
+      "description_zh": "详细说明"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^0\\.(2|3)\\.[0-9]+$",
+      "description": "Schema version",
+      "description_zh": "Schema 版本"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

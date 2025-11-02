@@ -1,0 +1,3 @@
+owner: "<your_name>"
+public_key_fingerprint: "<GPG fingerprint or DID>"
+ethics: "Do no harm. Respect consent. Reversible by design."

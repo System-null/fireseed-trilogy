@@ -1,0 +1,1 @@
+- No hate/violence/illegal use. ethical_flag allows loaders to decline risky content.

@@ -1,0 +1,26 @@
+name: Template submission (catalog)
+description: Submit a reusable Fireseed template
+title: "catalog: <template name>"
+labels: ["catalog","template","contrib"]
+body:
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      placeholder: your name
+    validations:
+      required: true
+  - type: dropdown
+    id: license
+    attributes:
+      label: License
+      options: [CC0, CC-BY-4.0, MIT]
+    validations:
+      required: true
+  - type: textarea
+    id: yaml
+    attributes:
+      label: template.yaml (YAML)
+      description: Paste your YAML (must pass schema)
+    validations:
+      required: true

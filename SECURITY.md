@@ -1,0 +1,1 @@
+- Shamir SSS paper backups; yearly key rotation; offline signing recommended.

@@ -1,0 +1,10 @@
+id: "urn:uuid:REPLACE-WITH-UUID"
+owner: "Your Name"
+language: "zh-CN"
+philosophy_ref: "System Exodus — Ch.4.2"
+ethical_flag: false
+summary: "一句话核心原则"
+details: |
+  三到五句细化说明。
+schema_version: "0.2.9"
+created_at: "2025-11-01T00:00:00Z"

@@ -1,0 +1,14 @@
+name: Build & Release Kit
+on:
+  push:
+    tags: ['v*.*.*']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build kit zip (no deps)
+        run: zip -r -q fireseed-kit-${GITHUB_REF_NAME}.zip templates schemas scripts docs/cards public/gui -x "**/.DS_Store"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: fireseed-kit-*.zip

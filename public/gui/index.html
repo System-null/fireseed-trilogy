@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fireseed GUI — Capsule Builder (v0.2.9)</title>
+  <link rel="stylesheet" href="../assets/style.css"/>
+  <script src="../vendor/js-yaml.min.js"></script>
+  <script src="../vendor/ajv.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Fireseed Capsule Builder (v0.2.9)</h1>
+    <p class="muted">离线可用 · 数据不出本机 · 支持中/英/ES/FR/AR 字段标签</p>
+    <section class="lang">
+      <label>界面语言 / UI Language</label>
+      <select id="lang">
+        <option value="zh">简体中文</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="ar">العربية</option>
+      </select>
+    </section>
+    <section class="form">
+      <div class="grid">
+        <label>Owner / 拥有者</label><input id="owner" placeholder="Your Name">
+        <label>Language / 语言</label>
+        <select id="language">
+          <option>zh-CN</option><option>en-US</option><option>es-ES</option><option>fr-FR</option><option>ar</option>
+        </select>
+        <label>Philosophy Ref / 章节引用</label><input id="philosophy_ref" placeholder="System Exodus — Ch.4.2">
+        <label>Ethical Flag / 伦理旗</label>
+        <select id="ethical_flag"><option value="false" selected>false</option><option value="true">true</option></select>
+        <label>Summary / 摘要 (<=280)</label><input id="summary" maxlength="280" placeholder="一句话核心原则">
+        <label>Details / 说明</label><textarea id="details" rows="5" placeholder="三到五句细化说明"></textarea>
+      </div>
+    </section>
+    <section class="actions">
+      <button id="btn-validate">校验 / Validate</button>
+      <button id="btn-yaml">导出 YAML</button>
+      <button id="btn-json">导出 JSON</button>
+      <button id="btn-card">生成口袋卡</button>
+    </section>
+    <pre id="out" class="console"></pre>
+    <footer><small>Schema: <code>schemas/capsule_v0.2.9.json</code> · 本工具不上传任何数据</small></footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
