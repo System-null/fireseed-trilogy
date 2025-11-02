@@ -1,3 +1,3 @@
 # Schemas
 
-This folder mirrors the canonical JSON Schema used to validate Fireseed capsules.
+Drop or sync `fireseed_capsule.schema.json` here if not already present.

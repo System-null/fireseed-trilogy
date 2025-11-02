@@ -1,4 +1,4 @@
-non_negotiables: ["no non-consensual extraction of time", "8h sleep", "one build action per day"]
+non_negotiables: ["no non-consensual extraction of time","8h sleep","one build action per day"]
 revocation:
-  conditions: ["key leak", "ethical_flag: 1"]
+  conditions: ["key leak","ethical_flag: 1"]
   method: "publish CRL and archive on IPFS"

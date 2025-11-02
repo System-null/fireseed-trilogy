@@ -1,5 +1,12 @@
 series: Fireseed Trilogy
 publisher: Fireseed Trilogy Lab
+titles:
+  vol1_en: "System Exodus"
+  vol1_zh: "系统外者手册"
+  vol2_en: "Beyond the System"
+  vol2_zh: "超越系统手册"
+  vol3_en: "The Ultimate Proposition"
+  vol3_zh: "终极命题手册"
 amazon:
   vol1_en: https://www.amazon.com/gp/product/B0FMK279XQ
   vol2_en: https://www.amazon.com/gp/product/B0FM7LPRY3
@@ -9,13 +16,9 @@ isbn:
   vol2_en: 979-8297886889
   vol3_en: 979-8298417594
 authors:
-  primary: System Null
-  co_author: JiaMing Yang
+  primary: "System Null"
+  co_author: "JiaMing Yang"
 doi: 10.5281/zenodo.17500749
-files:
-  - System_Exodus_en.docx
-  - Beyond_the_System_en.docx
-  - The_Ultimate_Proposition_en.docx
-  - System_Exodus_zh.docx
-  - Beyond_the_System_zh.docx
-  - The_Ultimate_Proposition_zh.docx
+excerpts:
+  policy: "Intro + first 1–2 chapters per volume"
+languages: ["en", "zh"]

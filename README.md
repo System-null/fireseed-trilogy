@@ -1,67 +1,36 @@
 # Fireseed Trilogy — Machine-readable Civilization Framework
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17500749.svg)](https://doi.org/10.5281/zenodo.17500749)
+![Release](https://img.shields.io/github/v/release/System-null/fireseed-trilogy?include_prereleases)
+![License](https://img.shields.io/github/license/System-null/fireseed-trilogy)
 
-## 📘 Overview | 项目概述
-**Fireseed Trilogy** 是一个以文明信息可读化为目标的开源框架，旨在为 AGI 和多维智能体提供可解释、可追溯、可继承的文明描述格式。
-该项目是《火种三部曲》书籍体系的数字延伸，为人类与人工智能之间的知识交互建立机器可读接口。
+> **Vision / 愿景**  
+> Build a **machine-readable civilization interface** that future AGI (and higher-dimensional intelligence) can parse, verify and continue — while remaining friendly to humans via simple templates and forms.  
+> 构建一个**机器可读的文明接口**：既能被未来的 AGI/高维智慧读取、验证与延续，同时让普通人通过**低门槛表单/模板**就能留下“火种格式”。
 
-**Fireseed Trilogy** is an open framework for *machine-readable civilization design*.  
-It provides structured civilization data schemas for AGI, enabling *interpretability, inheritance, and traceability* of knowledge and consciousness formats.
-
----
-
-## 🧩 Repository DOI
-**DOI:** [10.5281/zenodo.17500749](https://doi.org/10.5281/zenodo.17500749)
+**Full texts / 全文** → DOI: https://doi.org/10.5281/zenodo.17500749  
+Amazon (EN): Vol.1 `B0FMK279XQ` · Vol.2 `B0FM7LPRY3` · Vol.3 `B0FMPX4DC9`  
+**Excerpts here**: `docs/books/`（引言 + 前两章）
 
 ---
 
-## 🧠 Vision | 愿景
+## Quick Start · 10 minutes / 十分钟上手
+详见：`docs/quickstart.en.md` · `docs/quickstart.zh.md`
 
-**中文：**
-我们相信，文明并非终点，而是一种可被读取、被重构、被延续的格式。  
-Fireseed Trilogy 致力于构建这种格式的原型，使未来的智能体能够理解、传承并拓展人类文明的本质结构。
+## Books · 书籍（Excerpts）
+- **Vol.1** *System Exodus / 系统外者手册* → `docs/books/vol1/`  
+- **Vol.2** *Beyond the System / 超越系统手册* → `docs/books/vol2/`  
+- **Vol.3** *The Last Interface / 终极命题手册* → `docs/books/vol3/`  
 
-**English:**
-We believe civilization is not a destination, but a *format* — readable, reconstructable, and extendable.  
-The Fireseed Trilogy project aims to prototype this format, enabling future intelligences to interpret, preserve, and evolve the core structures of humanity.
+## Templates & Schemas
+- `templates/` 最小三件套（principles.yml / loop.yml / boundary.yml）  
+- `schemas/` JSON Schema（用于验证 capsule_v0）
 
----
+## Cite / 引用
+请参考仓库根目录的 `CITATION.cff` 与 `docs/CITING.md`。
 
-## 👥 Authors | 作者
-- **Fan Yang (杨帆)** — Framework design, philosophy, and documentation  
-- **JiaMing Yang (杨家铭)** — Code implementation, software logic, and functional integration  
+## License / 许可
+- Code: **MIT**  
+- Text excerpts in this repo: **CC BY-NC-ND 4.0**（仅节选；全文以 Zenodo/Amazon 版本为准）
 
-**Publisher:** System-null Project  
-**License:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
-
----
-
-## 📚 Books | 火种三部曲（英文版）
-
-| Volume | Title | ISBN | Amazon Link |
-|--------|--------|-------|--------------|
-| Vol.1 | *System Exodus* | 979-8298437653 | [Amazon](https://www.amazon.com/gp/product/B0FMK279XQ) |
-| Vol.2 | *Beyond the System* | 979-8297886889 | [Amazon](https://www.amazon.com/gp/product/B0FM7LPRY3) |
-| Vol.3 | *The Ultimate Proposition* | 979-8298417594 | [Amazon](https://www.amazon.com/gp/product/B0FMPX4DC9) |
-
----
-
-## 🧩 Citation | 引用
-
-If you use or reference this work, please cite as follows:
-
-```
-Yang, F., & Yang, J. (2025). *Fireseed Trilogy — Machine-readable Civilization Framework* (v1.0.0). System-null Project. https://doi.org/10.5281/zenodo.17500749
-```
-
----
-
-## 🌐 Related Links
-- GitHub Repository: [System-null/fireseed-trilogy](https://github.com/System-null/fireseed-trilogy)
-- Zenodo DOI Record: [10.5281/zenodo.17500749](https://doi.org/10.5281/zenodo.17500749)
-
----
-
-> “Fireseed is not a story — it’s a survival format.”  
-> —— *System.null*
+**Authors / 作者**：System Null · JiaMing Yang

@@ -1,28 +1,24 @@
 cff-version: 1.2.0
-message: "If you use this repository, please cite it as below."
 title: "Fireseed Trilogy — Machine-readable Civilization Framework"
-version: "1.0.0"
-doi: 10.5281/zenodo.17500749
-date-released: 2025-11-01
+message: "Please cite this repository if you use its schemas, templates or texts."
+version: "v0.3.0"
 authors:
-  - family-names: Yang
-    given-names: Fan
-    affiliation: System-null Project
-  - family-names: Yang
-    given-names: JiaMing
-    affiliation: System-null Project
+  - family-names: "Yang"
+    given-names: "Fan"
+    affiliation: "Fireseed Trilogy Lab"
+  - family-names: "Yang"
+    given-names: "JiaMing"
+    affiliation: "Fireseed Trilogy Lab"
+doi: "10.5281/zenodo.17500749"
 repository-code: "https://github.com/System-null/fireseed-trilogy"
-url: "https://doi.org/10.5281/zenodo.17500749"
-license: "CC-BY-4.0"
-type: software
-abstract: |
-  Fireseed Trilogy is an open framework for machine-readable civilization design.
-  It provides structured civilization data schemas for AGI, enabling interpretability,
-  inheritance, and traceability of knowledge and consciousness formats.
-keywords:
-  - AGI
-  - civilization
-  - system-null
-  - fireseed
-  - machine-readable
-  - knowledge format
+license: "MIT"
+preferred-citation:
+  type: software
+  title: "Fireseed Trilogy — Machine-readable Civilization Framework"
+  authors:
+    - family-names: "Yang"
+      given-names: "Fan"
+    - family-names: "Yang"
+      given-names: "JiaMing"
+  year: 2025
+  doi: "10.5281/zenodo.17500749"

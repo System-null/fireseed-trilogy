@@ -1,4 +1,8 @@
-Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
+# Content License (Text Excerpts)
 
-This license applies to all prose, diagrams, images, and non-code content in this repository.
-For the full legal text, see https://creativecommons.org/licenses/by-nc-sa/4.0/
+- Code: MIT (see `LICENSE`)
+- Text excerpts in this repository: **CC BY-NC-ND 4.0** (Attribution-NonCommercial-NoDerivatives)
+
+Full texts follow the versions published on **Zenodo/Amazon**.
+
+© 2025 System-null Project (System Null & JiaMing Yang). All rights reserved for non-excerpt content.

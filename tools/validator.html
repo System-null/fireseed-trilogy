@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Fireseed Capsule Validator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
+    .drop { border: 2px dashed #999; border-radius: 12px; padding: 24px; text-align: center; color: #666; }
+    pre { background: #0b1020; color: #cfe6ff; padding: 12px; border-radius: 8px; overflow: auto; }
+    .ok { color: #0a7f2e; font-weight: 600; }
+    .bad { color: #b00020; font-weight: 600; }
+  </style>
+  <script src="../vendor/js-yaml.min.js"></script>
+  <script src="../vendor/ajv.min.js"></script>
+</head>
+<body>
+  <h1>Fireseed Capsule Validator</h1>
+  <p>Drop <code>capsule_v0.yaml</code> below. Served locally (use VS Code Live Server or <code>python3 -m http.server</code>).</p>
+  <div class="drop" id="drop">Drop YAML here</div>
+  <div id="out"></div>
+  <script>
+    const drop = document.getElementById('drop');
+    const out = document.getElementById('out');
+    const schema = {
+      type: "object",
+      properties: {
+        meta: { type: "object" },
+        principles: { type: "array" },
+        loop: { type: "object" },
+        boundary: { type: "object" },
+        ethical_flag: { type: "integer" }
+      },
+      required: ["meta","principles","loop","boundary"]
+    };
+    function prevent(e){ e.preventDefault(); e.stopPropagation(); }
+    ["dragenter","dragover","dragleave","drop"].forEach(ev=> drop.addEventListener(ev, prevent));
+    drop.addEventListener('drop', async (e)=>{
+      const file = e.dataTransfer.files[0];
+      if(!file) return;
+      const text = await file.text();
+      let data;
+      try { data = jsyaml.load(text); }
+      catch(err){
+        out.innerHTML = "<p class=bad>YAML parse error:</p><pre>"+(err&&err.message||String(err))+"</pre>";
+        return;
+      }
+      try {
+        const ajv = new Ajv({allErrors:true, strict:false});
+        const validate = ajv.compile(schema);
+        const ok = validate(data);
+        if(ok){
+          out.innerHTML = "<p class=ok>Schema validation passed ✅</p><pre>"+JSON.stringify(data,null,2)+"</pre>";
+        }else{
+          out.innerHTML = "<p class=bad>Schema validation errors ❌</p><pre>"+JSON.stringify(validate.errors,null,2)+"</pre>";
+        }
+      } catch(err){
+        out.innerHTML = "<p class=bad>Validator error:</p><pre>"+(err&&err.message||String(err))+"</pre>";
+      }
+    });
+  </script>
+</body>
+</html>

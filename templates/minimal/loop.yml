@@ -1,4 +1,4 @@
 trigger: "daily_review"
 inputs: ["journal/today.md"]
-steps: ["summarize", "extract decisions", "schedule next step"]
+steps: ["summarize","extract decisions","schedule next step"]
 outputs: ["weekly_log.md"]
