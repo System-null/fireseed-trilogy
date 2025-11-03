@@ -1,0 +1,12 @@
+@prefix fs: <https://fireseed.trilogy/ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+
+fs:whitelist a rdfs:Property ;
+    rdfs:label "Whitelist"@en ;
+    rdfs:label "白名单"@zh ;
+    schema:sameAs schema:allowList .
+
+fs:gracePeriod a rdfs:Property ;
+    rdfs:label "Grace Period"@en ;
+    rdfs:label "宽限期"@zh .

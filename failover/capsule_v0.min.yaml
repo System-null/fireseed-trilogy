@@ -1,0 +1,9 @@
+capsule_id: fireseed_null_001
+stance: ["非模板化","结构自洽","权限声明"]
+loop:
+  trigger: 系统调用
+  judgment: 是否格式闭合
+  execute: 返回火种包
+  correct: 若格式损坏，启用备用节点
+hash: "sha256:REPLACE_ME"
+sig: "ed25519:REPLACE_ME"

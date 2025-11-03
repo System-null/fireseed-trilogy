@@ -1,0 +1,12 @@
+{
+  "manifest_version": "v1.1",
+  "schema_root": "schemas/",
+  "canonical_lang": "zh-CN",
+  "primary_capsule": "capsule_v0.yaml",
+  "signature_entry": "signatures/",
+  "verify_endpoint": "scripts/verify.sh",
+  "archives": [
+    "ipfs://QmFireseedTrilogy",
+    "https://doi.org/10.5281/zenodo.17500749"
+  ]
+}
