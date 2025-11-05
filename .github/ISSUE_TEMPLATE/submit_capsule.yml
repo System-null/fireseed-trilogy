@@ -1,0 +1,57 @@
+
+name: "Submit My Capsule"
+description: "Fill this form to submit your Fireseed capsule without using Git locally."
+title: "capsule submission: <your-id>"
+labels: ["submission"]
+body:
+  - type: input
+    id: owner
+    attributes:
+      label: Owner / 所有者
+      placeholder: "Your name"
+    validations:
+      required: true
+  - type: dropdown
+    id: locale
+    attributes:
+      label: Locale / 语种
+      options: ["zh-CN","en-US"]
+      default: 0
+  - type: textarea
+    id: philosophy
+    attributes:
+      label: Philosophy refs / 章节引用（每行一个）
+      placeholder: "System Exodus - Ch.1\nBeyond the System - Ch.2"
+  - type: textarea
+    id: principles
+    attributes:
+      label: Principles / 原则（每行一个）
+      placeholder: "睡够8小时\n每日复盘10分钟"
+  - type: textarea
+    id: loop
+    attributes:
+      label: Loop steps / 循环步骤（每行一个）
+      placeholder: "summarize\nextract decisions\nschedule next step"
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Non-negotiables / 不可妥协（每行一个）
+      placeholder: "no non-consensual extraction of time"
+  - type: dropdown
+    id: ethical
+    attributes:
+      label: Ethical flag / 伦理标记
+      options: ["0","1"]
+      default: 0
+  - type: textarea
+    id: paste
+    attributes:
+      label: (高级) 已有 YAML 可直接粘贴
+      description: "如果你已经在别处生成了 capsule_v0.yaml，可以直接粘贴内容"
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Terms
+      options:
+        - label: "I agree to publish my submission under the repository’s contribution terms."
+          required: true

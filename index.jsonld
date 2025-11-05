@@ -1,4 +1,11 @@
 {
   "@context": "https://schema.org",
-  "@graph": []
+  "@graph": [
+    {
+      "@id": "schemas/",
+      "@type": "Dataset",
+      "name": "Schema root",
+      "url": "schemas/"
+    }
+  ]
 }
