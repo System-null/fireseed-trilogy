@@ -3,190 +3,37 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Fireseed Snapshot · 人类可读快照</title>
+  <title>Fireseed Snapshot · 人类快照</title>
+  <link rel="stylesheet" href="./assets/style.css">
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;margin:0;background:#fff;color:#111}
-    .bar{position:sticky;top:0;background:#0d1117;color:#dfe2e7;padding:6px 12px;font-size:12px;display:flex;gap:8px;align-items:center}
-    .bar a{color:#9ecbff;text-decoration:none}
-    .page{max-width:840px;margin:12px auto;padding:12px 24px 24px}
-    h1{font-size:22px;margin:0 0 6px}
-    .muted{color:#666;font-size:12px}
-    .card{border:1px solid #e6e6e6;border-radius:12px;padding:16px;margin:14px 0}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-    .small{font-size:12px;color:#666}
-    .btn{display:inline-block;border:1px solid #e6e6e6;border-radius:10px;padding:8px 12px;margin-right:8px;text-decoration:none;color:#111}
-    @media print{ .btn{display:none} .page{padding:0} .bar{display:none} }
+    @media print { .no-print { display:none; } }
+    .snapshot { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
   </style>
 </head>
 <body>
-  <div class="bar">
-    <span>Language:</span>
-    <a href="#" data-lang="zh-CN">中文</a> ·
-    <a href="#" data-lang="en-US">English</a> ·
-    <a href="#" data-lang="ja-JP">日本語</a>
-  </div>
-  <div class="page">
-    <h1 id="t_title">Fireseed Snapshot · 人类可读快照</h1>
-    <div class="muted" id="t_sub">可打印，一页保存。若需返回表单，请关闭此页。</div>
-
-    <div id="content" class="card">载入中…</div>
-
-    <div class="small" id="t_legal">
-      异议期：家人/受托人可在 30~90 天内联系“紧急联系人”提出修正。<br/>
-      更新路径：回到生成器 → 上传旧文件 → 修改 → 重新生成。<br/>
-      <span id="pwNotice" style="display:none">未设更新密码，日后可补（下次生成时填写即可）。</span><br/>
-      法律声明：本快照不具备直接法律效力，属于个人意愿表达。若需要具有法律约束力的文件，请咨询专业人士。
+  <div class="container">
+    <h1>人类快照</h1>
+    <p class="disclaimer">此页展示“人类可读”的摘要版本。可打印或导出为PDF。</p>
+    <div id="human" class="snapshot">（尚无内容。请返回生成器填写并生成。）</div>
+    <div class="btns no-print" style="margin-top:12px;">
+      <button onclick="window.history.back()">返回生成器</button>
+      <button onclick="print()">打印/导出 PDF</button>
+      <button id="copyyaml">复制 YAML</button>
     </div>
-    <p>
-      <a class="btn" href="#" onclick="window.print()">🖨️ <span id="t_print">打印 / 存成 PDF</span></a>
-    </p>
+    <div class="card">
+      <h3>YAML（可选）</h3>
+      <pre id="yaml" class="preview mono"></pre>
+    </div>
   </div>
-
-<script>
-const I18N = {
-  "zh-CN": {
-    title: "Fireseed Snapshot · 人类可读快照",
-    sub: "可打印，一页保存。若需返回表单，请关闭此页。",
-    owner: "所有者", lang: "语言",
-    refs: "我思考时的“参考书”",
-    p3: "我的三原则",
-    nn: "我的底线",
-    loop: { trigger:"感知/触发", judgment:"判断", execute:"行动", correct:"反思/纠正" },
-    likes:"我喜欢", dislikes:"我讨厌", dates:"重要日期", emerg:"紧急联系人",
-    legal: '异议期：家人/受托人可在 30~90 天内联系“紧急联系人”提出修正。<br/>更新路径：回到生成器 → 上传旧文件 → 修改 → 重新生成。<br/><span id="pwNotice" style="display:none">未设更新密码，日后可补（下次生成时填写即可）。</span><br/>法律声明：本快照不具备直接法律效力，属于个人意愿表达。若需要具有法律约束力的文件，请咨询专业人士。',
-    print: "打印 / 存成 PDF"
-  },
-  "en-US": {
-    title: "Fireseed Snapshot · Human-readable",
-    sub: "Printable on one page. Close this tab to go back to the form.",
-    owner: "Owner", lang: "Language",
-    refs: "My Reference Books / Ideas",
-    p3: "My Three Principles",
-    nn: "My Non‑negotiables",
-    loop: { trigger:"Perception/Trigger", judgment:"Judgment", execute:"Action", correct:"Reflection/Correction" },
-    likes:"I like", dislikes:"I dislike", dates:"Important dates", emerg:"Emergency contact",
-    legal: 'Objection window: family/trustee may propose corrections within 30–90 days via the emergency contact.<br/>To update: open the generator → upload old file → modify → regenerate.<br/><span id="pwNotice" style="display:none">No update passphrase set; you can add one next time.</span><br/>Disclaimer: this snapshot has no direct legal effect. Consult professionals for legally binding documents.',
-    print: "Print / Save as PDF"
-  },
-  "ja-JP": {
-    title: "Fireseed スナップショット（人間向け）",
-    sub: "1ページで印刷可能。フォームに戻るにはこのタブを閉じてください。",
-    owner: "所有者", lang: "言語",
-    refs: "私の思考を形作った本・人物",
-    p3: "私の三つの原則",
-    nn: "譲れない一線",
-    loop: { trigger:"知覚/トリガー", judgment:"判断", execute:"行動", correct:"内省/修正" },
-    likes:"好き", dislikes:"苦手", dates:"大切な日付", emerg:"緊急連絡先",
-    legal: '異議期間：家族/受託者は 30〜90 日以内に「緊急連絡先」へ修正を申し出できます。<br/>更新方法：ジェネレーターに戻り → 旧ファイルをアップロード → 修正 → 再生成。<br/><span id="pwNotice" style="display:none">更新パスフレーズは未設定。次回追加できます。</span><br/>免責：本スナップショットは法的効力を持ちません。法的文書は専門家にご相談ください。',
-    print: "印刷 / PDFとして保存"
-  }
-};
-
-function parseYAML(text){
-  const lines = text.split(/\r?\n/);
-  const stack = [{}];
-  const indents = [0];
-  function set(obj, key, val){
-    if(Array.isArray(obj[key])) obj[key].push(val);
-    else if(key in obj && typeof obj[key]==='object' && typeof val==='object'){ Object.assign(obj[key], val); }
-    else obj[key]=val;
-  }
-  for(const raw of lines){
-    if(/^#/.test(raw)) continue;
-    const m = raw.match(/^(\s*)([^:#-][^:]*)\s*:\s*(.*)$/);
-    const a = raw.match(/^(\s*)-\s*(.*)$/);
-    if(m){
-      const [, sp, key, val] = m;
-      const indent = sp.length;
-      while(indent < indents[indents.length-1]){ indents.pop(); stack.pop(); }
-      if(val===''){
-        const obj = {};
-        set(stack[stack.length-1], key.trim(), obj);
-        stack.push(obj); indents.push(indent+2);
-      }else{
-        set(stack[stack.length-1], key.trim(), val.replace(/^\"|\"$/g,''));
-      }
-    }else if(a){
-      const [, sp, val] = a;
-      const indent = sp.length;
-      while(indent < indents[indents.length-1]){ indents.pop(); stack.pop(); }
-      const parent = stack[stack.length-1];
-      const arrayKey = Object.keys(parent).slice(-1)[0];
-      if(!Array.isArray(parent[arrayKey])) parent[arrayKey]=[];
-      parent[arrayKey].push(val.replace(/^\"|\"$/g,''));
-    }
-  }
-  return stack[0];
-}
-
-function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&','<':'&lt;','>':'&gt;'}[c])); }
-
-function applyLang(lang){
-  const t = I18N[lang] || I18N["zh-CN"];
-  document.getElementById('t_title').textContent = t.title;
-  document.getElementById('t_sub').textContent = t.sub;
-  document.getElementById('t_print').textContent = t.print;
-  document.getElementById('t_legal').innerHTML = t.legal;
-  window.__t__ = t;
-  if(window.__c__) render(window.__c__);
-}
-
-function render(c){
-  window.__c__ = c;
-  const t = window.__t__ || I18N["zh-CN"];
-  const el = document.getElementById('content');
-  const parts = [];
-  parts.push(`<div class='row'><div><strong>${esc(t.owner)}</strong><br>${esc(c.owner||'anonymous')}`+
-             `</div><div><strong>${esc(t.lang)}</strong><br>${esc(c.locale||'-')}</div></div>`);
-  if(c.philosophy_refs && c.philosophy_refs.length){
-    parts.push(`<div><strong>${esc(t.refs)}</strong><br>${esc(c.philosophy_refs.join('、'))}</div>`);
-  }
-  if(c.narrative && c.narrative.story){
-    parts.push(`<p>${esc(c.narrative.story)}</p>`);
-  }
-  if(c.principles && c.principles.length){
-    parts.push(`<div><strong>${esc(t.p3)}</strong><ul>${c.principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`);
-  }
-  if(c.non_negotiables && c.non_negotiables.length){
-    parts.push(`<div><strong>${esc(t.nn)}</strong><ul>${c.non_negotiables.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`);
-  }
-  if(c.loop){
-    const seg = [];
-    if(c.loop.trigger) seg.push(`${esc(t.loop.trigger)}：${esc(c.loop.trigger)}`);
-    if(c.loop.judgment) seg.push(`${esc(t.loop.judgment)}：${esc(c.loop.judgment)}`);
-    if(c.loop.execute) seg.push(`${esc(t.loop.execute)}：${esc(c.loop.execute)}`);
-    if(c.loop.correct) seg.push(`${esc(t.loop.correct)}：${esc(c.loop.correct)}`);
-    if(seg.length) parts.push(`<div>${seg.join(" ｜ ")}</div>`);
-  }
-  if(c.narrative && c.narrative.ext){
-    const e = c.narrative.ext;
-    if(e.likes?.length || e.dislikes?.length || e.celebration_dates?.length || e.emergency_contact){
-      parts.push("<hr>");
-      if(e.likes?.length) parts.push(`<div><strong>${esc(t.likes)}</strong>：${esc(e.likes.join('、'))}</div>`);
-      if(e.dislikes?.length) parts.push(`<div><strong>${esc(t.dislikes)}</strong>：${esc(e.dislikes.join('、'))}</div>`);
-      if(e.celeation_dates?.length) parts.push(`<div><strong>${esc(t.dates)}</strong>：${esc(e.celebration_dates.join('、'))}</div>`);
-      if(e.emergency_contact){
-        parts.push(`<div><strong>${esc(t.emerg)}</strong>：${esc(e.emergency_contact.name||'')} · ${esc(e.emergency_contact.contact||'')}</div>`);
-      }
-      if(!e.update_passphrase) document.getElementById("pwNotice")?.style && (document.getElementById("pwNotice").style.display = "inline");
-    }
-  }
-  parts.push("<hr>");
-  parts.push(`<div class='mono small'>UTC Generated: ${esc(new Date().toISOString())}</div>`);
-  el.innerHTML = parts.join("");
-}
-
-(function(){
-  const raw = decodeURIComponent(location.hash.replace(/^#(print#)?/,''));
-  const data = parseYAML(raw);
-  document.querySelectorAll('.bar a').forEach(a=>{
-    a.addEventListener('click', e=>{ e.preventDefault(); applyLang(a.dataset.lang); });
-  });
-  applyLang(new URLSearchParams(location.search).get('lang') || 'zh-CN');
-  render(data);
-  if(location.hash.startsWith("#print#")) setTimeout(()=>window.print(), 300);
-})();
-</script>
+  <script>
+    const human = localStorage.getItem('fireseed_last_human') || '（暂无人类快照，先在生成器生成一份吧）';
+    const yaml  = localStorage.getItem('fireseed_last_yaml') || '# 先在生成器生成一份胶囊';
+    document.getElementById('human').textContent = human;
+    document.getElementById('yaml').textContent  = yaml;
+    document.getElementById('copyyaml').onclick = () => {
+      navigator.clipboard.writeText(yaml).then(()=> alert('已复制 YAML'));
+    };
+  </script>
 </body>
 </html>
