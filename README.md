@@ -48,3 +48,8 @@
 
 **Authors / 作者**：System Null · JiaMing Yang  
 **Version**：v0.3.3 Metadata Update Release
+
+## Fireseed Generator
+[打开生成器 → public/generator.html](./public/generator.html)
+
+[查看快照 → public/snapshot.html](./public/snapshot.html)
