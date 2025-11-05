@@ -1,0 +1,26 @@
+name: Release Offline Kit
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare offline package
+        run: |
+          mkdir -p dist
+          zip -r dist/fireseed-offline-${{ github.ref_name }}.zip public             README.md LICENSE COMPATIBILITY.md docs/ACCESS_TERMS.md || true
+          (cd dist && sha256sum fireseed-offline-${{ github.ref_name }}.zip > SHA256SUMS.txt)
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/fireseed-offline-${{ github.ref_name }}.zip
+            dist/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

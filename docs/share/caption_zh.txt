@@ -1,0 +1,4 @@
+我给自己写了一份“人生使用说明书”。
+它能被未来系统读取，也能让家人看得懂。
+3 分钟生成，离线可用，开源免费。
+#火种胶囊 https://system-null.github.io/fireseed-trilogy/public/generator.html

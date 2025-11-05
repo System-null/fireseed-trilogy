@@ -1,0 +1,6 @@
+revocation:
+  revoked_hash: "<填入旧 YAML 的 sha256 值>"
+  reason: "内容已更新/信息有误/当事人声明撤回"
+  timestamp: "2025-11-06T00:00:00Z"
+  contact: "受托人或维护者的邮箱/网址"
+note: "建议将此文件公开（GitHub Gist/仓库/社交主页），以便第三方校验。"

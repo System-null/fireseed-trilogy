@@ -1,6 +1,5 @@
 <!-- One‑click offline -->
-> **一键离线（推荐）**：
-> [⬇️ 下载 Fireseed Offline Pack](https://github.com/System-null/fireseed-trilogy/releases/latest/download/fireseed-offline-v3.6.zip)
+[![Download ZIP](https://img.shields.io/badge/Download-%E7%A6%BB%E7%BA%BF%E5%8C%85-brightgreen?style=for-the-badge)](https://github.com/System-null/fireseed-trilogy/releases/latest)
 > 断网也能用：解压后直接打开 `public/generator.html` 即可三分钟生成。
 
 # Fireseed Trilogy — Machine-readable Civilization Framework

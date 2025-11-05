@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080">
+  <rect width="100%" height="100%" fill="#0b1020"/>
+  <text x="50" y="180" fill="#c7d2fe" font-size="72" font-family="Helvetica Neue, Arial">我给自己写了份“人生使用说明书”</text>
+  <text x="50" y="270" fill="#9aa5ff" font-size="40">3 分钟生成 · 离线可用 · 开源免费</text>
+  <rect x="50" y="750" width="260" height="260" fill="#fff"/>
+  <text x="330" y="820" fill="#c7d2fe" font-size="36">扫码或搜索：Fireseed Generator</text>
+</svg>

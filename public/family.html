@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家庭说明书 · Fireseed</title>
+<link rel="stylesheet" href="./assets/style.css">
+<style>
+  @media print {.no-print{display:none}}
+  .card{max-width:900px;margin:12px auto}
+  ol{padding-left:20px}
+  .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background: #f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding: 1px 6px; font-size: 12px;}
+</style>
+</head><body>
+<div class="container">
+  <h1>家庭说明书（给家人/受托人）</h1>
+  <div class="card">
+    <h3>这是什么？</h3>
+    <p>这是一份“人生使用说明书”。遇到紧急情况、需要代为决策时，请先阅读。</p>
+    <h3>怎么打开？</h3>
+    <ol>
+      <li>用手机扫码/打开 <span class="kbd">人类快照</span> 页面（来自当事人分享的链接或打印件二维码）。</li>
+      <li>如需原始文件，索取 <span class="kbd">capsule.yaml</span>（电脑可用任意文本编辑器打开）。</li>
+      <li>如显示“30天异议期”，在期内联系“紧急联系人”协调更新。</li>
+    </ol>
+    <h3>如果需要更新/更正？</h3>
+    <ol>
+      <li>回到生成器，点击「上传旧文件」→ 自动回填 → 修改 → 重新生成。</li>
+      <li>若需作废旧文件，请公开“吊销声明”（见仓库 <span class="kbd">docs/revoke-template.yaml</span>）。</li>
+    </ol>
+    <p class="disclaimer">⚠️ 本说明书不具法律效力；涉及遗嘱/资产，请咨询律师。</p>
+    <div class="no-print btns">
+      <button onclick="print()">打印/保存为 PDF</button>
+      <a class="btn-link" href="./generator.html">打开生成器</a>
+    </div>
+  </div>
+</div>
+</body></html>
