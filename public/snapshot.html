@@ -1,1 +1,117 @@
-<!-- snapshot.html from v3.3 -->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Fireseed Snapshot · 人类可读快照</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;margin:0;background:#fff;color:#111}
+    .page{max-width:840px;margin:24px auto;padding:24px}
+    h1{font-size:22px;margin:0 0 6px}
+    .muted{color:#666;font-size:12px}
+    .card{border:1px solid #e6e6e6;border-radius:12px;padding:16px;margin:14px 0}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .small{font-size:12px;color:#666}
+    .btn{display:inline-block;border:1px solid #e6e6e6;border-radius:10px;padding:8px 12px;margin-right:8px;text-decoration:none;color:#111}
+    .qr{width:112px;height:112px;border:1px solid #eee;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#999}
+    @media print{ .btn{display:none} .page{padding:0} }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Fireseed Snapshot · 人类可读快照</h1>
+    <div class="muted">可打印，一页保存。若需返回表单，请关闭此页。</div>
+
+    <div id="content" class="card">载入中…</div>
+
+    <div class="small">
+      异议期：家人/受托人可在 30~90 天内联系“紧急联系人”提出修正。<br/>
+      更新路径：回到生成器 → 上传旧文件 → 修改 → 重新生成。<br/>
+      若需完整 YAML，请返回上一页点击「下载 YAML」。
+    </div>
+    <p>
+      <a class="btn" href="#" onclick="window.print()">🖨️ 打印 / 存成 PDF</a>
+    </p>
+  </div>
+
+<script>
+function parseYAML(text){
+  // extremely tiny YAML reader for this structure (expects key: value, arrays with - , no nesting tricks)
+  const lines = text.split(/\\r?\\n/);
+  const stack = [{}];
+  const indents = [0];
+  function set(obj, key, val){
+    if(Array.isArray(obj[key])) obj[key].push(val);
+    else if(key in obj && typeof obj[key]==='object' && typeof val==='object'){ Object.assign(obj[key], val); }
+    else obj[key]=val;
+  }
+  for(const raw of lines){
+    const m = raw.match(/^(\\s*)([^:#-][^:]*)\\s*:\\s*(.*)$/);
+    const a = raw.match(/^(\\s*)-\\s*(.*)$/);
+    if(m){
+      const [, sp, key, val] = m;
+      const indent = sp.length;
+      while(indent < indents[indents.length-1]){ indents.pop(); stack.pop(); }
+      if(val===''){ // start object level
+        const obj = {};
+        set(stack[stack.length-1], key.trim(), obj);
+        stack.push(obj); indents.push(indent+2);
+      }else{
+        set(stack[stack.length-1], key.trim(), val.replace(/^\"|\"$/g,''));
+      }
+    }else if(a){
+      const [, sp, val] = a;
+      const indent = sp.length;
+      while(indent < indents[indents.length-1]){ indents.pop(); stack.pop(); }
+      const parent = stack[stack.length-1];
+      const arrayKey = Object.keys(parent).slice(-1)[0];
+      if(!Array.isArray(parent[arrayKey])) parent[arrayKey]=[];
+      parent[arrayKey].push(val.replace(/^\"|\"$/g,''));
+    }
+  }
+  return stack[0];
+}
+
+function hEscape(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function render(c){
+  const el = document.getElementById('content');
+  const parts = [];
+  parts.push(`<div class='row'><div><strong>所有者</strong><br>${hEscape(c.owner||'anonymous')}</div><div><strong>语言</strong><br>${hEscape(c.locale||'-')}</div></div>`);
+  if(c.narrative && c.narrative.story){
+    parts.push(`<p>${hEscape(c.narrative.story)}</p>`);
+  }
+  if(c.principles && c.principles.length){
+    parts.push(`<div><strong>原则</strong><ul>${c.principles.map(x=>`<li>${hEscape(x)}</li>`).join('')}</ul></div>`);
+  }
+  if(c.non_negotiables && c.non_negotiables.length){
+    parts.push(`<div><strong>不可妥协</strong><ul>${c.non_negotiables.map(x=>`<li>${hEscape(x)}</li>`).join('')}</ul></div>`);
+  }
+  if(c.loop){
+    parts.push(`<div class='row'><div><strong>触发</strong><br>${hEscape(c.loop.trigger||'-')}</div><div><strong>执行/纠正</strong><br>${hEscape((c.loop.execute||'') + (c.loop.correct? ' / '+c.loop.correct:''))}</div></div>`);
+  }
+  if(c.narrative && c.narrative.ext){
+    const e = c.narrative.ext;
+    if(e.likes?.length || e.dislikes?.length || e.celebration_dates?.length || e.emergency_contact){
+      parts.push("<hr>");
+      if(e.likes?.length) parts.push(`<div><strong>我喜欢</strong>：${hEscape(e.likes.join('、'))}</div>`);
+      if(e.dislikes?.length) parts.push(`<div><strong>我讨厌</strong>：${hEscape(e.dislikes.join('、'))}</div>`);
+      if(e.celebration_dates?.length) parts.push(`<div><strong>重要日子</strong>：${hEscape(e.celebration_dates.join('、'))}</div>`);
+      if(e.emergency_contact){ parts.push(`<div><strong>紧急联系人</strong>：${hEscape(e.emergency_contact.name||'')} · ${hEscape(e.emergency_contact.contact||'')}</div>`); }
+    }
+  }
+  parts.push("<hr>");
+  parts.push(`<div class='mono small'>生成时间：${hEscape(new Date().toISOString())}</div>`);
+  el.innerHTML = parts.join("");
+}
+
+(function(){
+  const raw = decodeURIComponent(location.hash.replace(/^#(print#)?/,''));
+  const data = parseYAML(raw);
+  render(data);
+  if(location.hash.startsWith("#print#")) setTimeout(()=>window.print(), 300);
+})();
+</script>
+</body>
+</html>

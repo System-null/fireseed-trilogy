@@ -1,96 +1,288 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<title>Fireseed Capsule Generator · 向导版 v3.3</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-body { font-family: system-ui, sans-serif; background: #fafafa; max-width: 800px; margin: 40px auto; padding: 20px; color: #222; }
-h1 { text-align: center; }
-fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 20px; padding: 15px; background: #fff; }
-legend { font-weight: bold; }
-label { display: block; margin-top: 10px; }
-textarea, input, select { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
-button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; }
-button.primary { background: #222; color: #fff; }
-.footer { font-size: 0.9em; color: #666; border-top: 1px solid #ddd; margin-top: 40px; padding-top: 10px; }
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Fireseed Capsule Generator · 向导版 v3.4</title>
+  <style>
+    :root { --fg:#111; --muted:#666; --bg:#fafafa; --pri:#1f6feb; --bd:#e6e6e6; }
+    *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;color:var(--fg);background:var(--bg);margin:0}
+    header{padding:28px 16px 8px; text-align:center}
+    h1{margin:0 0 8px;font-size:22px}
+    .sub{color:var(--muted);font-size:13px}
+    .wrap{max-width:940px;margin:16px auto;padding:0 16px 64px;display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+    .card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+    label{display:block;font-size:13px;color:#444;margin:12px 0 6px}
+    input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:#fff;font-size:14px}
+    textarea{min-height:92px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    button{cursor:pointer;border:1px solid var(--bd);background:#fff;border-radius:10px;padding:10px 14px}
+    .pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+    details{border:1px dashed var(--bd);border-radius:10px;padding:10px;margin-top:10px;background:#fcfcfc}
+    summary{cursor:pointer;font-weight:600}
+    pre{white-space:pre-wrap;border:1px solid var(--bd);padding:12px;border-radius:10px;background:#0d1117;color:#dfe2e7;font-size:12px;overflow:auto;max-height:60vh}
+    .hint{font-size:12px;color:var(--muted)}
+    footer{max-width:940px;margin:24px auto 64px;padding:0 16px;color:#777;font-size:12px}
+    .badge{display:inline-block;background:#eef6ff;border:1px solid #c9e2ff;color:#0a3d90;font-size:12px;padding:2px 8px;border-radius:999px;margin:0 6px}
+  </style>
 </head>
 <body>
-<h1>Fireseed Capsule Generator · 向导版 v3.3</h1>
-<p>本地运行 · 不上传数据 · 可导出 YAML 与 PDF · 支持签名 / 跳过 / 快照模式。</p>
+  <header>
+    <h1>Fireseed Capsule Generator · 向导版 v3.4 <span class="badge">纯前端 · 零后端 · 可离线</span></h1>
+    <div class="sub">填完点“生成胶囊”即可下载 <code>capsule_v0.yaml</code>；可选择导出 PDF、小册子快照。</div>
+  </header>
 
-<form id="capsuleForm">
-<fieldset><legend>基本信息</legend>
-<label>Owner / 拥有者 <input id="owner" placeholder="例如：JiaMing Yang"></label>
-<label>Locale / 语言
-<select id="locale"><option>zh-CN</option><option>en-US</option></select></label>
-</fieldset>
+  <main class="wrap">
+    <section class="card" id="form">
+      <h3>基本信息</h3>
+      <label>Owner / 所有者</label>
+      <input id="owner" placeholder="如：JiaMing Yang">
 
-<fieldset><legend>Philosophy Refs / 参考章节</legend>
-<textarea id="refs" placeholder="System Exodus · Ch.1&#10;Beyond the System · Ch.2"></textarea>
-</fieldset>
+      <label>Locale / 语种</label>
+      <select id="locale">
+        <option value="zh-CN">zh-CN</option>
+        <option value="en-US">en-US</option>
+      </select>
 
-<fieldset><legend>Principles / 原则</legend>
-<textarea id="principles" placeholder="例：以最小能耗达成最大理解"></textarea>
-</fieldset>
+      <label>Philosophy Refs / 参考章节（每行一个）</label>
+      <textarea id="philo" placeholder="System Exodus - Ch.1&#10;Beyond the System - Ch.2&#10;The Last Interface - Ch.3"></textarea>
 
-<fieldset><legend>Loop Steps / 循环步骤</legend>
-<textarea id="loop" placeholder="trigger, execute, correct..."></textarea>
-</fieldset>
+      <label>Principles / 原则（每行一个）</label>
+      <textarea id="principles" placeholder="例：以最小能耗达成最大理解"></textarea>
 
-<fieldset><legend>Non-negotiables / 不可妥协</legend>
-<textarea id="nonneg" placeholder="例：不欺骗、不剥削、不违心"></textarea>
-</fieldset>
+      <label>Loop Steps / 循环步骤（每行一个：trigger, execute, correct...）</label>
+      <textarea id="loop" placeholder="trigger: 当他人请求解释结构时&#10;execute: 用最小能耗讲清来源与边界&#10;correct: 若仍误解，给一次图示机会；再无效，终止解释"></textarea>
 
-<fieldset><legend>叙事 / Narrative</legend>
-<textarea id="story" placeholder="写几句故事或说明，描述此胶囊的缘起。"></textarea>
-</fieldset>
+      <label>Non-negotiables / 不可妥协（每行一个）</label>
+      <textarea id="nonn" placeholder="不欺骗&#10;不剥削&#10;不违心"></textarea>
 
-<button type="button" class="primary" onclick="generateYAML()">生成胶囊</button>
-<button type="button" onclick="downloadYAML()">下载 YAML</button>
-<button type="button" onclick="alert('PDF导出将在v3.4中开放')">导出 PDF</button>
-</form>
+      <label>叙事 / Narrative（给人看的说明，可空）</label>
+      <textarea id="narrative" placeholder="给未来的读者：这是一份关于“如何读取我”的小册子。"></textarea>
 
-<pre id="output" style="background:#f4f4f4;padding:10px;border-radius:6px;white-space:pre-wrap;"></pre>
+      <details>
+        <summary>✨ 我想写多一点（完全可选，增强“人味”）</summary>
+        <div class="row">
+          <div>
+            <label>🎂 我庆祝的日子</label>
+            <input id="celebrations" placeholder="04-12, 09-23">
+          </div>
+          <div>
+            <label>👥 如果我不在了，请联系（姓名 + 邮箱/微信）</label>
+            <input id="emergency" placeholder="林姐, wechat:linjie123 / hi@example.com">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>❤️ 我喜欢的事物（逗号分隔）</label>
+            <input id="likes" placeholder="爵士乐, 书店, 夜空">
+          </div>
+          <div>
+            <label>🙅 我讨厌的事物（逗号分隔）</label>
+            <input id="dislikes" placeholder="噪音, 欺骗">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>📖 我愿意被读取的条件</label>
+            <select id="access_terms">
+              <option value="">未声明（默认遵循 permissions）</option>
+              <option value="read_only">仅可阅读</option>
+              <option value="by_attribution">需署名引用</option>
+              <option value="non_commercial">可用于非商业研究</option>
+            </select>
+          </div>
+          <div>
+            <label>🔑 更新密码（4~6位短语，可空）</label>
+            <input id="passphrase" placeholder="seed42">
+          </div>
+        </div>
+      </details>
 
-<div class="footer">
-<p>⚠️ 无需联网，数据仅存于浏览器内存。</p>
-<p>签名失败或IPFS超时可跳过，稍后可手动补签。</p>
-<p>异议期：家人可在30天内联系联系人提出修正。</p>
-<p>更新路径：回生成器 → 上传旧文件 → 修改 → 重新生成。</p>
-</div>
+      <h3 style="margin-top:18px">权限与存储（已预设，若不懂可保持默认）</h3>
+      <div class="row">
+        <div>
+          <label>是否允许派生（derive）</label>
+          <select id="allow_derive"><option value="yes">是</option><option value="no">否</option></select>
+        </div>
+        <div>
+          <label>异议期（grace_period）</label>
+          <select id="grace"><option value="P30D">30 天</option><option value="P90D">90 天</option></select>
+        </div>
+      </div>
 
-<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+      <div class="btns">
+        <button class="pri" id="btnGen">生成胶囊</button>
+        <button id="btnYAML">下载 YAML</button>
+        <button id="btnPDF">导出 PDF</button>
+        <button id="btnSnapshot">查看人类快照</button>
+      </div>
+      <div class="hint">⚠️ 纯前端、断网可用；不会上传你的任何答案。失败操作（签名/IPFS）将允许跳过。</div>
+    </section>
+
+    <section class="card">
+      <h3>YAML 预览</h3>
+      <pre id="yaml">（点击“生成胶囊”后在此显示）</pre>
+      <div class="btns"><button id="btnCopy">复制 YAML</button></div>
+      <h3>人类预览（精要）</h3>
+      <pre id="human">（填表后会自动更新为“人类可读版”）</pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>🔒 你的答案仅存浏览器内存；除非你自行上传副本（如 IPFS/Zenodo），否则不会离开本地设备。</p>
+    <p>📝 异议期：家人/受托人可在 <strong id="gpTxt">30 天</strong> 内联系「紧急联系人」提出修正。更新路径：回到生成器 → 上传旧文件 → 修改 → 重新生成。</p>
+  </footer>
+
 <script>
-function generateYAML(){
-  const capsule = {
-    version: "capsule_v0",
-    format_version: "v0.3.3",
-    owner: document.getElementById("owner").value || "anonymous",
-    locale: document.getElementById("locale").value,
-    philosophy_refs: document.getElementById("refs").value.split("\n").filter(Boolean),
-    principles: document.getElementById("principles").value.split("\n").filter(Boolean),
-    non_negotiables: document.getElementById("nonneg").value.split("\n").filter(Boolean),
-    loop: { trigger: "自触发", execute: "持续更新", correct: "自我校正" },
-    narrative: { story: document.getElementById("story").value },
-    permissions: { access:["read","derive"], grace_period:"P30D" },
-    proofs: { checksum_algo:"SHA-256", hash:"<auto>", signature:null },
-    storage: { media:["local"], redundancy:1 },
-    meta: { generated_at: new Date().toISOString(), generator:"fireseed-wizard-v3.3" }
-  };
-  const yamlText = jsyaml.dump(capsule, {skipInvalid:true});
-  document.getElementById("output").textContent = yamlText;
+function sha256Hex(str){
+  // simple SHA-256 using Web Crypto
+  const enc = new TextEncoder().encode(str);
+  return crypto.subtle.digest('SHA-256', enc).then(buf => {
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  });
+}
+function val(id){ return document.getElementById(id).value.trim(); }
+function arrFromTextarea(v){
+  return v.split(/\\n+/).map(s=>s.trim()).filter(Boolean);
+}
+function csv(v){ return v.split(/[,，]+/).map(x=>x.trim()).filter(Boolean); }
+function yamlEscape(s){ return s.replace(/\"/g,'\\"'); }
+
+function renderHuman(c){
+  const lines = [];
+  const owner = c.owner || "anonymous";
+  lines.push(`所有者：${owner} · 语言：${c.locale}`);
+  if(c.narrative?.story){ lines.push("", c.narrative.story); }
+  if(c.narrative?.ext?.likes?.length){ lines.push("", "我喜欢："+c.narrative.ext.likes.join("、")); }
+  if(c.narrative?.ext?.dislikes?.length){ lines.push("我讨厌："+c.narrative.ext.dislikes.join("、")); }
+  if(c.narrative?.ext?.celebration_dates?.length){ lines.push("对我重要的日子："+c.narrative.ext.celebration_dates.join("、")); }
+  if(c.narrative?.ext?.emergency_contact){ lines.push("", "紧急联系人："+c.narrative.ext.emergency_contact.name+" · "+c.narrative.ext.emergency_contact.contact); }
+  lines.push("", "异议期："+(c.permissions?.grace_period||"P30D"));
+  return lines.join("\\n");
 }
 
-function downloadYAML(){
-  const blob = new Blob([document.getElementById("output").textContent], {type:"text/yaml"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "capsule_v0.yaml";
-  a.click();
+function toYAML(obj, indent=0){
+  const pad = '  '.repeat(indent);
+  if (obj === null) return "null";
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return "[]";
+    return obj.map(x=> pad+"- "+toYAML(x, indent+1).trimStart()).join("\\n");
+  }
+  if (typeof obj === 'object'){
+    return Object.keys(obj).map(k=>{
+      const v = obj[k];
+      if (v === undefined) return null;
+      const head = pad + k + ": ";
+      if (v && typeof v === 'object' && !Array.isArray(v)){
+        return head + "\\n" + toYAML(v, indent+1);
+      } else if (Array.isArray(v)){
+        if (v.length===0) return head+"[]";
+        return head + "\\n" + toYAML(v, indent+1);
+      } else if (typeof v === 'string'){
+        if (v.includes(":") || v.includes("#") || v.includes("\"") || v.includes("\\n")) {
+          return head + '"' + yamlEscape(v) + '"';
+        }
+        return head + v;
+      } else {
+        return head + String(v);
+      }
+    }).filter(Boolean).join("\\n");
+  }
+  if (typeof obj === 'string') return '"'+yamlEscape(obj)+'"';
+  return String(obj);
 }
+
+async function buildCapsule(){
+  const base = {
+    version: "capsule_v0",
+    format_version: "v0.3.4",
+    owner: val("owner") || "anonymous",
+    locale: val("locale") || "zh-CN",
+    philosophy_refs: arrFromTextarea(val("philo")),
+    principles: arrFromTextarea(val("principles")),
+    non_negotiables: arrFromTextarea(val("nonn")),
+    loop: {
+      trigger: null, execute: null, correct: null
+    },
+    permissions: {
+      access: ["read", (val("allow_derive")==="yes"?"derive":null)].filter(Boolean),
+      grace_period: val("grace") || "P30D"
+    },
+    storage: {
+      media: ["local"],
+      redundancy: 1
+    },
+    proofs: {
+      checksum_algo: "SHA-256",
+      hash: null,
+      signature: null,
+      timestamp: new Date().toISOString()
+    },
+    meta: {
+      generated_at: new Date().toISOString(),
+      generator: "fireseed-generator-human-v3.4"
+    }
+  };
+  // loop compose
+  const lines = arrFromTextarea(val("loop"));
+  lines.forEach(line=>{
+    const m = line.match(/^\\s*(trigger|execute|correct)\\s*:\\s*(.+)$/i);
+    if(m){ base.loop[m[1].toLowerCase()] = m[2]; }
+  });
+  // narrative & ext
+  const ext = {};
+  if(val("celebrations")) ext.celebration_dates = csv(val("celebrations"));
+  if(val("likes")) ext.likes = csv(val("likes"));
+  if(val("dislikes")) ext.dislikes = csv(val("dislikes"));
+  if(val("emergency")){
+    const t = val("emergency").split(/[,，]+/);
+    ext.emergency_contact = { name: (t[0]||"").trim(), contact: (t.slice(1).join(",")||"").trim() };
+  }
+  if(val("access_terms")) ext.access_terms = val("access_terms");
+  if(val("passphrase")) ext.update_passphrase = val("passphrase");
+  base.narrative = { story: val("narrative")||"", ext };
+  // grace text
+  document.getElementById("gpTxt").textContent = (base.permissions.grace_period==="P90D"?"90 天":"30 天");
+
+  // preliminary YAML (without hash)
+  let yaml = toYAML(base);
+  const hash = await sha256Hex(yaml);
+  base.proofs.hash = hash;
+  yaml = toYAML(base);
+
+  // render
+  document.getElementById("yaml").textContent = yaml;
+  document.getElementById("human").textContent = renderHuman(base);
+
+  // attach for download
+  window.__capsule_yaml__ = yaml;
+  window.__capsule_hash__ = hash;
+  return base;
+}
+
+document.getElementById("btnGen").addEventListener("click", buildCapsule);
+document.getElementById("btnYAML").addEventListener("click", async ()=>{
+  const c = await buildCapsule();
+  const blob = new Blob([window.__capsule_yaml__||""], {type:"text/yaml"});
+  const a = Object.assign(document.createElement("a"), {href:URL.createObjectURL(blob), download:"capsule_v0.yaml"});
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById("btnCopy").addEventListener("click", ()=>{
+  const s = document.getElementById("yaml").textContent || "";
+  navigator.clipboard.writeText(s);
+});
+document.getElementById("btnSnapshot").addEventListener("click", async ()=>{
+  await buildCapsule();
+  const url = "snapshot.html#"+encodeURIComponent(window.__capsule_yaml__||"");
+  window.open(url, "_blank");
+});
+document.getElementById("btnPDF").addEventListener("click", async ()=>{
+  await buildCapsule();
+  // very light: open snapshot view and let browser print
+  const url = "snapshot.html#print#"+encodeURIComponent(window.__capsule_yaml__||"");
+  window.open(url, "_blank");
+});
 </script>
 </body>
 </html>
