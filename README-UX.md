@@ -30,4 +30,4 @@
 ## 启用 GitHub Pages（让生成器对外可访问）
 - Settings → Pages → Source 选择 `Deploy from a branch`
 - Branch 选 `main`，文件夹选 `/ (root)`，保存
-- 访问：`https://<你的用户名>.github.io/<仓库名>/generator.html`
+- 访问：`https://<你的用户名>.github.io/<仓库名>/public/generator.html`

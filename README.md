@@ -16,7 +16,7 @@
 | 入口 | 功能说明 |
 |------|-----------|
 | 🔥 [Start Here / 从这里开始](./START_HERE.md) | 阅读仓库使用导引（适合第一次访问） |
-| 🧩 [Fireseed Generator / 火种生成器](https://system-null.github.io/fireseed-trilogy/generator.html) | 可视化界面，一键生成 capsule_v0.yaml 文件 |
+| 🧩 [Fireseed Generator / 火种生成器](https://system-null.github.io/fireseed-trilogy/public/generator.html) | 可视化界面，一键生成 capsule_v0.yaml 文件 |
 | ✅ [Capsule Validator / 验证器](https://system-null.github.io/fireseed-trilogy/tools/validator.html) | 检查 YAML 结构与签名有效性 |
 | 🧠 [Templates & Schemas / 模板与结构](./templates/) | 最小模板与 JSON Schema 说明 |
 | 📚 [Reading Guide / 阅读指引](./docs/books/README.md) | 三部曲章节摘要与电子版链接 |
@@ -55,6 +55,6 @@
 **Version**：v0.3.3 Metadata Update Release
 
 ## Fireseed Generator
-[打开生成器 → public/generator.html](./generator.html)
+[打开生成器 → public/generator.html](./public/generator.html)
 
 [查看快照 → public/snapshot.html](./public/snapshot.html)
