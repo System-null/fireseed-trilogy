@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Fireseed Capsule Generator · 向导版 v3.4.2</title>
+  <title>Fireseed Capsule Generator · 向导版 v3.5</title>
   <style>
-    :root { --fg:#111; --muted:#666; --bg:#fafafa; --pri:#1f6feb; --bd:#e6e6e6; }
+    :root { --fg:#111; --muted:#666; --bg:#fafafa; --pri:#1f6feb; --bd:#e6e6e6; --hl:#fff6e8; }
     *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;color:var(--fg);background:var(--bg);margin:0}
     header{padding:28px 16px 8px; text-align:center}
     h1{margin:0 0 8px;font-size:22px}
     .sub{color:var(--muted);font-size:13px}
-    .wrap{max-width:940px;margin:16px auto;padding:0 16px 64px;display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+    .wrap{max-width:980px;margin:16px auto;padding:0 16px 64px;display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
     .card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
     label{display:block;font-size:13px;color:#444;margin:12px 0 6px}
+    .lbl{display:flex;align-items:center;gap:6px}
     input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:#fff;font-size:14px}
     textarea{min-height:92px;resize:vertical}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -23,49 +24,73 @@
     summary{cursor:pointer;font-weight:600}
     pre{white-space:pre-wrap;border:1px solid var(--bd);padding:12px;border-radius:10px;background:#0d1117;color:#dfe2e7;font-size:12px;overflow:auto;max-height:60vh}
     .hint{font-size:12px;color:var(--muted)}
-    footer{max-width:940px;margin:24px auto 64px;padding:0 16px;color:#777;font-size:12px}
+    footer{max-width:980px;margin:24px auto 64px;padding:0 16px;color:#777;font-size:12px}
     .badge{display:inline-block;background:#eef6ff;border:1px solid #c9e2ff;color:#0a3d90;font-size:12px;padding:2px 8px;border-radius:999px;margin:0 6px}
     .note{font-size:12px;color:#777;margin:4px 0 8px}
-    .tooltip{border-bottom:1px dotted #999; cursor:help;}
+    .tooltip{border-bottom:1px dotted #999; cursor:help; position:relative; display:inline-block}
+    .tooltip:hover::after{
+      content: attr(data-tip);
+      position:absolute; left:0; top:120%;
+      min-width:180px; max-width:320px; padding:8px 10px;
+      background: var(--hl); border:1px solid #f1d592; border-radius:6px;
+      color:#4b4b4b; font-size:12px; line-height:1.4; z-index:10;
+      box-shadow:0 2px 8px rgba(0,0,0,.06);
+    }
+    .muted{color:#666}
   </style>
 </head>
 <body>
   <header>
-    <h1>Fireseed Capsule Generator · 向导版 v3.4.2 <span class="badge">纯前端 · 零后端 · 可离线</span></h1>
-    <div class="sub">填完点“生成胶囊”即可下载 <code>capsule_v0.yaml</code>；还可打开快照页打印成 PDF。</div>
+    <h1>Fireseed Capsule Generator · 向导版 v3.5 <span class="badge">纯前端 · 零后端 · 可离线</span></h1>
+    <div class="sub">填完点“生成胶囊”即可下载 <code>capsule_v0.yaml</code>；也可打开快照页打印为 PDF。</div>
   </header>
 
   <main class="wrap">
     <section class="card" id="form">
       <h3>基本信息</h3>
-      <label>我是谁（Owner）</label>
-      <input id="owner" placeholder="如：Lin Tao" value="Lin Tao">
+      <div class="row">
+        <div>
+          <label class="lbl">我是谁
+            <span class="tooltip" data-tip="不管是谁打开这份说明书，都能认出那是我留下的声音。">❓</span>
+          </label>
+          <input id="owner" placeholder="例：李明 / Mia / 阿北" value="Lin Tao">
+        </div>
+        <div>
+          <label class="lbl">我用的语言
+            <span class="tooltip" data-tip="系统会用这个语言读懂我写的东西，也用同样的语言‘回信’。">❓</span>
+          </label>
+          <select id="locale">
+            <option value="zh-CN">中文 🇨🇳</option>
+            <option value="en-US">English 🇺🇸</option>
+          </select>
+        </div>
+      </div>
 
-      <label>我用的语言（Locale）</label>
-      <select id="locale">
-        <option value="zh-CN">zh-CN</option>
-        <option value="en-US">en-US</option>
-      </select>
-
-      <label>
+      <label class="lbl">
         我思考时的“参考书”
-        <span class="tooltip" title="写下最影响你判断的书、电影、人物或信条。未来系统读到这些，才知道『你从哪里想问题』。">❓</span>
+        <span class="tooltip" data-tip="这些书、电影或人，曾经塑造了我的思考方式；未来有人想理解我，也该从这里开始。">❓</span>
       </label>
-      <input id="philo" placeholder="例：论语、康德、马斯克、圣经、黑客伦理">
+      <input id="philo" placeholder="例：论语、马斯克、妈妈的一句话">
 
-      <div class="note">💬 这不是读书清单，而是“如果你要复活我，请先读这几本说明书”。</div>
+      <label class="lbl">我人生的三原则
+        <span class="tooltip" data-tip="当我不在现场时，这三条会帮我‘自动做决定’，不走样。">❓</span>
+      </label>
+      <textarea id="principles" placeholder="例：①不撒谎 ②不伤人 ③不拖延"></textarea>
 
-      <label>我的三条原则（每行一个）</label>
-      <textarea id="principles" placeholder="例：以最小能耗达成最大理解"></textarea>
+      <label class="lbl">我行动的循环
+        <span class="tooltip" data-tip="这是我习惯的节奏——遇事先感知，再判断，再行动，最后反思。">❓</span>
+      </label>
+      <textarea id="loop" placeholder="例：感知 → 判断 → 行动 → 反思"></textarea>
 
-      <label>我行动的循环（每行形如“trigger: …”或“execute: …”或“correct: …”）</label>
-      <textarea id="loop" placeholder="trigger: 当他人请求解释结构时&#10;execute: 用最小能耗讲清来源与边界&#10;correct: 若仍误解，给一次图示机会；再无效，终止解释"></textarea>
+      <label class="lbl">我的底线
+        <span class="tooltip" data-tip="这是我不会跨过去的线。哪怕一切都被优化到极致，也不能牺牲它。">❓</span>
+      </label>
+      <textarea id="nonn" placeholder="例：绝不为钱背叛朋友"></textarea>
 
-      <label>我的底线（不可妥协， 每行一个）</label>
-      <textarea id="nonn" placeholder="不欺骗&#10;不剥削&#10;不违心"></textarea>
-
-      <label>我想留给未来的一段话（Narrative，可空）</label>
-      <textarea id="narrative" placeholder="给未来的读者：这是一份关于“如何读取我”的小册子。"></textarea>
+      <label class="lbl">我想留下的话
+        <span class="tooltip" data-tip="这是写给未来的留言。也许别人读到时，我已不在，但这些话依然能代表我。">❓</span>
+      </label>
+      <textarea id="narrative" placeholder="例：愿你在混乱中仍保持温柔与清晰。"></textarea>
 
       <details id="extraBox">
         <summary id="extraSummary">写更多 ▶</summary>
@@ -151,11 +176,40 @@ function sha256Hex(str){
 }
 function val(id){ return document.getElementById(id).value.trim(); }
 function arrFromTextarea(v){
-  return v.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  // 支持①逐行；②数字/顿号/分号分隔；③空白忽略
+  return v.split(/[\n；;，,、]+/).map(s=>s.replace(/^\d+[\.\)\-]?\s*/,'').trim()).filter(Boolean);
 }
 function csv(v){ return v.split(/[,，]+/).map(x=>x.trim()).filter(Boolean); }
 function splitRefs(v){ return v.split(/[、,，\n]+/).map(x=>x.trim()).filter(Boolean); }
 function yamlEscape(s){ return s.replace(/\"/g,'\\"'); }
+
+function inferLoop(s){
+  const t = s.trim();
+  if(!t) return {trigger:null, execute:null, correct:null, judgment:null};
+  // 1) 解析 key: value 形式
+  const kvLines = t.split(/\n+/).filter(Boolean);
+  if(kvLines.every(x=>/^\s*(trigger|execute|correct|judgment)\s*:/i.test(x))){
+    const r = {trigger:null, execute:null, correct:null, judgment:null};
+    kvLines.forEach(line=>{
+      const m = line.match(/^\s*(trigger|execute|correct|judgment)\s*:\s*(.+)$/i);
+      if(m) r[m[1].toLowerCase()] = m[2].trim();
+    });
+    return r;
+  }
+  // 2) 解析 “感知 → 判断 → 行动 → 反思” 等箭头语句
+  const parts = t.split(/→|->|⇒|＞/).map(x=>x.trim()).filter(Boolean);
+  if(parts.length >= 2){
+    const [p0,p1,p2,p3] = parts;
+    return {
+      trigger: p0 || null,
+      judgment: p1 || null,
+      execute: p2 || p1 || null,
+      correct: p3 || null
+    };
+  }
+  // 3) 兜底：全放 execute
+  return {trigger:null, judgment:null, execute:t, correct:null};
+}
 
 function renderHuman(c){
   const lines = [];
@@ -165,10 +219,26 @@ function renderHuman(c){
     lines.push("", "我思考时的“参考书”：" + c.philosophy_refs.join("、"));
   }
   if(c.narrative?.story){ lines.push("", c.narrative.story); }
-  if(c.narrative?.ext?.likes?.length){ lines.push("", "我喜欢："+c.narrative.ext.likes.join("、")); }
-  if(c.narrative?.ext?.dislikes?.length){ lines.push("我讨厌："+c.narrative.ext.dislikes.join("、")); }
-  if(c.narrative?.ext?.celebration_dates?.length){ lines.push("对我重要的日子："+c.narrative.ext.celebration_dates.join("、")); }
-  if(c.narrative?.ext?.emergency_contact){ lines.push("", "紧急联系人："+c.narrative.ext.emergency_contact.name+" · "+c.narrative.ext.emergency_contact.contact); }
+  if(c.principles?.length){ lines.push("", "我的三原则："); c.principles.forEach(x=>lines.push("· "+x)); }
+  if(c.non_negotiables?.length){ lines.push("", "我的底线："); c.non_negotiables.forEach(x=>lines.push("· "+x)); }
+  if(c.loop){
+    const seg = [];
+    if(c.loop.trigger) seg.push("感知/触发："+c.loop.trigger);
+    if(c.loop.judgment) seg.push("判断："+c.loop.judgment);
+    if(c.loop.execute) seg.push("行动："+c.loop.execute);
+    if(c.loop.correct) seg.push("反思/纠正："+c.loop.correct);
+    if(seg.length) lines.push("", seg.join(" ｜ "));
+  }
+  if(c.narrative?.ext){
+    const e = c.narrative.ext;
+    if(e.likes?.length || e.dislikes?.length || e.celebration_dates?.length || e.emergency_contact){
+      lines.push("", "——— 生活偏好 ———");
+      if(e.likes?.length) lines.push("我喜欢："+e.likes.join("、"));
+      if(e.dislikes?.length) lines.push("我讨厌："+e.dislikes.join("、"));
+      if(e.celebration_dates?.length) lines.push("重要日子："+e.celebration_dates.join("、"));
+      if(e.emergency_contact){ lines.push("紧急联系人："+(e.emergency_contact.name||'')+" · "+(e.emergency_contact.contact||'')); }
+    }
+  }
   lines.push("", "异议期："+(c.permissions?.grace_period||"P30D"));
   return lines.join("\n");
 }
@@ -207,40 +277,46 @@ function toYAML(obj, indent=0){
 }
 
 async function buildCapsule(){
+  const loopParsed = inferLoop(document.getElementById("loop").value);
   const base = {
     version: "capsule_v0",
-    format_version: "v0.3.4.2",
-    owner: val("owner") || "Lin Tao",
-    locale: val("locale") || "zh-CN",
-    philosophy_refs: splitRefs(val("philo")),
-    principles: arrFromTextarea(val("principles")),
-    non_negotiables: arrFromTextarea(val("nonn")),
-    loop: { trigger: null, execute: null, correct: null },
+    format_version: "v3.5",
+    owner: (document.getElementById("owner").value.trim() || "Lin Tao"),
+    locale: document.getElementById("locale").value || "zh-CN",
+    philosophy_refs: (function(v){ return v? v.split(/[、,，\n]+/).map(x=>x.trim()).filter(Boolean):[]; })(document.getElementById("philo").value),
+    principles: arrFromTextarea(document.getElementById("principles").value),
+    non_negotiables: arrFromTextarea(document.getElementById("nonn").value),
+    loop: loopParsed,
     permissions: {
-      access: ["read", (val("allow_derive")==="yes"?"derive":null)].filter(Boolean),
-      grace_period: val("grace") || "P30D"
+      access: ["read", (document.getElementById("allow_derive").value==="yes"?"derive":null)].filter(Boolean),
+      grace_period: document.getElementById("grace").value || "P30D"
     },
     storage: { media:["local"], redundancy:1 },
     proofs: { checksum_algo:"SHA-256", hash:null, signature:null, timestamp:new Date().toISOString() },
-    meta: { generated_at: new Date().toISOString(), generator: "fireseed-generator-human-v3.4.2" }
+    narrative: {
+      story: document.getElementById("narrative").value.trim(),
+      ext: (function(){
+        const ext={};
+        const cel = document.getElementById("celebrations").value.trim();
+        const likes = document.getElementById("likes").value.trim();
+        const dislikes = document.getElementById("dislikes").value.trim();
+        const em = document.getElementById("emergency").value.trim();
+        const acc = document.getElementById("access_terms").value.trim();
+        const pwd = document.getElementById("passphrase").value.trim();
+        if(cel) ext.celebration_dates = cel.split(/[,，\s]+/).map(x=>x.trim()).filter(Boolean);
+        if(likes) ext.likes = likes.split(/[,，\s]+/).map(x=>x.trim()).filter(Boolean);
+        if(dislikes) ext.dislikes = dislikes.split(/[,，\s]+/).map(x=>x.trim()).filter(Boolean);
+        if(em){
+          const t = em.split(/[,，]+/);
+          ext.emergency_contact = { name:(t[0]||"").trim(), contact:(t.slice(1).join(",")||"").trim() };
+        }
+        if(acc) ext.access_terms = acc;
+        if(pwd) ext.update_passphrase = pwd; // 留空则省略字段
+        return ext;
+      })()
+    },
+    meta: { generated_at: new Date().toISOString(), generator: "fireseed-generator-human-v3.5" }
   };
-  const lines = arrFromTextarea(val("loop"));
-  lines.forEach(line=>{
-    const m = line.match(/^\s*(trigger|execute|correct)\s*:\s*(.+)$/i);
-    if(m){ base.loop[m[1].toLowerCase()] = m[2]; }
-  });
-  // narrative ext
-  const ext = {};
-  if(val("celebrations")) ext.celebration_dates = csv(val("celebrations"));
-  if(val("likes")) ext.likes = csv(val("likes"));
-  if(val("dislikes")) ext.dislikes = csv(val("dislikes"));
-  if(val("emergency")){
-    const t = val("emergency").split(/[,，]+/);
-    ext.emergency_contact = { name: (t[0]||"").trim(), contact: (t.slice(1).join(",")||"").trim() };
-  }
-  if(val("access_terms")) ext.access_terms = val("access_terms");
-  if(val("passphrase")) ext.update_passphrase = val("passphrase"); // 留空则省略
-  base.narrative = { story: val("narrative")||"", ext };
 
   // grace text
   document.getElementById("gpTxt").textContent = (base.permissions.grace_period==="P90D"?"90 天":"30 天");

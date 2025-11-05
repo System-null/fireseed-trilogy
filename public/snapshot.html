@@ -72,7 +72,7 @@ function parseYAML(text){
   return stack[0];
 }
 
-function hEscape(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function hEscape(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&','<':'&lt;','>':'&gt;'}[c])); }
 
 function render(c){
   const el = document.getElementById('content');
@@ -86,13 +86,18 @@ function render(c){
     parts.push(`<p>${hEscape(c.narrative.story)}</p>`);
   }
   if(c.principles && c.principles.length){
-    parts.push(`<div><strong>原则</strong><ul>${c.principles.map(x=>`<li>${hEscape(x)}</li>`).join('')}</ul></div>`);
+    parts.push(`<div><strong>我的三原则</strong><ul>${c.principles.map(x=>`<li>${hEscape(x)}</li>`).join('')}</ul></div>`);
   }
   if(c.non_negotiables && c.non_negotiables.length){
-    parts.push(`<div><strong>不可妥协</strong><ul>${c.non_negotiables.map(x=>`<li>${hEscape(x)}</li>`).join('')}</ul></div>`);
+    parts.push(`<div><strong>我的底线</strong><ul>${c.non_negotiables.map(x=>`<li>${hEscape(x)}</li>`).join('')}</ul></div>`);
   }
   if(c.loop){
-    parts.push(`<div class='row'><div><strong>触发</strong><br>${hEscape(c.loop.trigger||'-')}</div><div><strong>执行/纠正</strong><br>${hEscape((c.loop.execute||'') + (c.loop.correct? ' / '+c.loop.correct:''))}</div></div>`);
+    const seg = [];
+    if(c.loop.trigger) seg.push("感知/触发："+hEscape(c.loop.trigger));
+    if(c.loop.judgment) seg.push("判断："+hEscape(c.loop.judgment));
+    if(c.loop.execute) seg.push("行动："+hEscape(c.loop.execute));
+    if(c.loop.correct) seg.push("反思/纠正："+hEscape(c.loop.correct));
+    if(seg.length) parts.push(`<div>${seg.join(" ｜ ")}</div>`);
   }
   if(c.narrative && c.narrative.ext){
     const e = c.narrative.ext;
