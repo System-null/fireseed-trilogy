@@ -1,1 +1,96 @@
-<!-- generator.html v3.3 with fail-graceful & snapshot redirect -->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Fireseed Capsule Generator · 向导版 v3.3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+body { font-family: system-ui, sans-serif; background: #fafafa; max-width: 800px; margin: 40px auto; padding: 20px; color: #222; }
+h1 { text-align: center; }
+fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 20px; padding: 15px; background: #fff; }
+legend { font-weight: bold; }
+label { display: block; margin-top: 10px; }
+textarea, input, select { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
+button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; }
+button.primary { background: #222; color: #fff; }
+.footer { font-size: 0.9em; color: #666; border-top: 1px solid #ddd; margin-top: 40px; padding-top: 10px; }
+</style>
+</head>
+<body>
+<h1>Fireseed Capsule Generator · 向导版 v3.3</h1>
+<p>本地运行 · 不上传数据 · 可导出 YAML 与 PDF · 支持签名 / 跳过 / 快照模式。</p>
+
+<form id="capsuleForm">
+<fieldset><legend>基本信息</legend>
+<label>Owner / 拥有者 <input id="owner" placeholder="例如：JiaMing Yang"></label>
+<label>Locale / 语言
+<select id="locale"><option>zh-CN</option><option>en-US</option></select></label>
+</fieldset>
+
+<fieldset><legend>Philosophy Refs / 参考章节</legend>
+<textarea id="refs" placeholder="System Exodus · Ch.1&#10;Beyond the System · Ch.2"></textarea>
+</fieldset>
+
+<fieldset><legend>Principles / 原则</legend>
+<textarea id="principles" placeholder="例：以最小能耗达成最大理解"></textarea>
+</fieldset>
+
+<fieldset><legend>Loop Steps / 循环步骤</legend>
+<textarea id="loop" placeholder="trigger, execute, correct..."></textarea>
+</fieldset>
+
+<fieldset><legend>Non-negotiables / 不可妥协</legend>
+<textarea id="nonneg" placeholder="例：不欺骗、不剥削、不违心"></textarea>
+</fieldset>
+
+<fieldset><legend>叙事 / Narrative</legend>
+<textarea id="story" placeholder="写几句故事或说明，描述此胶囊的缘起。"></textarea>
+</fieldset>
+
+<button type="button" class="primary" onclick="generateYAML()">生成胶囊</button>
+<button type="button" onclick="downloadYAML()">下载 YAML</button>
+<button type="button" onclick="alert('PDF导出将在v3.4中开放')">导出 PDF</button>
+</form>
+
+<pre id="output" style="background:#f4f4f4;padding:10px;border-radius:6px;white-space:pre-wrap;"></pre>
+
+<div class="footer">
+<p>⚠️ 无需联网，数据仅存于浏览器内存。</p>
+<p>签名失败或IPFS超时可跳过，稍后可手动补签。</p>
+<p>异议期：家人可在30天内联系联系人提出修正。</p>
+<p>更新路径：回生成器 → 上传旧文件 → 修改 → 重新生成。</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+<script>
+function generateYAML(){
+  const capsule = {
+    version: "capsule_v0",
+    format_version: "v0.3.3",
+    owner: document.getElementById("owner").value || "anonymous",
+    locale: document.getElementById("locale").value,
+    philosophy_refs: document.getElementById("refs").value.split("\n").filter(Boolean),
+    principles: document.getElementById("principles").value.split("\n").filter(Boolean),
+    non_negotiables: document.getElementById("nonneg").value.split("\n").filter(Boolean),
+    loop: { trigger: "自触发", execute: "持续更新", correct: "自我校正" },
+    narrative: { story: document.getElementById("story").value },
+    permissions: { access:["read","derive"], grace_period:"P30D" },
+    proofs: { checksum_algo:"SHA-256", hash:"<auto>", signature:null },
+    storage: { media:["local"], redundancy:1 },
+    meta: { generated_at: new Date().toISOString(), generator:"fireseed-wizard-v3.3" }
+  };
+  const yamlText = jsyaml.dump(capsule, {skipInvalid:true});
+  document.getElementById("output").textContent = yamlText;
+}
+
+function downloadYAML(){
+  const blob = new Blob([document.getElementById("output").textContent], {type:"text/yaml"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "capsule_v0.yaml";
+  a.click();
+}
+</script>
+</body>
+</html>

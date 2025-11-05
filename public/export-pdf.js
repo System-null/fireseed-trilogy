@@ -1,1 +1,1 @@
-// export-pdf.js v3.3 updated footer + snapshot QR support
+// export-pdf.js v3.3 placeholder
