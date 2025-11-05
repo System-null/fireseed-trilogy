@@ -1,0 +1,34 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1"
+  ],
+  "id": "did:web:system-null.github.io:fireseed-trilogy",
+  "verificationMethod": [
+    {
+      "id": "did:web:system-null.github.io:fireseed-trilogy#key-1",
+      "type": "Ed25519VerificationKey2020",
+      "controller": "did:web:system-null.github.io:fireseed-trilogy",
+      "publicKeyMultibase": "z6MkXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    }
+  ],
+  "assertionMethod": [
+    "did:web:system-null.github.io:fireseed-trilogy#key-1"
+  ],
+  "service": [
+    {
+      "id": "did:web:system-null.github.io:fireseed-trilogy#capsule",
+      "type": "FireseedCapsule",
+      "serviceEndpoint": "https://system-null.github.io/fireseed-trilogy/snapshot.html"
+    },
+    {
+      "id": "did:web:system-null.github.io:fireseed-trilogy#schema",
+      "type": "JSONSchema",
+      "serviceEndpoint": "https://system-null.github.io/fireseed-trilogy/schemas/capsule_v0.min.yaml"
+    },
+    {
+      "id": "did:web:system-null.github.io:fireseed-trilogy#generator",
+      "type": "Generator",
+      "serviceEndpoint": "https://system-null.github.io/fireseed-trilogy/public/generator.html"
+    }
+  ]
+}
