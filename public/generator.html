@@ -7,16 +7,298 @@
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   <script>
-    (function(){
+    // Tailwind (standalone) – embed minimal styles for GH Pages without build step
+    ;(function(){
       const s=document.createElement('link');
       s.rel='stylesheet';
       s.href='https://cdn.jsdelivr.net/npm/tailwindcss@3.4.12/dist/tailwind.min.css';
       document.head.appendChild(s);
     })();
   </script>
+  <style>
+    /* Light toast */
+    .toast{position:fixed;right:1rem;bottom:1rem;z-index:50}
+    .kbd{border:1px solid rgba(0,0,0,.1);padding:.15rem .35rem;border-radius:.375rem;background:#f9fafb}
+    .card{background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(10px)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  </style>
 </head>
-<body>
-  <h1>Fireseed Generator v2</h1>
-  <p>完整版生成器请参见前面画布中的 HTML 文件。</p>
+<body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-800">
+  <header class="sticky top-0 z-10 bg-white/70 backdrop-blur border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-6 rounded bg-amber-500"></div>
+        <h1 class="text-xl font-semibold">Fireseed Capsule Generator · v2</h1>
+        <span class="text-xs text-slate-500 ml-2">仪式化生成你的 <span class="font-mono">capsule_v0.yaml</span></span>
+      </div>
+      <nav class="flex items-center gap-2 text-sm">
+        <a class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50" href="https://github.com/System-null/fireseed-trilogy" target="_blank">⭐ GitHub</a>
+        <a class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50" href="./tools/validator.html" target="_blank">✅ 验证器</a>
+        <button id="btn-lang" class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50">中 / EN</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Intro -->
+    <section class="card rounded-2xl shadow-sm p-5 border border-slate-200">
+      <p class="leading-relaxed">
+        <span class="font-semibold">Fireseed Capsule</span> 是一个为未来文明留下“思想火种”的生成器。
+        你只需填写几个关键理念，它将生成一个结构化文件 <span class="font-mono">capsule_v0.yaml</span>，可被未来系统解析、验证与存档。
+      </p>
+      <div class="mt-3 flex flex-wrap gap-2 text-sm">
+        <span class="px-2 py-1 rounded-full bg-slate-100">📦 可下载</span>
+        <span class="px-2 py-1 rounded-full bg-slate-100">🧪 可验证</span>
+        <span class="px-2 py-1 rounded-full bg-slate-100">🌍 机器可读</span>
+      </div>
+    </section>
+
+    <!-- Mode Switch -->
+    <section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 card rounded-2xl shadow-sm p-6 border border-slate-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-slate-500">模式</span>
+            <button id="mode-quick" class="px-3 py-1 rounded-lg bg-amber-500 text-white">快速</button>
+            <button id="mode-advanced" class="px-3 py-1 rounded-lg border border-slate-300">高级</button>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-500">
+            <label class="flex items-center gap-2"><input id="toggle-autosave" type="checkbox" class="scale-110" checked> 自动保存</label>
+            <button id="btn-reset" class="px-2 py-1 rounded border border-slate-300">清空</button>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <form id="form" class="mt-4 space-y-5">
+          <div>
+            <label class="block text-sm font-medium mb-1">署名 / Owner</label>
+            <input id="owner" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="如：JiaMing Yang / 火种-2025-07" />
+            <p class="text-xs text-slate-500 mt-1">将写入 YAML 的 <span class="mono">owner</span> 字段与签名备注。</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">语言 / Locale</label>
+              <select id="locale" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                <option value="zh-CN">zh-CN（中文）</option>
+                <option value="en-US">en-US（English）</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">伦理标记 / Ethical Flag</label>
+              <select id="ethical" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                <option value="0">0（默认）</option>
+                <option value="experimental">experimental（实验性）</option>
+                <option value="confirmed">confirmed（已审阅）</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">灵感来源 / Philosophy Refs（每行一个）</label>
+            <textarea id="refs" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="The Last Interface · Ch.3\nBeyond the System · Ch.2"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">核心原则 / Principles（每行一个）</label>
+            <textarea id="principles" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="以最小能耗达成最大理解\n同情但不纵容"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">循环步骤 / Loop Steps（每行一个）</label>
+            <textarea id="loops" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="observe\nrecord\nreflect\nredesign"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">不可妥协 / Non‑negotiables（每行一个）</label>
+            <textarea id="nonneg" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="no non-consensual extraction of time\nno harm for mere efficiency"></textarea>
+          </div>
+
+          <!-- Advanced-only fields -->
+          <div id="advanced-only" class="hidden border-t pt-4 mt-2 space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">备注 / Notes（可选）</label>
+              <textarea id="notes" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="你的火种背后的故事、约束或使用建议"></textarea>
+            </div>
+            <div class="text-xs text-slate-500">高级模式会在 YAML 中包含更完整的元数据（时间戳、版本等）。</div>
+          </div>
+
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button type="button" id="btn-suggest" class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50">填入示例</button>
+            <button type="button" id="btn-generate" class="px-4 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700">生成并下载</button>
+            <button type="button" id="btn-copy" class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50">复制 YAML</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Preview / Summary -->
+      <aside class="card rounded-2xl shadow-sm p-6 border border-slate-200">
+        <h3 class="font-medium">实时预览</h3>
+        <pre id="yaml" class="mono text-sm mt-3 p-3 bg-slate-900 text-slate-100 rounded-lg overflow-auto h-64"></pre>
+        <h3 class="font-medium mt-5">语义总结</h3>
+        <div id="summary" class="text-sm text-slate-600 mt-2 leading-relaxed"></div>
+        <div class="mt-5 grid grid-cols-2 gap-3 text-sm">
+          <a class="px-3 py-2 rounded-lg border border-slate-300 text-center hover:bg-slate-50" href="./README.md" target="_blank">📖 项目主页</a>
+          <a class="px-3 py-2 rounded-lg border border-slate-300 text-center hover:bg-slate-50" href="./docs/books/README.md" target="_blank">📚 阅读指引</a>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden">
+    <div class="rounded-lg bg-emerald-600 text-white px-4 py-2 shadow">已生成并下载 <span class="mono">capsule_v0.yaml</span></div>
+  </div>
+
+  <script>
+    const $ = (s, el=document) => el.querySelector(s);
+    const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+    const state = {
+      mode: 'quick',
+      autosave: true,
+    };
+
+    const FIELDS = ['owner','locale','ethical','refs','principles','loops','nonneg','notes'];
+
+    // Local storage
+    function save(){
+      if(!state.autosave) return;
+      const data={};
+      FIELDS.forEach(k=>data[k] = $('#'+k)?.value || '');
+      localStorage.setItem('fireseed_v2', JSON.stringify(data));
+    }
+    function load(){
+      try{
+        const data = JSON.parse(localStorage.getItem('fireseed_v2')||'{}');
+        FIELDS.forEach(k=>{ if(data[k]!==undefined && $('#'+k)) $('#'+k).value = data[k];});
+      }catch(e){}
+    }
+
+    // Helpers
+    const lines = v => (v||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    function buildData(){
+      const now = new Date().toISOString();
+      return {
+        version: 'capsule_v0',
+        owner: $('#owner').value.trim() || 'anonymous',
+        locale: $('#locale').value,
+        ethical_flag: $('#ethical').value,
+        philosophy_refs: lines($('#refs').value),
+        principles: lines($('#principles').value),
+        loop_steps: lines($('#loops').value),
+        non_negotiables: lines($('#nonneg').value),
+        notes: $('#notes').value.trim() || undefined,
+        meta: {
+          generated_at: now,
+          generator: 'fireseed-generator-v2',
+        }
+      };
+    }
+
+    function toYAML(obj){
+      try{ return jsyaml.dump(obj, {lineWidth: 100}); }
+      catch(e){ return '# YAML 生成失败: '+e.message; }
+    }
+
+    function render(){
+      const data = buildData();
+      const yml = toYAML(data);
+      $('#yaml').textContent = yml;
+
+      // semantic summary
+      const p = data.principles.length;
+      const l = data.loop_steps.length;
+      const n = data.non_negotiables.length;
+      $('#summary').innerHTML = `
+        <div>• 署名：<span class="mono">${data.owner}</span>；语言：<span class="mono">${data.locale}</span></div>
+        <div>• 原则 <span class="mono">${p}</span> 条，循环 <span class="mono">${l}</span> 步，底线 <span class="mono">${n}</span> 项。</div>
+        <div class="mt-1 text-slate-500">预期用途：签名 → 存档（DOI/IPFS）→ 作为人机接口被解析。</div>
+      `;
+      save();
+    }
+
+    function download(filename, content){
+      const blob = new Blob([content], {type:'text/yaml;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      $('#toast').classList.remove('hidden');
+      setTimeout(()=>$('#toast').classList.add('hidden'), 1800);
+    }
+
+    // UI wiring
+    $('#mode-quick').addEventListener('click', ()=>{
+      state.mode='quick';
+      $('#mode-quick').classList.replace('border','bg-amber-500');
+      $('#mode-quick').classList.add('text-white');
+      $('#mode-advanced').classList.remove('bg-amber-500','text-white');
+      $('#mode-advanced').classList.add('border');
+      $('#advanced-only').classList.add('hidden');
+    });
+    $('#mode-advanced').addEventListener('click', ()=>{
+      state.mode='advanced';
+      $('#mode-advanced').classList.replace('border','bg-amber-500');
+      $('#mode-advanced').classList.add('text-white');
+      $('#mode-quick').classList.remove('bg-amber-500','text-white');
+      $('#mode-quick').classList.add('border');
+      $('#advanced-only').classList.remove('hidden');
+    });
+
+    $('#btn-reset').addEventListener('click', ()=>{
+      FIELDS.forEach(k=>{ if($('#'+k)) $('#'+k).value=''; });
+      render();
+    });
+
+    $('#toggle-autosave').addEventListener('change', e=>{ state.autosave = e.target.checked; save(); });
+
+    $('#btn-suggest').addEventListener('click', ()=>{
+      if(!$('#owner').value) $('#owner').value = 'System Null';
+      if(!$('#refs').value) $('#refs').value = 'The Last Interface · Ch.3\nBeyond the System · Ch.2';
+      if(!$('#principles').value) $('#principles').value = '以最小能耗达成最大理解\n结构自洽优先\n避免过拟合现实';
+      if(!$('#loops').value) $('#loops').value = 'observe\nrecord\nreflect\nredesign';
+      if(!$('#nonneg').value) $('#nonneg').value = 'no non-consensual extraction of time\nno harm for mere efficiency';
+      render();
+    });
+
+    $('#btn-generate').addEventListener('click', ()=>{
+      const yaml = toYAML(buildData());
+      download('capsule_v0.yaml', yaml);
+    });
+
+    $('#btn-copy').addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText($('#yaml').textContent); }
+      catch(e){}
+      const t=$('#toast');
+      t.querySelector('div').textContent='已复制到剪贴板';
+      t.classList.remove('hidden');
+      setTimeout(()=>{ t.classList.add('hidden'); t.querySelector('div').innerHTML='已生成并下载 <span class="mono">capsule_v0.yaml</span>'; }, 1200);
+    });
+
+    // i18n toggle (basic demo)
+    $('#btn-lang').addEventListener('click', ()=>{
+      const zh = document.documentElement.lang === 'zh-CN';
+      document.documentElement.lang = zh ? 'en' : 'zh-CN';
+      $('#btn-lang').textContent = zh ? 'EN / 中' : '中 / EN';
+      // Minimal: swap placeholders when toggled to EN
+      if(zh){
+        $('#owner').placeholder='e.g., Luna Wei / Fireseed-2025-07';
+        $('#principles').placeholder='Max understanding at minimal energy\nSelf-consistency first';
+        $('#loops').placeholder='observe\nrecord\nreflect\nredesign';
+        $('#nonneg').placeholder='no non-consensual extraction of time';
+      } else {
+        $('#owner').placeholder='如：JiaMing Yang / 火种-2025-07';
+        $('#principles').placeholder='以最小能耗达成最大理解\n同情但不纵容';
+        $('#loops').placeholder='observe\nrecord\nreflect\nredesign';
+        $('#nonneg').placeholder='no non-consensual extraction of time\nno harm for mere efficiency';
+      }
+    });
+
+    // live render
+    FIELDS.forEach(k=>{ const el=$('#'+k); if(el){ el.addEventListener('input', render); }});
+
+    load();
+    render();
+  </script>
 </body>
 </html>
