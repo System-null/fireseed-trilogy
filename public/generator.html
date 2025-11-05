@@ -1,64 +1,22 @@
-
-<!doctype html>
-<meta charset="utf-8">
-<title>Fireseed Capsule Generator</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:24px}label{display:block;margin:8px 0 4px}input,textarea,select{width:100%;padding:8px}pre{background:#0b1020;color:#cfe6ff;padding:12px;border-radius:8px;overflow:auto}</style>
-<!-- 优先使用本地 vendor；若不存在自动回退到 CDN -->
-<script>window.useCdn=false;</script>
-<script src="../vendor/js-yaml.min.js" onerror="useCdn=true"></script>
-<script>if(useCdn){document.write('<script src="https://unpkg.com/js-yaml/dist/js-yaml.min.js"><\/script>')}</script>
-<script src="../vendor/ajv.min.js"></script>
-<script>if(typeof Ajv==='undefined'){document.write('<script src="https://unpkg.com/ajv@8/dist/ajv.min.js"><\/script>')}</script>
-<h1>Fireseed Capsule Generator</h1>
-<p>填写下列表单，点击“生成”，下载 <code>capsule_v0.yaml</code>。无需安装任何软件。</p>
-<form id="f">
-  <label>Owner / 所有者 <input name="owner" required></label>
-  <label>Locale / 语种
-    <select name="locale">
-      <option>zh-CN</option><option>en-US</option>
-    </select>
-  </label>
-  <label>Philosophy Refs / 章节引用（每行一个）<textarea name="refs" rows="4">System Exodus - Ch.1
-Beyond the System - Ch.2
-The Ultimate Proposition - Ch.3</textarea></label>
-  <label>Principles / 原则（每行一个）<textarea name="principles" rows="4">睡够8小时
-每日复盘10分钟</textarea></label>
-  <label>Loop Steps / 循环步骤（每行一个）<textarea name="steps" rows="3">summarize
-extract decisions
-schedule next step</textarea></label>
-  <label>Non-negotiables / 不可妥协（每行一个）<textarea name="nn" rows="3">no non-consensual extraction of time</textarea></label>
-  <label>Ethical Flag / 伦理标记 <select name="ef"><option value="0">0（默认）</option><option value="1">1（含极端内容）</option></select></label>
-  <button type="submit">生成</button>
-</form>
-<div id="out"></div>
-<script>
-const schema={type:"object",required:["meta","principles","loop","boundary"],properties:{
-  meta:{type:"object",required:["owner","locale","created_at","philosophy_ref"],
-    properties:{owner:{type:"string"},locale:{type:"string"},created_at:{type:"string"},philosophy_ref:{type:"array",items:{type:"string"}}}},
-  principles:{type:"array",items:{type:"string"}},
-  loop:{type:"object",required:["trigger","steps"],properties:{trigger:{type:"string"},steps:{type:"array",items:{type:"string"}}}},
-  boundary:{type:"object",required:["non_negotiables"],properties:{non_negotiables:{type:"array",items:{type:"string"}}}},
-  ethical_flag:{type:"integer"} } };
-const ajv=new Ajv({allErrors:true,strict:false});
-const validate=ajv.compile(schema);
-f.onsubmit=e=>{
-  e.preventDefault();
-  const fd=new FormData(f);
-  const obj={meta:{
-      owner:fd.get('owner')||"",locale:fd.get('locale')||"zh-CN",
-      created_at:new Date().toISOString().slice(0,10),
-      philosophy_ref:(fd.get('refs')||"").split(/\r?\n/).filter(Boolean)},
-    principles:(fd.get('principles')||"").split(/\r?\n/).filter(Boolean),
-    loop:{trigger:"daily_review",steps:(fd.get('steps')||"").split(/\r?\n/).filter(Boolean)},
-    boundary:{non_negotiables:(fd.get('nn')||"").split(/\r?\n/).filter(Boolean)},
-    ethical_flag:parseInt(fd.get('ef')||"0",10) };
-  const ok=validate(obj);
-  const out=document.getElementById('out');
-  if(!ok){ out.innerHTML="<p style=color:#b00020>校验失败：</p><pre>"+JSON.stringify(validate.errors,null,2)+"</pre>"; return; }
-  const yml=(jsyaml && jsyaml.dump? jsyaml.dump(obj):""); 
-  const blob=new Blob([yml],{type:"text/yaml"}); const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download="capsule_v0.yaml"; a.click();
-  out.innerHTML="<p style=color:#0a7f2e>已通过校验，开始下载。</p><pre>"+yml.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]))+"</pre>";
-};
-</script>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fireseed Capsule Generator · v2</title>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script>
+    (function(){
+      const s=document.createElement('link');
+      s.rel='stylesheet';
+      s.href='https://cdn.jsdelivr.net/npm/tailwindcss@3.4.12/dist/tailwind.min.css';
+      document.head.appendChild(s);
+    })();
+  </script>
+</head>
+<body>
+  <h1>Fireseed Generator v2</h1>
+  <p>完整版生成器请参见前面画布中的 HTML 文件。</p>
+</body>
+</html>
