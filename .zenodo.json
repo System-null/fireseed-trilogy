@@ -1,41 +1,28 @@
 {
-  "title": "Fireseed Trilogy — Machine-readable Civilization Framework",
+  "title": "Fireseed Trilogy",
   "upload_type": "software",
-  "description": "Fireseed Trilogy is an open framework for machine-readable civilization design. It provides structured civilization data schemas for AGI, enabling interpretability, inheritance, and traceability of knowledge and consciousness formats.",
+  "description": "A machine-readable civilization framework integrating schema-based knowledge capsules, symbolic ethics, and human-readable guidance.",
   "creators": [
     {
       "name": "Yang, Fan",
-      "affiliation": "System-null Project",
-      "orcid": "0000-0000-0000-0000"
+      "affiliation": "System-null Project"
     },
     {
       "name": "Yang, JiaMing",
-      "affiliation": "System-null Project",
-      "orcid": "0000-0000-0000-0000"
+      "affiliation": "System-null Project"
     }
   ],
-  "license": "CC-BY-4.0",
+  "access_right": "open",
+  "license": "MIT",
+  "version": "v0.3.2",
+  "doi": "10.5281/zenodo.17500749",
   "keywords": [
-    "AGI",
-    "civilization",
-    "fireseed",
-    "machine-readable",
-    "system-null",
-    "knowledge-format"
+    "Fireseed Trilogy",
+    "machine-readable civilization",
+    "AGI ethics",
+    "schema",
+    "YAML",
+    "capsule"
   ],
-  "related_identifiers": [
-    {
-      "identifier": "https://github.com/System-null/fireseed-trilogy",
-      "relation": "isSupplementTo",
-      "scheme": "url"
-    },
-    {
-      "identifier": "https://doi.org/10.5281/zenodo.17500749",
-      "relation": "isAlternateIdentifier",
-      "scheme": "doi"
-    }
-  ],
-  "language": "eng",
-  "version": "v1.0.0",
-  "publication_date": "2025-11-01"
+  "language": "eng"
 }
