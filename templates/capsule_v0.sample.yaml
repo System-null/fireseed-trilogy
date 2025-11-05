@@ -1,0 +1,40 @@
+
+version: capsule_v0
+format_version: "v0.3.3"
+owner: "Sample Owner"
+locale: "zh-CN"
+philosophy_refs:
+  - The Last Interface · Ch.3
+principles:
+  - 结构自洽优先
+  - 以最小能耗达成最大理解
+non_negotiables:
+  - no deception
+  - no exploitation
+loop:
+  trigger: "当他人请求我解释结构时"
+  execute: "用最小能耗语言讲清结构来源与边界"
+  correct: "若对方仍误解，则提供一次图示机会；再无效，终止解释"
+permissions:
+  access: ["read","derive"]
+  grace_period: "P30D"
+  delegated_key: null
+storage:
+  media: ["local","ipfs","pdfa"]
+  redundancy: 3
+  chain: []
+narrative:
+  story: |
+    我写下这份火种，不是为了留名，而是为了证明我存在过、思考过，
+    并尝试让世界更有结构。
+  messages:
+    - to: 未来的智能体
+      text: 请保留人类的模糊与温柔。
+proofs:
+  checksum_algo: "SHA-256"
+  hash: "<auto-by-generator>"
+  signature: null
+  timestamp: "2025-11-06T00:00:00Z"
+meta:
+  generated_at: "2025-11-06T00:00:00Z"
+  generator: "fireseed-generator-wizard-v3.2"
