@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Fireseed Capsule Generator · 向导版 v3.4</title>
+  <title>Fireseed Capsule Generator · 向导版 v3.4.2</title>
   <style>
     :root { --fg:#111; --muted:#666; --bg:#fafafa; --pri:#1f6feb; --bd:#e6e6e6; }
     *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;color:var(--fg);background:var(--bg);margin:0}
@@ -25,43 +25,51 @@
     .hint{font-size:12px;color:var(--muted)}
     footer{max-width:940px;margin:24px auto 64px;padding:0 16px;color:#777;font-size:12px}
     .badge{display:inline-block;background:#eef6ff;border:1px solid #c9e2ff;color:#0a3d90;font-size:12px;padding:2px 8px;border-radius:999px;margin:0 6px}
+    .note{font-size:12px;color:#777;margin:4px 0 8px}
+    .tooltip{border-bottom:1px dotted #999; cursor:help;}
   </style>
 </head>
 <body>
   <header>
-    <h1>Fireseed Capsule Generator · 向导版 v3.4 <span class="badge">纯前端 · 零后端 · 可离线</span></h1>
-    <div class="sub">填完点“生成胶囊”即可下载 <code>capsule_v0.yaml</code>；可选择导出 PDF、小册子快照。</div>
+    <h1>Fireseed Capsule Generator · 向导版 v3.4.2 <span class="badge">纯前端 · 零后端 · 可离线</span></h1>
+    <div class="sub">填完点“生成胶囊”即可下载 <code>capsule_v0.yaml</code>；还可打开快照页打印成 PDF。</div>
   </header>
 
   <main class="wrap">
     <section class="card" id="form">
       <h3>基本信息</h3>
-      <label>Owner / 所有者</label>
-      <input id="owner" placeholder="如：JiaMing Yang">
+      <label>我是谁（Owner）</label>
+      <input id="owner" placeholder="如：Lin Tao" value="Lin Tao">
 
-      <label>Locale / 语种</label>
+      <label>我用的语言（Locale）</label>
       <select id="locale">
         <option value="zh-CN">zh-CN</option>
         <option value="en-US">en-US</option>
       </select>
 
-      <label>Philosophy Refs / 参考章节（每行一个）</label>
-      <textarea id="philo" placeholder="System Exodus - Ch.1&#10;Beyond the System - Ch.2&#10;The Last Interface - Ch.3"></textarea>
+      <label>
+        我思考时的“参考书”
+        <span class="tooltip" title="写下最影响你判断的书、电影、人物或信条。未来系统读到这些，才知道『你从哪里想问题』。">❓</span>
+      </label>
+      <input id="philo" placeholder="例：论语、康德、马斯克、圣经、黑客伦理">
 
-      <label>Principles / 原则（每行一个）</label>
+      <div class="note">💬 这不是读书清单，而是“如果你要复活我，请先读这几本说明书”。</div>
+
+      <label>我的三条原则（每行一个）</label>
       <textarea id="principles" placeholder="例：以最小能耗达成最大理解"></textarea>
 
-      <label>Loop Steps / 循环步骤（每行一个：trigger, execute, correct...）</label>
+      <label>我行动的循环（每行形如“trigger: …”或“execute: …”或“correct: …”）</label>
       <textarea id="loop" placeholder="trigger: 当他人请求解释结构时&#10;execute: 用最小能耗讲清来源与边界&#10;correct: 若仍误解，给一次图示机会；再无效，终止解释"></textarea>
 
-      <label>Non-negotiables / 不可妥协（每行一个）</label>
+      <label>我的底线（不可妥协， 每行一个）</label>
       <textarea id="nonn" placeholder="不欺骗&#10;不剥削&#10;不违心"></textarea>
 
-      <label>叙事 / Narrative（给人看的说明，可空）</label>
+      <label>我想留给未来的一段话（Narrative，可空）</label>
       <textarea id="narrative" placeholder="给未来的读者：这是一份关于“如何读取我”的小册子。"></textarea>
 
-      <details>
-        <summary>✨ 我想写多一点（完全可选，增强“人味”）</summary>
+      <details id="extraBox">
+        <summary id="extraSummary">写更多 ▶</summary>
+        <div class="note">这些内容<b>可写可不写</b>，不会影响生成结果。</div>
         <div class="row">
           <div>
             <label>🎂 我庆祝的日子</label>
@@ -69,7 +77,7 @@
           </div>
           <div>
             <label>👥 如果我不在了，请联系（姓名 + 邮箱/微信）</label>
-            <input id="emergency" placeholder="林姐, wechat:linjie123 / hi@example.com">
+            <input id="emergency" placeholder="姓名: 李明, 微信: limom">
           </div>
         </div>
         <div class="row">
@@ -87,9 +95,9 @@
             <label>📖 我愿意被读取的条件</label>
             <select id="access_terms">
               <option value="">未声明（默认遵循 permissions）</option>
-              <option value="read_only">仅可阅读</option>
-              <option value="by_attribution">需署名引用</option>
-              <option value="non_commercial">可用于非商业研究</option>
+              <option value="read_only">仅可阅读（别人只能看）</option>
+              <option value="by_attribution">需署名引用（转载要标你名）</option>
+              <option value="non_commercial">可用于非商业研究（不可卖）</option>
             </select>
           </div>
           <div>
@@ -117,7 +125,7 @@
         <button id="btnPDF">导出 PDF</button>
         <button id="btnSnapshot">查看人类快照</button>
       </div>
-      <div class="hint">⚠️ 纯前端、断网可用；不会上传你的任何答案。失败操作（签名/IPFS）将允许跳过。</div>
+      <div class="hint">⚠️ 纯前端、断网可用；不会上传你的任何答案。失败操作（签名/IPFS）允许跳过。</div>
     </section>
 
     <section class="card">
@@ -130,13 +138,12 @@
   </main>
 
   <footer>
-    <p>🔒 你的答案仅存浏览器内存；除非你自行上传副本（如 IPFS/Zenodo），否则不会离开本地设备。</p>
-    <p>📝 异议期：家人/受托人可在 <strong id="gpTxt">30 天</strong> 内联系「紧急联系人」提出修正。更新路径：回到生成器 → 上传旧文件 → 修改 → 重新生成。</p>
+    <p>🔒 你的答案仅存浏览器内存；除非你自行上传副本，否则不会离开本地设备。</p>
+    <p>📝 异议期：家人/受托人可在 <strong id="gpTxt">30 天</strong> 内联系“紧急联系人”提出修正。更新路径：回到生成器 → 上传旧文件 → 修改 → 重新生成。</p>
   </footer>
 
 <script>
 function sha256Hex(str){
-  // simple SHA-256 using Web Crypto
   const enc = new TextEncoder().encode(str);
   return crypto.subtle.digest('SHA-256', enc).then(buf => {
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -144,22 +151,26 @@ function sha256Hex(str){
 }
 function val(id){ return document.getElementById(id).value.trim(); }
 function arrFromTextarea(v){
-  return v.split(/\\n+/).map(s=>s.trim()).filter(Boolean);
+  return v.split(/\n+/).map(s=>s.trim()).filter(Boolean);
 }
 function csv(v){ return v.split(/[,，]+/).map(x=>x.trim()).filter(Boolean); }
+function splitRefs(v){ return v.split(/[、,，\n]+/).map(x=>x.trim()).filter(Boolean); }
 function yamlEscape(s){ return s.replace(/\"/g,'\\"'); }
 
 function renderHuman(c){
   const lines = [];
   const owner = c.owner || "anonymous";
   lines.push(`所有者：${owner} · 语言：${c.locale}`);
+  if(c.philosophy_refs?.length){
+    lines.push("", "我思考时的“参考书”：" + c.philosophy_refs.join("、"));
+  }
   if(c.narrative?.story){ lines.push("", c.narrative.story); }
   if(c.narrative?.ext?.likes?.length){ lines.push("", "我喜欢："+c.narrative.ext.likes.join("、")); }
   if(c.narrative?.ext?.dislikes?.length){ lines.push("我讨厌："+c.narrative.ext.dislikes.join("、")); }
   if(c.narrative?.ext?.celebration_dates?.length){ lines.push("对我重要的日子："+c.narrative.ext.celebration_dates.join("、")); }
   if(c.narrative?.ext?.emergency_contact){ lines.push("", "紧急联系人："+c.narrative.ext.emergency_contact.name+" · "+c.narrative.ext.emergency_contact.contact); }
   lines.push("", "异议期："+(c.permissions?.grace_period||"P30D"));
-  return lines.join("\\n");
+  return lines.join("\n");
 }
 
 function toYAML(obj, indent=0){
@@ -167,7 +178,7 @@ function toYAML(obj, indent=0){
   if (obj === null) return "null";
   if (Array.isArray(obj)) {
     if (obj.length === 0) return "[]";
-    return obj.map(x=> pad+"- "+toYAML(x, indent+1).trimStart()).join("\\n");
+    return obj.map(x=> pad+"- "+toYAML(x, indent+1).trimStart()).join("\n");
   }
   if (typeof obj === 'object'){
     return Object.keys(obj).map(k=>{
@@ -175,19 +186,21 @@ function toYAML(obj, indent=0){
       if (v === undefined) return null;
       const head = pad + k + ": ";
       if (v && typeof v === 'object' && !Array.isArray(v)){
-        return head + "\\n" + toYAML(v, indent+1);
+        return head + "\n" + toYAML(v, indent+1);
       } else if (Array.isArray(v)){
         if (v.length===0) return head+"[]";
-        return head + "\\n" + toYAML(v, indent+1);
+        return head + "\n" + toYAML(v, indent+1);
       } else if (typeof v === 'string'){
-        if (v.includes(":") || v.includes("#") || v.includes("\"") || v.includes("\\n")) {
+        if (v.includes(":") || v.includes("#") || v.includes("\"") || v.includes("\n")) {
           return head + '"' + yamlEscape(v) + '"';
         }
         return head + v;
-      } else {
+      } else if (typeof v === 'number' || typeof v === 'boolean'){
         return head + String(v);
+      } else {
+        return head + 'null';
       }
-    }).filter(Boolean).join("\\n");
+    }).filter(Boolean).join("\n");
   }
   if (typeof obj === 'string') return '"'+yamlEscape(obj)+'"';
   return String(obj);
@@ -196,41 +209,27 @@ function toYAML(obj, indent=0){
 async function buildCapsule(){
   const base = {
     version: "capsule_v0",
-    format_version: "v0.3.4",
-    owner: val("owner") || "anonymous",
+    format_version: "v0.3.4.2",
+    owner: val("owner") || "Lin Tao",
     locale: val("locale") || "zh-CN",
-    philosophy_refs: arrFromTextarea(val("philo")),
+    philosophy_refs: splitRefs(val("philo")),
     principles: arrFromTextarea(val("principles")),
     non_negotiables: arrFromTextarea(val("nonn")),
-    loop: {
-      trigger: null, execute: null, correct: null
-    },
+    loop: { trigger: null, execute: null, correct: null },
     permissions: {
       access: ["read", (val("allow_derive")==="yes"?"derive":null)].filter(Boolean),
       grace_period: val("grace") || "P30D"
     },
-    storage: {
-      media: ["local"],
-      redundancy: 1
-    },
-    proofs: {
-      checksum_algo: "SHA-256",
-      hash: null,
-      signature: null,
-      timestamp: new Date().toISOString()
-    },
-    meta: {
-      generated_at: new Date().toISOString(),
-      generator: "fireseed-generator-human-v3.4"
-    }
+    storage: { media:["local"], redundancy:1 },
+    proofs: { checksum_algo:"SHA-256", hash:null, signature:null, timestamp:new Date().toISOString() },
+    meta: { generated_at: new Date().toISOString(), generator: "fireseed-generator-human-v3.4.2" }
   };
-  // loop compose
   const lines = arrFromTextarea(val("loop"));
   lines.forEach(line=>{
-    const m = line.match(/^\\s*(trigger|execute|correct)\\s*:\\s*(.+)$/i);
+    const m = line.match(/^\s*(trigger|execute|correct)\s*:\s*(.+)$/i);
     if(m){ base.loop[m[1].toLowerCase()] = m[2]; }
   });
-  // narrative & ext
+  // narrative ext
   const ext = {};
   if(val("celebrations")) ext.celebration_dates = csv(val("celebrations"));
   if(val("likes")) ext.likes = csv(val("likes"));
@@ -240,8 +239,9 @@ async function buildCapsule(){
     ext.emergency_contact = { name: (t[0]||"").trim(), contact: (t.slice(1).join(",")||"").trim() };
   }
   if(val("access_terms")) ext.access_terms = val("access_terms");
-  if(val("passphrase")) ext.update_passphrase = val("passphrase");
+  if(val("passphrase")) ext.update_passphrase = val("passphrase"); // 留空则省略
   base.narrative = { story: val("narrative")||"", ext };
+
   // grace text
   document.getElementById("gpTxt").textContent = (base.permissions.grace_period==="P90D"?"90 天":"30 天");
 
@@ -249,21 +249,28 @@ async function buildCapsule(){
   let yaml = toYAML(base);
   const hash = await sha256Hex(yaml);
   base.proofs.hash = hash;
+
+  // 重新序列化（包含 hash）
   yaml = toYAML(base);
 
-  // render
+  // 渲染
   document.getElementById("yaml").textContent = yaml;
   document.getElementById("human").textContent = renderHuman(base);
 
-  // attach for download
+  // 供下载/快照使用
   window.__capsule_yaml__ = yaml;
   window.__capsule_hash__ = hash;
   return base;
 }
 
+document.getElementById("extraBox").addEventListener("toggle", (e)=>{
+  const sum = document.getElementById("extraSummary");
+  sum.textContent = e.target.open ? "收起 ▼" : "写更多 ▶";
+});
+
 document.getElementById("btnGen").addEventListener("click", buildCapsule);
 document.getElementById("btnYAML").addEventListener("click", async ()=>{
-  const c = await buildCapsule();
+  await buildCapsule();
   const blob = new Blob([window.__capsule_yaml__||""], {type:"text/yaml"});
   const a = Object.assign(document.createElement("a"), {href:URL.createObjectURL(blob), download:"capsule_v0.yaml"});
   a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
@@ -279,7 +286,6 @@ document.getElementById("btnSnapshot").addEventListener("click", async ()=>{
 });
 document.getElementById("btnPDF").addEventListener("click", async ()=>{
   await buildCapsule();
-  // very light: open snapshot view and let browser print
   const url = "snapshot.html#print#"+encodeURIComponent(window.__capsule_yaml__||"");
   window.open(url, "_blank");
 });

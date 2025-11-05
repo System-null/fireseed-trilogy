@@ -14,7 +14,6 @@
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     .small{font-size:12px;color:#666}
     .btn{display:inline-block;border:1px solid #e6e6e6;border-radius:10px;padding:8px 12px;margin-right:8px;text-decoration:none;color:#111}
-    .qr{width:112px;height:112px;border:1px solid #eee;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#999}
     @media print{ .btn{display:none} .page{padding:0} }
   </style>
 </head>
@@ -28,6 +27,7 @@
     <div class="small">
       异议期：家人/受托人可在 30~90 天内联系“紧急联系人”提出修正。<br/>
       更新路径：回到生成器 → 上传旧文件 → 修改 → 重新生成。<br/>
+      <span id="pwNotice" style="display:none">未设更新密码，日后可补（下次生成时填写即可）。</span>
       若需完整 YAML，请返回上一页点击「下载 YAML」。
     </div>
     <p>
@@ -37,8 +37,7 @@
 
 <script>
 function parseYAML(text){
-  // extremely tiny YAML reader for this structure (expects key: value, arrays with - , no nesting tricks)
-  const lines = text.split(/\\r?\\n/);
+  const lines = text.split(/\r?\n/);
   const stack = [{}];
   const indents = [0];
   function set(obj, key, val){
@@ -47,13 +46,13 @@ function parseYAML(text){
     else obj[key]=val;
   }
   for(const raw of lines){
-    const m = raw.match(/^(\\s*)([^:#-][^:]*)\\s*:\\s*(.*)$/);
-    const a = raw.match(/^(\\s*)-\\s*(.*)$/);
+    const m = raw.match(/^(\s*)([^:#-][^:]*)\s*:\s*(.*)$/);
+    const a = raw.match(/^(\s*)-\s*(.*)$/);
     if(m){
       const [, sp, key, val] = m;
       const indent = sp.length;
       while(indent < indents[indents.length-1]){ indents.pop(); stack.pop(); }
-      if(val===''){ // start object level
+      if(val===''){
         const obj = {};
         set(stack[stack.length-1], key.trim(), obj);
         stack.push(obj); indents.push(indent+2);
@@ -79,6 +78,10 @@ function render(c){
   const el = document.getElementById('content');
   const parts = [];
   parts.push(`<div class='row'><div><strong>所有者</strong><br>${hEscape(c.owner||'anonymous')}</div><div><strong>语言</strong><br>${hEscape(c.locale||'-')}</div></div>`);
+
+  if(c.philosophy_refs && c.philosophy_refs.length){
+    parts.push(`<div><strong>我思考时的“参考书”</strong><br>${hEscape(c.philosophy_refs.join('、'))}</div>`);
+  }
   if(c.narrative && c.narrative.story){
     parts.push(`<p>${hEscape(c.narrative.story)}</p>`);
   }
@@ -99,6 +102,7 @@ function render(c){
       if(e.dislikes?.length) parts.push(`<div><strong>我讨厌</strong>：${hEscape(e.dislikes.join('、'))}</div>`);
       if(e.celebration_dates?.length) parts.push(`<div><strong>重要日子</strong>：${hEscape(e.celebration_dates.join('、'))}</div>`);
       if(e.emergency_contact){ parts.push(`<div><strong>紧急联系人</strong>：${hEscape(e.emergency_contact.name||'')} · ${hEscape(e.emergency_contact.contact||'')}</div>`); }
+      if(!e.update_passphrase){ document.getElementById("pwNotice").style.display = "inline"; }
     }
   }
   parts.push("<hr>");
