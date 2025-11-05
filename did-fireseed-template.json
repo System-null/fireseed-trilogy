@@ -1,0 +1,21 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1"
+  ],
+  "id": "did:fireseed:{{CAPSULE_HASH}}",
+  "verificationMethod": [
+    {
+      "id": "did:fireseed:{{CAPSULE_HASH}}#key-1",
+      "type": "Ed25519VerificationKey2020",
+      "controller": "did:fireseed:{{CAPSULE_HASH}}",
+      "publicKeyMultibase": "{{OWNER_PUBKEY}}"
+    }
+  ],
+  "service": [
+    {
+      "id": "did:fireseed:{{CAPSULE_HASH}}#capsule",
+      "type": "FireseedCapsule",
+      "serviceEndpoint": "{{CAPSULE_URL_OR_IPFS}}"
+    }
+  ]
+}
