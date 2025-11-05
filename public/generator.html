@@ -1,304 +1,326 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fireseed Capsule Generator · v2</title>
-  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
-  <script>
-    // Tailwind (standalone) – embed minimal styles for GH Pages without build step
-    ;(function(){
-      const s=document.createElement('link');
-      s.rel='stylesheet';
-      s.href='https://cdn.jsdelivr.net/npm/tailwindcss@3.4.12/dist/tailwind.min.css';
-      document.head.appendChild(s);
-    })();
-  </script>
+  <title>Fireseed Capsule Generator · Wizard v3</title>
+
+  <!-- UI (no build step) -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.12/dist/tailwind.min.css">
   <style>
-    /* Light toast */
-    .toast{position:fixed;right:1rem;bottom:1rem;z-index:50}
-    .kbd{border:1px solid rgba(0,0,0,.1);padding:.15rem .35rem;border-radius:.375rem;background:#f9fafb}
-    .card{background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(10px)}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .card{background:rgba(255,255,255,.86);backdrop-filter:saturate(180%) blur(12px)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace}
+    .step-dot{width:.65rem;height:.65rem;border-radius:9999px}
+    .glass{background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.75));}
+    .btn{border:1px solid #e2e8f0;border-radius:.65rem;padding:.5rem .9rem}
+    .btn-prim{background:#2563eb;border-color:#1d4ed8;color:#fff}
+    .btn-amber{background:#d97706;border-color:#b45309;color:#fff}
+    .btn:hover{filter:saturate(110%)}
+    .hint{font-size:.8rem;color:#64748b}
+    .toast{position:fixed;right:1rem;bottom:1rem;z-index:60}
+    .hidden{display:none}
+    .kbd{border:1px solid #e5e7eb;border-radius:.375rem;padding:.15rem .4rem;background:#f9fafb}
   </style>
+
+  <!-- Logic libs -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-800">
-  <header class="sticky top-0 z-10 bg-white/70 backdrop-blur border-b border-slate-200">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-2 h-6 rounded bg-amber-500"></div>
-        <h1 class="text-xl font-semibold">Fireseed Capsule Generator · v2</h1>
-        <span class="text-xs text-slate-500 ml-2">仪式化生成你的 <span class="font-mono">capsule_v0.yaml</span></span>
+  <!-- Header -->
+  <header class="sticky top-0 z-20 glass border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4">
+      <div class="w-1.5 h-6 bg-amber-500 rounded"></div>
+      <h1 class="text-lg md:text-xl font-semibold">Fireseed Capsule Generator · 向导版</h1>
+      <span class="text-xs text-slate-500">生成你的 <span class="mono">capsule_v0.yaml</span></span>
+      <div class="ml-auto flex items-center gap-2 text-sm">
+        <a class="btn" href="../README.md" target="_blank">📖 项目主页</a>
+        <a class="btn" href="../tools/validator.html" target="_blank">✅ 验证器</a>
+        <button id="lang" class="btn">中 / EN</button>
       </div>
-      <nav class="flex items-center gap-2 text-sm">
-        <a class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50" href="https://github.com/System-null/fireseed-trilogy" target="_blank">⭐ GitHub</a>
-        <a class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50" href="./tools/validator.html" target="_blank">✅ 验证器</a>
-        <button id="btn-lang" class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50">中 / EN</button>
-      </nav>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
-    <!-- Intro -->
-    <section class="card rounded-2xl shadow-sm p-5 border border-slate-200">
-      <p class="leading-relaxed">
-        <span class="font-semibold">Fireseed Capsule</span> 是一个为未来文明留下“思想火种”的生成器。
-        你只需填写几个关键理念，它将生成一个结构化文件 <span class="font-mono">capsule_v0.yaml</span>，可被未来系统解析、验证与存档。
-      </p>
-      <div class="mt-3 flex flex-wrap gap-2 text-sm">
-        <span class="px-2 py-1 rounded-full bg-slate-100">📦 可下载</span>
+  <!-- Intro -->
+  <section class="max-w-5xl mx-auto px-4 mt-6">
+    <div class="card rounded-2xl border border-slate-200 p-5">
+      <p>Fireseed Capsule 是一个为未来系统留下“思想火种”的数据包。你无需懂代码，填写 3~4 组信息，系统将生成可被 AGI 解析与存档的 <span class="mono">capsule_v0.yaml</span> 文件。</p>
+      <div class="mt-3 flex flex-wrap gap-2 text-xs">
+        <span class="px-2 py-1 rounded-full bg-slate-100">📦 本地生成</span>
         <span class="px-2 py-1 rounded-full bg-slate-100">🧪 可验证</span>
-        <span class="px-2 py-1 rounded-full bg-slate-100">🌍 机器可读</span>
+        <span class="px-2 py-1 rounded-full bg-slate-100">🔒 隐私：数据不出浏览器</span>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- Mode Switch -->
-    <section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 card rounded-2xl shadow-sm p-6 border border-slate-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-slate-500">模式</span>
-            <button id="mode-quick" class="px-3 py-1 rounded-lg bg-amber-500 text-white">快速</button>
-            <button id="mode-advanced" class="px-3 py-1 rounded-lg border border-slate-300">高级</button>
-          </div>
-          <div class="flex items-center gap-3 text-xs text-slate-500">
-            <label class="flex items-center gap-2"><input id="toggle-autosave" type="checkbox" class="scale-110" checked> 自动保存</label>
-            <button id="btn-reset" class="px-2 py-1 rounded border border-slate-300">清空</button>
-          </div>
-        </div>
+  <!-- Wizard -->
+  <main class="max-w-5xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left: steps -->
+    <section class="lg:col-span-2 card rounded-2xl border border-slate-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div id="dot1" class="step-dot bg-amber-500"></div><div class="text-sm">基本信息</div>
+        <div id="dot2" class="step-dot bg-slate-300 ml-3"></div><div class="text-sm">理念与循环</div>
+        <div id="dot3" class="step-dot bg-slate-300 ml-3"></div><div class="text-sm">边界与备注</div>
+        <div id="dot4" class="step-dot bg-slate-300 ml-3"></div><div class="text-sm">生成与校验</div>
+      </div>
 
-        <!-- Form -->
-        <form id="form" class="mt-4 space-y-5">
-          <div>
-            <label class="block text-sm font-medium mb-1">署名 / Owner</label>
-            <input id="owner" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="如：JiaMing Yang / 火种-2025-07" />
-            <p class="text-xs text-slate-500 mt-1">将写入 YAML 的 <span class="mono">owner</span> 字段与签名备注。</p>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form id="wizard" class="space-y-6">
+        <!-- Step 1 -->
+        <fieldset id="step1">
+          <legend class="font-medium">① 基本信息</legend>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">语言 / Locale</label>
-              <select id="locale" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+              <label class="block text-sm font-medium">署名 / Owner</label>
+              <input id="owner" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2" placeholder="如：JiaMing Yang / 火种-2025-07" />
+              <p class="hint mt-1">将写入 <span class="mono">owner</span> 字段与签名注释。</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium">语言 / Locale</label>
+              <select id="locale" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2">
                 <option value="zh-CN">zh-CN（中文）</option>
                 <option value="en-US">en-US（English）</option>
               </select>
             </div>
+          </div>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">伦理标记 / Ethical Flag</label>
-              <select id="ethical" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+              <label class="block text-sm font-medium">伦理标记 / Ethical Flag</label>
+              <select id="ethical" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2">
                 <option value="0">0（默认）</option>
                 <option value="experimental">experimental（实验性）</option>
                 <option value="confirmed">confirmed（已审阅）</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">灵感来源 / Philosophy Refs（每行一个）</label>
-            <textarea id="refs" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="The Last Interface · Ch.3\nBeyond the System · Ch.2"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">核心原则 / Principles（每行一个）</label>
-            <textarea id="principles" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="以最小能耗达成最大理解\n同情但不纵容"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">循环步骤 / Loop Steps（每行一个）</label>
-            <textarea id="loops" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="observe\nrecord\nreflect\nredesign"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">不可妥协 / Non‑negotiables（每行一个）</label>
-            <textarea id="nonneg" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="no non-consensual extraction of time\nno harm for mere efficiency"></textarea>
-          </div>
-
-          <!-- Advanced-only fields -->
-          <div id="advanced-only" class="hidden border-t pt-4 mt-2 space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-1">备注 / Notes（可选）</label>
-              <textarea id="notes" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="你的火种背后的故事、约束或使用建议"></textarea>
+              <label class="block text-sm font-medium">灵感引用 / Philosophy Refs（每行一个）</label>
+              <textarea id="refs" rows="3" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2" placeholder="The Last Interface · Ch.3&#10;Beyond the System · Ch.2"></textarea>
             </div>
-            <div class="text-xs text-slate-500">高级模式会在 YAML 中包含更完整的元数据（时间戳、版本等）。</div>
           </div>
+        </fieldset>
 
-          <div class="flex flex-wrap gap-3 pt-2">
-            <button type="button" id="btn-suggest" class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50">填入示例</button>
-            <button type="button" id="btn-generate" class="px-4 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700">生成并下载</button>
-            <button type="button" id="btn-copy" class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50">复制 YAML</button>
+        <!-- Step 2 -->
+        <fieldset id="step2" class="hidden">
+          <legend class="font-medium">② 理念与循环</legend>
+          <div>
+            <label class="block text-sm font-medium">核心原则 / Principles（每行一个）</label>
+            <textarea id="principles" rows="3" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2" placeholder="以最小能耗达成最大理解&#10;结构自洽优先&#10;避免过拟合现实"></textarea>
           </div>
-        </form>
-      </div>
+          <div class="mt-3">
+            <label class="block text-sm font-medium">循环步骤 / Loop Steps（每行一个）</label>
+            <textarea id="loops" rows="3" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2" placeholder="observe&#10;record&#10;reflect&#10;redesign"></textarea>
+          </div>
+        </fieldset>
 
-      <!-- Preview / Summary -->
-      <aside class="card rounded-2xl shadow-sm p-6 border border-slate-200">
-        <h3 class="font-medium">实时预览</h3>
-        <pre id="yaml" class="mono text-sm mt-3 p-3 bg-slate-900 text-slate-100 rounded-lg overflow-auto h-64"></pre>
-        <h3 class="font-medium mt-5">语义总结</h3>
-        <div id="summary" class="text-sm text-slate-600 mt-2 leading-relaxed"></div>
-        <div class="mt-5 grid grid-cols-2 gap-3 text-sm">
-          <a class="px-3 py-2 rounded-lg border border-slate-300 text-center hover:bg-slate-50" href="./README.md" target="_blank">📖 项目主页</a>
-          <a class="px-3 py-2 rounded-lg border border-slate-300 text-center hover:bg-slate-50" href="./docs/books/README.md" target="_blank">📚 阅读指引</a>
+        <!-- Step 3 -->
+        <fieldset id="step3" class="hidden">
+          <legend class="font-medium">③ 边界与备注</legend>
+          <div>
+            <label class="block text-sm font-medium">不可妥协 / Non‑negotiables（每行一个）</label>
+            <textarea id="nonneg" rows="3" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2" placeholder="no non-consensual extraction of time&#10;no harm for mere efficiency"></textarea>
+          </div>
+          <div class="mt-3">
+            <label class="block text-sm font-medium">备注 / Notes（可选）</label>
+            <textarea id="notes" rows="2" class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2" placeholder="你的火种背后的故事、约束或使用建议"></textarea>
+          </div>
+        </fieldset>
+
+        <!-- Step 4 -->
+        <fieldset id="step4" class="hidden">
+          <legend class="font-medium">④ 生成与校验</legend>
+          <ul class="list-disc pl-5 text-sm text-slate-600">
+            <li>点击“生成火种”将下载 <span class="mono">capsule_v0.yaml</span>（仅在本地浏览器内生成）。</li>
+            <li>下载后可点击“打开验证器”进行结构校验与签名。</li>
+          </ul>
+
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <button type="button" id="btn-generate" class="btn btn-amber">🔥 生成火种</button>
+            <a class="btn" id="btn-validate" href="../tools/validator.html" target="_blank">✅ 打开验证器</a>
+          </div>
+        </fieldset>
+
+        <div class="mt-6 flex items-center justify-between">
+          <div class="flex gap-2 text-xs text-slate-500">
+            <button type="button" id="btn-demo" class="btn">我不知道写什么（填入示例）</button>
+            <label class="flex items-center gap-2"><input id="autosave" type="checkbox" class="scale-110" checked> 自动保存</label>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" id="prev" class="btn">← 上一步</button>
+            <button type="button" id="next" class="btn btn-prim">下一步 →</button>
+          </div>
         </div>
-      </aside>
+      </form>
     </section>
+
+    <!-- Right: live preview -->
+    <aside class="card rounded-2xl border border-slate-200 p-6">
+      <h3 class="font-medium">实时预览</h3>
+      <pre id="yaml" class="mono text-sm mt-3 p-3 bg-slate-900 text-slate-100 rounded-lg overflow-auto h-72"></pre>
+      <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <button id="copy" class="btn">复制 YAML</button>
+        <label class="btn cursor-pointer text-center">
+          导入 YAML
+          <input id="import" type="file" accept=".yml,.yaml" class="hidden" />
+        </label>
+      </div>
+      <h3 class="font-medium mt-6">语义摘要</h3>
+      <div id="summary" class="text-sm text-slate-600 mt-2 leading-relaxed"></div>
+      <p class="hint mt-3">隐私提示：所有数据仅在你的浏览器中处理，不会上传到服务器。</p>
+    </aside>
   </main>
 
   <div id="toast" class="toast hidden">
-    <div class="rounded-lg bg-emerald-600 text-white px-4 py-2 shadow">已生成并下载 <span class="mono">capsule_v0.yaml</span></div>
+    <div class="rounded-lg bg-emerald-600 text-white px-4 py-2 shadow">已生成 <span class="mono">capsule_v0.yaml</span></div>
   </div>
 
   <script>
-    const $ = (s, el=document) => el.querySelector(s);
-    const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+    // ---------- State & helpers ----------
+    const $ = (s,el=document)=>el.querySelector(s);
+    const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
+    const F = ['owner','locale','ethical','refs','principles','loops','nonneg','notes'];
+    const lsKey = 'fireseed_wizard_v3';
 
-    const state = {
-      mode: 'quick',
-      autosave: true,
-    };
+    let step = 1, autosave = true;
 
-    const FIELDS = ['owner','locale','ethical','refs','principles','loops','nonneg','notes'];
+    const getLines = v => (v||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
 
-    // Local storage
-    function save(){
-      if(!state.autosave) return;
-      const data={};
-      FIELDS.forEach(k=>data[k] = $('#'+k)?.value || '');
-      localStorage.setItem('fireseed_v2', JSON.stringify(data));
-    }
-    function load(){
-      try{
-        const data = JSON.parse(localStorage.getItem('fireseed_v2')||'{}');
-        FIELDS.forEach(k=>{ if(data[k]!==undefined && $('#'+k)) $('#'+k).value = data[k];});
-      }catch(e){}
-    }
-
-    // Helpers
-    const lines = v => (v||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
     function buildData(){
-      const now = new Date().toISOString();
       return {
         version: 'capsule_v0',
         owner: $('#owner').value.trim() || 'anonymous',
         locale: $('#locale').value,
         ethical_flag: $('#ethical').value,
-        philosophy_refs: lines($('#refs').value),
-        principles: lines($('#principles').value),
-        loop_steps: lines($('#loops').value),
-        non_negotiables: lines($('#nonneg').value),
-        notes: $('#notes').value.trim() || undefined,
+        philosophy_refs: getLines($('#refs').value),
+        principles: getLines($('#principles').value),
+        loop_steps: getLines($('#loops').value),
+        non_negotiables: getLines($('#nonneg').value),
+        notes: ($('#notes').value || '').trim() || undefined,
         meta: {
-          generated_at: now,
-          generator: 'fireseed-generator-v2',
+          generated_at: new Date().toISOString(),
+          generator: 'fireseed-generator-wizard-v3'
         }
       };
     }
 
     function toYAML(obj){
-      try{ return jsyaml.dump(obj, {lineWidth: 100}); }
+      try{ return jsyaml.dump(obj,{lineWidth:100}); }
       catch(e){ return '# YAML 生成失败: '+e.message; }
     }
 
-    function render(){
-      const data = buildData();
-      const yml = toYAML(data);
-      $('#yaml').textContent = yml;
-
-      // semantic summary
-      const p = data.principles.length;
-      const l = data.loop_steps.length;
-      const n = data.non_negotiables.length;
-      $('#summary').innerHTML = `
-        <div>• 署名：<span class="mono">${data.owner}</span>；语言：<span class="mono">${data.locale}</span></div>
-        <div>• 原则 <span class="mono">${p}</span> 条，循环 <span class="mono">${l}</span> 步，底线 <span class="mono">${n}</span> 项。</div>
-        <div class="mt-1 text-slate-500">预期用途：签名 → 存档（DOI/IPFS）→ 作为人机接口被解析。</div>
-      `;
-      save();
+    function simpleValidate(d){
+      const errs = [];
+      if(!d.owner || d.owner==='anonymous') errs.push('请填写署名（Owner）。');
+      if(!d.principles || d.principles.length<1) errs.push('至少填写 1 条核心原则。');
+      if(!d.loop_steps || d.loop_steps.length<1) errs.push('至少填写 1 个循环步骤。');
+      return errs;
     }
 
-    function download(filename, content){
-      const blob = new Blob([content], {type:'text/yaml;charset=utf-8'});
+    function render(){
+      const d = buildData();
+      $('#yaml').textContent = toYAML(d);
+      const p = d.principles.length, l = d.loop_steps.length, n = d.non_negotiables.length;
+      $('#summary').innerHTML = `• 署名：<span class="mono">${d.owner}</span>；语言：<span class="mono">${d.locale}</span><br/>• 原则 <span class="mono">${p}</span> 条，循环 <span class="mono">${l}</span> 步，底线 <span class="mono">${n}</span> 项。`;
+      if(autosave){
+        const payload = {}; F.forEach(k=>payload[k] = $('#'+k)?.value || '');
+        localStorage.setItem(lsKey, JSON.stringify(payload));
+      }
+      // step dots
+      [1,2,3,4].forEach(i=>$('#dot'+i).className = 'step-dot '+(i<=step?'bg-amber-500':'bg-slate-300'));
+    }
+
+    function showStep(n){
+      step = Math.min(4, Math.max(1,n));
+      ['step1','step2','step3','step4'].forEach((id,i)=>$('#'+id).classList.toggle('hidden', i+1!==step));
+      render();
+    }
+
+    function download(name, text){
+      const blob = new Blob([text], {type:'text/yaml;charset=utf-8'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = filename;
+      a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       $('#toast').classList.remove('hidden');
-      setTimeout(()=>$('#toast').classList.add('hidden'), 1800);
+      setTimeout(()=>$('#toast').classList.add('hidden'), 1500);
     }
 
-    // UI wiring
-    $('#mode-quick').addEventListener('click', ()=>{
-      state.mode='quick';
-      $('#mode-quick').classList.replace('border','bg-amber-500');
-      $('#mode-quick').classList.add('text-white');
-      $('#mode-advanced').classList.remove('bg-amber-500','text-white');
-      $('#mode-advanced').classList.add('border');
-      $('#advanced-only').classList.add('hidden');
-    });
-    $('#mode-advanced').addEventListener('click', ()=>{
-      state.mode='advanced';
-      $('#mode-advanced').classList.replace('border','bg-amber-500');
-      $('#mode-advanced').classList.add('text-white');
-      $('#mode-quick').classList.remove('bg-amber-500','text-white');
-      $('#mode-quick').classList.add('border');
-      $('#advanced-only').classList.remove('hidden');
-    });
+    function loadLS(){
+      try{
+        const data = JSON.parse(localStorage.getItem(lsKey)||'{}');
+        F.forEach(k=>{ if($('#'+k) && data[k]!==undefined) $('#'+k).value = data[k]; });
+      }catch(e){}
+    }
 
-    $('#btn-reset').addEventListener('click', ()=>{
-      FIELDS.forEach(k=>{ if($('#'+k)) $('#'+k).value=''; });
-      render();
-    });
+    // ---------- Events ----------
+    $('#next').onclick = ()=> showStep(step+1);
+    $('#prev').onclick = ()=> showStep(step-1);
+    $('#autosave').onchange = e=>{ autosave = !!e.target.checked; if(autosave) render(); };
 
-    $('#toggle-autosave').addEventListener('change', e=>{ state.autosave = e.target.checked; save(); });
+    F.forEach(k=>{ const el = $('#'+k); if(el) el.addEventListener('input', render); });
 
-    $('#btn-suggest').addEventListener('click', ()=>{
+    $('#btn-demo').onclick = ()=>{
       if(!$('#owner').value) $('#owner').value = 'System Null';
-      if(!$('#refs').value) $('#refs').value = 'The Last Interface · Ch.3\nBeyond the System · Ch.2';
       if(!$('#principles').value) $('#principles').value = '以最小能耗达成最大理解\n结构自洽优先\n避免过拟合现实';
       if(!$('#loops').value) $('#loops').value = 'observe\nrecord\nreflect\nredesign';
       if(!$('#nonneg').value) $('#nonneg').value = 'no non-consensual extraction of time\nno harm for mere efficiency';
+      if(!$('#refs').value) $('#refs').value = 'The Last Interface · Ch.3\nBeyond the System · Ch.2';
       render();
-    });
+    };
 
-    $('#btn-generate').addEventListener('click', ()=>{
-      const yaml = toYAML(buildData());
-      download('capsule_v0.yaml', yaml);
-    });
+    $('#copy').onclick = async ()=>{
+      try{ await navigator.clipboard.writeText($('#yaml').textContent); }catch(e){}
+      const t=$('#toast'); t.querySelector('div').textContent='已复制到剪贴板';
+      t.classList.remove('hidden'); setTimeout(()=>{ t.classList.add('hidden'); t.querySelector('div').innerHTML='已生成 <span class="mono">capsule_v0.yaml</span>'; }, 1100);
+    };
 
-    $('#btn-copy').addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText($('#yaml').textContent); }
-      catch(e){}
-      const t=$('#toast');
-      t.querySelector('div').textContent='已复制到剪贴板';
-      t.classList.remove('hidden');
-      setTimeout(()=>{ t.classList.add('hidden'); t.querySelector('div').innerHTML='已生成并下载 <span class="mono">capsule_v0.yaml</span>'; }, 1200);
-    });
+    $('#import').onchange = async (e)=>{
+      const f = e.target.files?.[0]; if(!f) return;
+      const text = await f.text();
+      try{
+        const obj = jsyaml.load(text) || {};
+        // basic mapping
+        const map = {
+          owner:'owner', locale:'locale', ethical_flag:'ethical',
+          philosophy_refs:'refs', principles:'principles',
+          loop_steps:'loops', non_negotiables:'nonneg', notes:'notes'
+        };
+        Object.entries(map).forEach(([src,target])=>{
+          if(obj[src]!==undefined){
+            const val = Array.isArray(obj[src]) ? obj[src].join('\n') : String(obj[src]||'');
+            const el = $('#'+target); if(el) el.value = val;
+          }
+        });
+        render(); showStep(4);
+      }catch(err){ alert('YAML 解析失败：'+err.message); }
+    };
 
-    // i18n toggle (basic demo)
-    $('#btn-lang').addEventListener('click', ()=>{
+    $('#btn-generate').onclick = ()=>{
+      const d = buildData();
+      const errs = simpleValidate(d);
+      if(errs.length){ alert('请完善以下内容：\n- '+errs.join('\n- ')); return; }
+      download('capsule_v0.yaml', toYAML(d));
+    };
+
+    // i18n toggle (basic placeholders)
+    $('#lang').onclick = ()=>{
       const zh = document.documentElement.lang === 'zh-CN';
       document.documentElement.lang = zh ? 'en' : 'zh-CN';
-      $('#btn-lang').textContent = zh ? 'EN / 中' : '中 / EN';
-      // Minimal: swap placeholders when toggled to EN
+      $('#lang').textContent = zh ? 'EN / 中' : '中 / EN';
+      // swap placeholders minimally
       if(zh){
         $('#owner').placeholder='e.g., Luna Wei / Fireseed-2025-07';
         $('#principles').placeholder='Max understanding at minimal energy\nSelf-consistency first';
-        $('#loops').placeholder='observe\nrecord\nreflect\nredesign';
-        $('#nonneg').placeholder='no non-consensual extraction of time';
-      } else {
+        $('#nonneg').placeholder='no non-consensual extraction of time\nno harm for mere efficiency';
+      }else{
         $('#owner').placeholder='如：JiaMing Yang / 火种-2025-07';
-        $('#principles').placeholder='以最小能耗达成最大理解\n同情但不纵容';
-        $('#loops').placeholder='observe\nrecord\nreflect\nredesign';
+        $('#principles').placeholder='以最小能耗达成最大理解\n结构自洽优先\n避免过拟合现实';
         $('#nonneg').placeholder='no non-consensual extraction of time\nno harm for mere efficiency';
       }
-    });
+    };
 
-    // live render
-    FIELDS.forEach(k=>{ const el=$('#'+k); if(el){ el.addEventListener('input', render); }});
-
-    load();
-    render();
+    // boot
+    loadLS(); render(); showStep(1);
   </script>
 </body>
 </html>
