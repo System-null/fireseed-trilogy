@@ -2,33 +2,20 @@
   "@context": [
     "https://www.w3.org/ns/did/v1"
   ],
-  "id": "did:web:system-null.github.io:fireseed-trilogy",
+  "id": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4",
   "verificationMethod": [
     {
-      "id": "did:web:system-null.github.io:fireseed-trilogy#key-1",
+      "id": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4#key-1",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:web:system-null.github.io:fireseed-trilogy",
-      "publicKeyMultibase": "z6MkXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      "controller": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4",
+      "publicKeyMultibase": "z6MkrT4Nqk7FsX7UMYgQkKXfsaCZU45vL8dHcWCPsZ2P8zvX"
     }
-  ],
-  "assertionMethod": [
-    "did:web:system-null.github.io:fireseed-trilogy#key-1"
   ],
   "service": [
     {
-      "id": "did:web:system-null.github.io:fireseed-trilogy#capsule",
+      "id": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4#capsule",
       "type": "FireseedCapsule",
-      "serviceEndpoint": "https://system-null.github.io/fireseed-trilogy/snapshot.html"
-    },
-    {
-      "id": "did:web:system-null.github.io:fireseed-trilogy#schema",
-      "type": "JSONSchema",
-      "serviceEndpoint": "https://system-null.github.io/fireseed-trilogy/schemas/capsule_v0.min.yaml"
-    },
-    {
-      "id": "did:web:system-null.github.io:fireseed-trilogy#generator",
-      "type": "Generator",
-      "serviceEndpoint": "https://system-null.github.io/fireseed-trilogy/public/generator.html"
+      "serviceEndpoint": "ipfs://bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4"
     }
   ]
 }

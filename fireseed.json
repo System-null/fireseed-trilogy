@@ -1,15 +1,13 @@
 {
   "format": "fireseed-capsule-v0",
-  "capsule_format_version": "v0.3.3",
-  "schema_url": "https://system-null.github.io/fireseed-trilogy/schemas/capsule_v0.min.yaml",
-  "generator_url": "https://system-null.github.io/fireseed-trilogy/public/generator.html",
+  "schema_url": "https://system-null.github.io/fireseed-trilogy/schema/capsule-v0.json",
   "snapshot_url": "https://system-null.github.io/fireseed-trilogy/snapshot.html",
-  "offline_bundle": "https://github.com/System-null/fireseed-trilogy/releases/latest/download/fireseed-offline.zip",
+  "generator_url": "https://system-null.github.io/fireseed-trilogy/public/generator.html",
   "redundancy": [
-    "ipfs://<REPLACE_WITH_IPFS_HASH>",
+    "ipfs://bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4",
     "https://doi.org/10.5281/zenodo.17500749"
   ],
   "license": "MIT",
   "contact": "https://github.com/System-null/fireseed-trilogy/issues",
-  "updated": "2025-11-05T22:53:05Z"
+  "updated_at": "2025-11-05T23:34:59.028058Z"
 }
