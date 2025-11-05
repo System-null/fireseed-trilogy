@@ -4,7 +4,7 @@
 最小闭环：**loop + proofs + permissions + storage + narrative（可选）**。
 
 ## 使用步骤
-1. 打开 `public/generator.html`（或 GitHub Pages: `/public/generator.html`）。
+1. 打开 `public/generator.html`（或 GitHub Pages: `/generator.html`）。
 2. 依次填写：基本信息 → 理念与循环 →（可选）叙事 → 权限与存储。
 3. 点击「🔥 生成火种」下载 `capsule_v0.yaml`；或点「🖨️ 导出 PDF」得到 A4 版。
 4. 可选：
