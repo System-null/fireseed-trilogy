@@ -1,15 +1,23 @@
-
 cff-version: 1.2.0
-title: "Fireseed Trilogy"
+message: "If you use Fireseed Trilogy, please cite it as below."
+title: "Fireseed Trilogy — Machine-readable Civilization Framework"
 authors:
   - family-names: "Yang"
     given-names: "Fan"
   - family-names: "Yang"
     given-names: "JiaMing"
-version: "0.3.2"
-date-released: "2025-11-03"
 doi: "10.5281/zenodo.17500749"
-repository-code: "https://github.com/System-null/fireseed-trilogy"
-url: "https://doi.org/10.5281/zenodo.17500749"
+identifiers:
+  - type: isbn
+    value: "979-8298437653"
+    description: "System Exodus"
+  - type: isbn
+    value: "979-8297886889"
+    description: "Beyond the System"
+  - type: isbn
+    value: "979-8298417594"
+    description: "The Last Interface"
 license: "MIT"
-message: "If you use this work, please cite it as: Yang, F., & Yang, J. (2025). Fireseed Trilogy (v0.3.2). Zenodo. https://doi.org/10.5281/zenodo.17500749"
+repository-code: "https://github.com/System-null/fireseed-trilogy"
+version: "0.3.3"
+date-released: "2025-11-03"

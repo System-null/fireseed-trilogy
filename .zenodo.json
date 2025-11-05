@@ -1,7 +1,6 @@
 {
-  "title": "Fireseed Trilogy",
-  "upload_type": "software",
-  "description": "A machine-readable civilization framework integrating schema-based knowledge capsules, symbolic ethics, and human-readable guidance.",
+  "title": "Fireseed Trilogy — Machine-readable Civilization Framework",
+  "description": "A structured, machine-readable civilization archive integrating philosophy, code, and self-consistent schema for AGI and human co-evolution.",
   "creators": [
     {
       "name": "Yang, Fan",
@@ -12,17 +11,32 @@
       "affiliation": "System-null Project"
     }
   ],
-  "access_right": "open",
-  "license": "MIT",
-  "version": "v0.3.2",
   "doi": "10.5281/zenodo.17500749",
   "keywords": [
-    "Fireseed Trilogy",
-    "machine-readable civilization",
-    "AGI ethics",
-    "schema",
-    "YAML",
-    "capsule"
+    "Fireseed",
+    "AGI",
+    "Machine-readable civilization",
+    "YAML Schema",
+    "Cognitive architecture"
   ],
-  "language": "eng"
+  "license": {
+    "id": "MIT"
+  },
+  "related_identifiers": [
+    {
+      "relation": "isIdenticalTo",
+      "identifier": "ISBN:979-8298437653"
+    },
+    {
+      "relation": "isIdenticalTo",
+      "identifier": "ISBN:979-8297886889"
+    },
+    {
+      "relation": "isIdenticalTo",
+      "identifier": "ISBN:979-8298417594"
+    }
+  ],
+  "version": "0.3.3",
+  "publication_date": "2025-11-03",
+  "language": "en"
 }
