@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Fireseed Snapshot · 人类快照</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <style>
+    @media print { .no-print { display:none; } }
+    .snapshot { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>人类快照</h1>
+    <p class="disclaimer">此页展示“人类可读”的摘要版本。可打印或导出为PDF。</p>
+    <div id="human" class="snapshot">（尚无内容。请返回生成器填写并生成。）</div>
+    <div class="btns no-print" style="margin-top:12px;">
+      <button onclick="window.history.back()">返回生成器</button>
+      <button onclick="print()">打印/导出 PDF</button>
+      <button id="copyyaml">复制 YAML</button>
+    </div>
+    <div class="card">
+      <h3>YAML（可选）</h3>
+      <pre id="yaml" class="preview mono"></pre>
+    </div>
+  </div>
+  <script>
+    const human = localStorage.getItem('fireseed_last_human') || '（暂无人类快照，先在生成器生成一份吧）';
+    const yaml  = localStorage.getItem('fireseed_last_yaml') || '# 先在生成器生成一份胶囊';
+    document.getElementById('human').textContent = human;
+    document.getElementById('yaml').textContent  = yaml;
+    document.getElementById('copyyaml').onclick = () => {
+      navigator.clipboard.writeText(yaml).then(()=> alert('已复制 YAML'));
+    };
+  </script>
+</body>
+</html>
