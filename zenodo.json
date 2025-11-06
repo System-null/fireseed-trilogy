@@ -1,0 +1,16 @@
+{
+  "title": "Fireseed Trilogy",
+  "upload_type": "software",
+  "description": "Machine-readable civilization interface project combining YAML capsules, IPFS storage and W3C DID.",
+  "creators": [
+    {"name": "Yang Fan", "affiliation": "Fireseed Trilogy Lab"},
+    {"name": "System Null", "affiliation": "Fireseed Trilogy Lab"}
+  ],
+  "license": "MIT",
+  "language": "eng",
+  "version": "v3.7.6",
+  "keywords": ["Fireseed","Civilization Interface","AGI","YAML Capsule"],
+  "related_identifiers": [
+    {"identifier": "https://github.com/System-null/fireseed-trilogy", "relation": "isSupplementTo"}
+  ]
+}
