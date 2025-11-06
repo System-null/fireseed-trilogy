@@ -8,176 +8,133 @@
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1 class="fade-in">Fireseed Capsule Generator · 向导版</h1>
-    <blockquote class="fade-in">
-      <strong>愿景：</strong>构建一个机器可读的文明接口。<br>
-      让未来的智能体、AGI 或高维智慧能够读取、验证、延续人类的思想与意志；<br>
-      也让每一个普通人都能用最简单的方式，留下属于自己的火种。
-    </blockquote>
+    <div class="container">
+      <h1 class="fade-in" data-i18n="title.main">Fireseed Capsule Generator · 向导版</h1>
+      <blockquote class="fade-in">
+        <strong data-i18n="vision.label">愿景：</strong><span data-i18n="vision.line1">构建一个机器可读的文明接口。</span><br>
+        <span data-i18n="vision.line2">让未来的智能体、AGI 或高维智慧能够读取、验证、延续人类的思想与意志；</span><br>
+        <span data-i18n="vision.line3">也让每一个普通人都能用最简单的方式，留下属于自己的火种。</span>
+      </blockquote>
 
-    <div class="card fade-in">
-      <p>这不是“上传意识”的幻想，而是一种更诚实的<strong>数字延续</strong>。<br>
-      你填写的每一段文字、每一个原则、每一个底线，都会被转化为
-      <strong>机器可读的自我描述</strong>——它能被未来的系统解析、复原、对齐。<br>
-      对人类而言，这是“留下说明书”；对未来而言，这是“读取火种”。</p>
-      <p class="disclaimer">🔒 全程本地运行，不上传、不联网。生成后你可以下载 <span class="kbd">capsule.yaml</span> 或 PDF。<br>
-      ⚠️ 本工具用于记录思想与意愿，不具备法律效力；如涉及遗嘱或资产，请咨询律师。</p>
+      <div class="card fade-in">
+        <p>
+          <span data-i18n="intro.line1">这不是“上传意识”的幻想，而是一种更诚实的</span><strong data-i18n="intro.term">数字延续</strong><span data-i18n="intro.line1Suffix">。</span><br>
+          <span data-i18n="intro.line2">你填写的每一段文字、每一个原则、每一个底线，都会被转化为</span>
+          <strong data-i18n="intro.term2">机器可读的自我描述</strong><span data-i18n="intro.line2Suffix">——它能被未来的系统解析、复原、对齐。</span><br>
+          <span data-i18n="intro.line3">对人类而言，这是“留下说明书”；对未来而言，这是“读取火种”。</span>
+        </p>
+        <p class="disclaimer">
+          <span data-i18n="disclaimer.offline.prefix">🔒 全程本地运行，不上传、不联网。生成后你可以下载</span>
+          <span class="kbd">capsule.yaml</span>
+          <span data-i18n="disclaimer.offline.suffix">或 PDF。</span><br>
+          <span data-i18n="disclaimer.legal">⚠️ 本工具用于记录思想与意愿，不具备法律效力；如涉及遗嘱或资产，请咨询律师。</span>
+        </p>
     </div>
 
     <div class="row">
       <div class="col">
-        <div class="card">
-          <h3>1) 基本信息</h3>
-          <label>我是谁</label>
-          <input id="owner" type="text" placeholder="例：Alex Lin / 李明 / Mia"/>
-          <small class="hint">不管是谁打开这份说明书，都能认出那是我留下的声音。</small>
+          <div class="card">
+            <h3 data-i18n="section.basic.title">1) 基本信息</h3>
+            <label data-i18n="basic.owner.label">我是谁</label>
+            <input id="owner" type="text" placeholder="例：Alex Lin / 李明 / Mia" data-i18n-placeholder="basic.owner.placeholder"/>
+            <small class="hint" data-i18n="basic.owner.hint">不管是谁打开这份说明书，都能认出那是我留下的声音。</small>
 
-          <label>我用的语言</label>
-          <select name="language" data-i18n-switch>
-  <option value="zh">中文 (zh-CN)</option>
-  <option value="en">English (en-US)</option>
-  <option value="ja">日本語 (ja-JP)</option>
-</select>
-          <small class="hint">系统会按这里生成对应语言格式；切到英文，整页将以英文呈现。</small>
+            <label data-i18n="basic.language.label">我用的语言</label>
+            <select name="language" data-i18n-switch>
+              <option value="zh" data-i18n="basic.language.option.zh">中文 (zh-CN)</option>
+              <option value="en" data-i18n="basic.language.option.en">English (en-US)</option>
+              <option value="ja" data-i18n="basic.language.option.ja">日本語 (ja-JP)</option>
+            </select>
+            <small class="hint" data-i18n="basic.language.hint">系统会按这里生成对应语言格式；切到英文，整页将以英文呈现。</small>
 
-          <label>我思考时的“参考书”</label>
-          <input id="philosophy_refs" type="text" placeholder="例：论语、康德、马斯克、妈妈的一句话"/>
-          <small class="hint">写下影响你判断的书、电影、人物或信条。未来系统读到这些，才知道“你从哪里想问题”。</small>
+            <label data-i18n="basic.refs.label">我思考时的“参考书”</label>
+            <input id="philosophy_refs" type="text" placeholder="例：论语、康德、马斯克、妈妈的一句话" data-i18n-placeholder="basic.refs.placeholder"/>
+            <small class="hint" data-i18n="basic.refs.hint">写下影响你判断的书、电影、人物或信条。未来系统读到这些，才知道“你从哪里想问题”。</small>
         </div>
 
-        <div class="card">
-          <h3>2) 原则与底线</h3>
-          <label>我人生的三原则</label>
-          <textarea id="principles" placeholder="例：1. 不撒谎 2. 不伤人 3. 不拖延"></textarea>
+          <div class="card">
+            <h3 data-i18n="section.principles.title">2) 原则与底线</h3>
+            <label data-i18n="principles.list.label">我人生的三原则</label>
+            <textarea id="principles" placeholder="例：1. 不撒谎 2. 不伤人 3. 不拖延" data-i18n-placeholder="principles.list.placeholder"></textarea>
 
-          <label>我的底线（non_negotiables）</label>
-          <textarea id="non_negotiables" placeholder="例：绝不为钱背叛朋友；不以效率之名伤害他人。"></textarea>
+            <label data-i18n="principles.nonneg.label">我的底线（non_negotiables）</label>
+            <textarea id="non_negotiables" placeholder="例：绝不为钱背叛朋友；不以效率之名伤害他人。" data-i18n-placeholder="principles.nonneg.placeholder"></textarea>
 
-          <label>我行动的循环（loop）</label>
-          <textarea id="loop" placeholder="例：感知 → 判断 → 行动 → 反思；若误解则补图示，再无效终止解释。"></textarea>
+            <label data-i18n="principles.loop.label">我行动的循环（loop）</label>
+            <textarea id="loop" placeholder="例：感知 → 判断 → 行动 → 反思；若误解则补图示，再无效终止解释。" data-i18n-placeholder="principles.loop.placeholder"></textarea>
         </div>
 
-        <div class="card">
-          <h3>3) 给未来的留言</h3>
-          <textarea id="message" placeholder="例：愿你在混乱中仍保持温柔与清晰。"></textarea>
+          <div class="card">
+            <h3 data-i18n="section.message.title">3) 给未来的留言</h3>
+            <textarea id="message" placeholder="例：愿你在混乱中仍保持温柔与清晰。" data-i18n-placeholder="message.placeholder"></textarea>
         </div>
 
-        <div class="card">
-          <h3>4) 权限与安全</h3>
-          <label>我愿意被读取的条件（access_terms）</label>
-          <select id="access_terms">
-            <option value="read">只读（别人只能看）</option>
-            <option value="derive">可衍生（别人可改写）</option>
-            <option value="commercial">可商用（允许商业使用）</option>
-            <option value="custom">自定义（在下方写明）</option>
-          </select>
-          <input id="custom_terms" type="text" placeholder="如果选择自定义，在此补充条款（可留空）"/>
+          <div class="card">
+            <h3 data-i18n="section.safety.title">4) 权限与安全</h3>
+            <label data-i18n="safety.access.label">我愿意被读取的条件（access_terms）</label>
+            <select id="access_terms">
+              <option value="read" data-i18n="safety.access.option.read">只读（别人只能看）</option>
+              <option value="derive" data-i18n="safety.access.option.derive">可衍生（别人可改写）</option>
+              <option value="commercial" data-i18n="safety.access.option.commercial">可商用（允许商业使用）</option>
+              <option value="custom" data-i18n="safety.access.option.custom">自定义（在下方写明）</option>
+            </select>
+            <input id="custom_terms" type="text" placeholder="如果选择自定义，在此补充条款（可留空）" data-i18n-placeholder="safety.access.custom"/>
 
-          <label>白名单（whitelist）</label>
-          <input id="whitelist" type="text" placeholder="例：任何尊重我底线的生命体 / 受托人邮箱"/>
-          <label>黑名单（blacklist）</label>
-          <input id="blacklist" type="text" placeholder="例：商业画像引擎；监控系统"/>
+            <label data-i18n="safety.whitelist.label">白名单（whitelist）</label>
+            <input id="whitelist" type="text" placeholder="例：任何尊重我底线的生命体 / 受托人邮箱" data-i18n-placeholder="safety.whitelist.placeholder"/>
+            <label data-i18n="safety.blacklist.label">黑名单（blacklist）</label>
+            <input id="blacklist" type="text" placeholder="例：商业画像引擎；监控系统" data-i18n-placeholder="safety.blacklist.placeholder"/>
 
-          <label>异议期（grace_period）</label>
-          <input id="grace_period" type="text" placeholder="例：P30D（30天）"/>
-          <small class="hint">家人如有异议，请在异议期内联系受托人。</small>
+            <label data-i18n="safety.grace.label">异议期（grace_period）</label>
+            <input id="grace_period" type="text" placeholder="例：P30D（30天）" data-i18n-placeholder="safety.grace.placeholder"/>
+            <small class="hint" data-i18n="safety.grace.hint">家人如有异议，请在异议期内联系受托人。</small>
 
-          <label>受托人 / 紧急联系人（delegated_key / emergency contact）</label>
-          <input id="delegated_key" type="text" placeholder="例：姓名: 李明, 微信: liming123 或 公钥片段"/>
+            <label data-i18n="safety.trustee.label">受托人 / 紧急联系人（delegated_key / emergency contact）</label>
+            <input id="delegated_key" type="text" placeholder="例：姓名: 李明, 微信: liming123 或 公钥片段" data-i18n-placeholder="safety.trustee.placeholder"/>
 
-          <details style="margin-top:10px;">
-            <summary>写更多 ▶（可选信息，不会影响生成）</summary>
-            <label>我铭记的日子</label>
-            <input id="dates" type="text" placeholder="例：生日 1990-01-01；纪念日 2015-05-20"/>
-            <label>我喜欢的事物</label>
-            <input id="likes" type="text" placeholder="例：黑咖啡；爵士；骑行"/>
-            <label>我讨厌的事物</label>
-            <input id="dislikes" type="text" placeholder="例：欺骗；浪费；冷暴力"/>
-            <label>更新口令（可留空）</label>
-            <input id="update_passphrase" type="text" placeholder="4~6位短语；留空代表未设置（可日后补）"/>
-            <small class="hint">这些可写可不写，不会影响生成。</small>
-          </details>
-        </div>
-
-        <div class="card">
-          <div class="btns">
-            <button class="primary" id="btn-generate">生成胶囊</button>
-            <button id="btn-download">下载 YAML</button>
-            <button id="btn-pdf">导出 PDF</button>
-            <button id="btn-snapshot">人类快照</button>
+            <details style="margin-top:10px;">
+              <summary data-i18n="safety.more.summary">写更多 ▶（可选信息，不会影响生成）</summary>
+              <label data-i18n="safety.dates.label">我铭记的日子</label>
+              <input id="dates" type="text" placeholder="例：生日 1990-01-01；纪念日 2015-05-20" data-i18n-placeholder="safety.dates.placeholder"/>
+              <label data-i18n="safety.likes.label">我喜欢的事物</label>
+              <input id="likes" type="text" placeholder="例：黑咖啡；爵士；骑行" data-i18n-placeholder="safety.likes.placeholder"/>
+              <label data-i18n="safety.dislikes.label">我讨厌的事物</label>
+              <input id="dislikes" type="text" placeholder="例：欺骗；浪费；冷暴力" data-i18n-placeholder="safety.dislikes.placeholder"/>
+              <label data-i18n="safety.passphrase.label">更新口令（可留空）</label>
+              <input id="update_passphrase" type="text" placeholder="4~6位短语；留空代表未设置（可日后补）" data-i18n-placeholder="safety.passphrase.placeholder"/>
+              <small class="hint" data-i18n="safety.more.hint">这些可写可不写，不会影响生成。</small>
+            </details>
           </div>
-          <small class="hint">⚠️ 没有 GPG / IPFS？没关系，可以跳过签名与上传，日后补齐。</small>
-        </div>
+
+          <div class="card">
+            <div class="btns">
+            <button class="primary" id="btn-generate" data-i18n="buttons.generate">生成胶囊</button>
+            <button id="btn-download" data-i18n="buttons.downloadYaml">下载 YAML</button>
+            <button id="btn-pdf" data-i18n="buttons.exportPdf">导出 PDF</button>
+            <button id="btn-snapshot" data-i18n="buttons.snapshot">人类快照</button>
+            </div>
+            <small class="hint" data-i18n="buttons.notice">⚠️ 没有 GPG / IPFS？没关系，可以跳过签名与上传，日后补齐。</small>
+          </div>
       </div>
       <div class="col">
-        <div class="card">
-          <h3>YAML 预览</h3>
-          <pre id="yaml" class="preview"># 点击“生成胶囊”后在这里预览 YAML</pre>
-        </div>
-        <div class="card">
-          <h3>人类可读预览</h3>
-          <div id="human" class="human">这里会实时展示“人类可读”的摘要。</div>
-        </div>
+          <div class="card">
+            <h3 data-i18n="panel.yaml.title">YAML 预览</h3>
+            <pre id="yaml" class="preview" data-i18n="panel.yaml.hint"># 点击“生成胶囊”后在这里预览 YAML</pre>
+          </div>
+          <div class="card">
+            <h3 data-i18n="panel.human.title">人类可读预览</h3>
+            <div id="human" class="human" data-i18n="panel.human.hint">这里会实时展示“人类可读”的摘要。</div>
+          </div>
       </div>
     </div>
 
     <hr class="soft" />
-    <footer>
-      <p>© Fireseed Generator v3.7 · 本工具仅用于记录思想与意愿，不具备法律效力。</p>
-    </footer>
-  </div>
+      <footer>
+        <p data-i18n="footer.legal">© Fireseed Generator v3.7 · 本工具仅用于记录思想与意愿，不具备法律效力。</p>
+      </footer>
+    </div>
 <script src="/fireseed-trilogy/public/scripts/i18n-baseline-shim.js"></script>
 <script src="/fireseed-trilogy/public/scripts/fireseed-i18n-overlay.v3.0.js"></script>
 <script src="/fireseed-trilogy/public/scripts/did-export.js"></script>
-
-<script>
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("🌐 Fireseed i18n initializing...");
-  if (window.i18nOverlay) {
-    window.i18nOverlay.init({
-      defaultLang: "zh",
-      supported: ["zh", "en", "ja"],
-      langDir: "/fireseed-trilogy/public/lang/",
-    });
-  } else {
-    console.error("❌ i18nOverlay not found. Check if fireseed-i18n-overlay.v3.0.js loaded correctly.");
-  }
-});
-</script>
 </body>
 </html>
-<!-- i18n overlay safe bootstrap: wait until overlay is ready (handles Safari/PAGES race) -->
-<script>
-(function(){
-  const LANG_DIR = "/fireseed-trilogy/public/lang/";
-  const SUPPORTED = ["zh","en","ja"];
-  const MAX_WAIT = 5000;     // 最多等 5 秒
-  const STEP = 120;          // 每 120ms 轮询一次
-
-  function initOnce(){
-    try{
-      window.i18nOverlay.init({
-        defaultLang: "zh",
-        supported: SUPPORTED,
-        langDir: LANG_DIR
-      });
-      console.log("[i18n-boot] initialized ✔");
-    }catch(e){
-      console.error("[i18n-boot] init failed:", e);
-    }
-  }
-
-  function wait(msLeft){
-    if (window.i18nOverlay && typeof window.i18nOverlay.init === "function"){
-      return initOnce();
-    }
-    if (msLeft <= 0){
-      return console.error("❌ i18nOverlay not ready after timeout. Check script URL & cache.");
-    }
-    setTimeout(() => wait(msLeft - STEP), STEP);
-  }
-
-  document.addEventListener("DOMContentLoaded", () => wait(MAX_WAIT));
-})();
-</script>
