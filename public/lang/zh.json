@@ -1,29 +1,93 @@
 {
-  "Fireseed Capsule Generator · 向导版": "Fireseed Capsule Generator · 向导版",
-  "愿景：构建一个机器可读的文明接口。": "愿景：构建一个机器可读的文明接口。",
-  "生成将遵循该语言；切换后会翻译整页内容。": "生成将遵循该语言；切换后会翻译整页内容。",
-  "我是谁": "我是谁",
-  "我用的语言": "我用的语言",
-  "我的哲学参照书": "我的哲学参照书",
-  "2) 原则与底线": "2) 原则与底线",
-  "我的三层原则": "我的三层原则",
-  "我的底线（non_negotiables）": "我的底线（non_negotiables）",
-  "我的行动循环（loop）": "我的行动循环（loop）",
-  "3) 约束与宣言": "3) 约束与宣言",
-  "4) 权限与安全": "4) 权限与安全",
-  "只读（别人只能看）": "只读（别人只能看）",
-  "白名单（whitelist）": "白名单（whitelist）",
-  "黑名单（blacklist）": "黑名单（blacklist）",
-  "宽限期（grace_period）": "宽限期（grace_period）",
-  "代理人/紧急联系人（delegated_key / emergency contact）": "代理人/紧急联系人（delegated_key / emergency contact）",
-  "更多扩展（可选项，不影响生成）": "更多扩展（可选项，不影响生成）",
-  "YAML 预览": "YAML 预览",
-  "人类可读预览": "人类可读预览",
-  "点击“生成胶囊”后在这里预览 YAML": "点击“生成胶囊”后在这里预览 YAML",
-  "这里会实时展示“人类可读”的摘要。": "这里会实时展示“人类可读”的摘要。",
-  "生成胶囊": "生成胶囊",
-  "下载 YAML": "下载 YAML",
-  "导出 PDF": "导出 PDF",
-  "导出 W3C DID 文档（可选）": "导出 W3C DID 文档（可选）",
-  "人类快照": "人类快照"
+  "title": "Fireseed Capsule Generator · 向导版",
+  "vision": {
+    "title": "愿景：构建一个机器可读的文明接口。",
+    "p1": "使能智能体与 AGI 读取、验证、延续人类的思想与意志；",
+    "p2": "让每个人都能用最简单的方式，留下属于自己的火种。",
+    "continuation": "这不是“上传意识”的幻想，而是一种更诚实的续写。每一句话、每一条“条款”、每一段“愿望”，都会被转译为机器可读的自我描述——它能被未来的系统解析、复原、对齐。",
+    "noteLocal": "仅本地运行 / 生成，不上传、不联网。最安全方式：下载 capsule.yaml 或 PDF。",
+    "noteLegal": "本工具用于记录思想与意愿，不具法律效力；如涉及资产，请咨询律师。"
+  },
+  "panel": {
+    "yamlTitle": "YAML 预览",
+    "yamlHint": "点击“生成胶囊”后在这里预览 YAML",
+    "humanTitle": "人类可读预览",
+    "humanHint": "这里会实时展示“人类可读”的摘要。"
+  },
+  "section1": {
+    "title": "1) 基本信息",
+    "whoami": {
+      "label": "我是誰",
+      "placeholder": "例：Alex Lin / 李明 / Mia"
+    },
+    "language": {
+      "label": "我使用的语言",
+      "help": "系统会按选定语言生成模板；切到英文时，整页以英文呈现（未来版本）。"
+    },
+    "refs": {
+      "label": "我思考的“参考书”",
+      "placeholder": "例：金律、康德、马斯克……列出你信奉的书、电影、人物或信条，未来系统据此读取，才能知道“你坚持哪些原则”。"
+    }
+  },
+  "section2": {
+    "title": "2) 原则与底线",
+    "principles": {
+      "label": "我人生的三原则",
+      "placeholder": "例：1. 诚实  2. 不伤人  3. 不隐瞒"
+    },
+    "nonneg": {
+      "label": "我的底线（non_negotiables）",
+      "placeholder": "例：不泄露朋友隐私；不发布恶意信息。"
+    },
+    "loop": {
+      "label": "我行动的循环（loop）",
+      "placeholder": "例：每周一复盘一次；复盘后做出调整，并记录结果。"
+    }
+  },
+  "section3": {
+    "title": "3) 给未来的留言",
+    "message": {
+      "placeholder": "例：希望后代记得我们的共同理想。"
+    }
+  },
+  "section4": {
+    "title": "4) 权限与安全",
+    "accessTerms": {
+      "label": "我愿意被读取的条件（access_terms）",
+      "readonly": "只读（他人只能查看）",
+      "placeholder": "如选择自定义条款，请在此补充说明"
+    },
+    "whitelist": {
+      "label": "白名单（whitelist）",
+      "placeholder": "例：任何尊重我边界的人；受托人；亲属"
+    },
+    "blacklist": {
+      "label": "黑名单（blacklist）",
+      "placeholder": "例：商业跟踪引擎；监控系统"
+    },
+    "grace": {
+      "label": "宽限期（grace_period）",
+      "placeholder": "例：P30D（30 天）"
+    },
+    "trustee": {
+      "label": "家属 / 紧急联系人（delegated_key / emergency contact）",
+      "placeholder": "例：姓名：李明，WeChat：liming123；或公钥碎片"
+    }
+  },
+  "more": {
+    "toggle": "▶ 写更多（可选项，不会影响生成）"
+  },
+  "buttons": {
+    "generate": "生成胶囊",
+    "downloadYaml": "下载 YAML",
+    "exportPdf": "导出 PDF",
+    "humanSnapshot": "人类快照",
+    "exportDid": "导出 W3C DID 文档（可选）"
+  },
+  "notice": {
+    "nogpg": "没 GPG / IPFS？没关系，可以跳过签名与上传，日后补齐。"
+  },
+  "footer": {
+    "legal": "© Fireseed Generator v3.7 · 本工具仅用于记录思想与意愿，不具法律效力。"
+  }
 }
