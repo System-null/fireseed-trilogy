@@ -34,7 +34,7 @@
           <small class="hint">不管是谁打开这份说明书，都能认出那是我留下的声音。</small>
 
           <label>我用的语言</label>
-          <select name="language">
+          <select name="language" data-i18n-switch>
   <option value="zh">中文 (zh-CN)</option>
   <option value="en">English (en-US)</option>
   <option value="ja">日本語 (ja-JP)</option>
@@ -127,23 +127,10 @@
       <p>© Fireseed Generator v3.7 · 本工具仅用于记录思想与意愿，不具备法律效力。</p>
     </footer>
   </div>
-<script src="./scripts/i18n-auto.js"></script>
-  <script src="./scripts/generator.js"></script>
-  <script src="./scripts/pdf-export.js"></script>
-<script src="./scripts/did-export.js"></script>
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    if (typeof initI18n === "function") {
-      initI18n();
-      console.log("✅ i18n initialized");
-    } else {
-      console.warn("⚠️ i18n.js not loaded properly");
-    }
-  });
-</script>
+  
 
 <script src="./scripts/i18n-overlay.js"></script>
   <script src="./scripts/i18n-overlay.v2.3.js?v=2301"></script>
+  <script defer src="./scripts/i18n-overlay.v2.4.js?v=2401"></script>
 </body>
 </html>
