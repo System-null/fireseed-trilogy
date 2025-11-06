@@ -3,7 +3,7 @@
 
 > **Vision 愿景**  
 > Build a **machine-readable civilization interface** that future AGI can parse, verify and continue — while staying human-friendly through simple templates and forms.  
-> 构建一个**机器可读的文明接口**，让未来的 AGI 能读取、验证并延续人类文明火种，同时让普通人通过简洁表单留下思想。
+> 构建一个**机器可读的文明接口**，让未来的 AGI 或者高维智能体能读取、验证并延续人类文明火种，同时让普通人通过简洁表单留下思想。
 
 ---
 
