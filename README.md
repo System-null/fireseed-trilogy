@@ -62,4 +62,14 @@ Fireseed Trilogy is an open civilization-interface experiment designed to preser
 
 ---
 
+## 🤝 Community & Governance
+
+- [Contributing Guide](CONTRIBUTING.md) — learn how to propose ideas, report issues, and submit pull requests.
+- [Code of Conduct](CODE_OF_CONDUCT.md) — the expectations that keep our spaces welcoming and collaborative.
+- [Security Policy](SECURITY.md) — report vulnerabilities and review secure development practices.
+
+Help us keep the fireseed alive by sharing feedback, opening discussions, or mentoring new contributors.
+
+---
+
 © 2025 Fireseed Trilogy Lab · Code: MIT · Docs: CC BY 4.0
