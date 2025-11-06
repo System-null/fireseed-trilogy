@@ -42,7 +42,6 @@
 | **DOI** | [10.5281/zenodo.17500749](https://doi.org/10.5281/zenodo.17500749) |
 | **Zenodo 最新版本** | [10.5281/zenodo.17539027](https://doi.org/10.5281/zenodo.17539027) |
 | **Version 版本** | v3.7.8 Zenodo Release |
-| **Authors 作者** | System Null · Yang Fan |
 | **License 许可** | MIT（代码） / CC BY 4.0（文档） |
 
 ---
@@ -62,4 +61,27 @@ Fireseed Trilogy is an open civilization-interface experiment designed to preser
 
 ---
 
-© 2025 Fireseed Trilogy Lab · Code: MIT · Docs: CC BY 4.0
+## 👥 Authors / 作者
+
+**主要作者 / Lead Author**  
+**杨帆（System Null）** — 系统架构师、概念设计师  
+System Architect & Concept Designer  
+负责全局理论设计、信息结构、系统架构与文明接口框架。  
+
+**联合作者 / Co-Author**  
+**杨家铭（JiaMing Yang）** — GitHub 开发者、代码实现者  
+GitHub Developer & Code Implementer  
+负责仓库搭建、前端实现、生成器逻辑与维护。  
+
+
+## 🧩 Responsibilities / 职责说明
+
+- 所有理论设计与系统结构架构由 **杨帆（System Null）** 完成；  
+- 所有代码、伪实现与仓库维护由 **杨家铭（JiaMing Yang）** 完成。  
+
+All theoretical design and system architecture were completed by **Yang Fan (System Null)**.  
+All code implementation, pseudo-logic, and repository maintenance were done by **JiaMing Yang**.
+
+---
+
+© 2025 Fireseed Trilogy Lab · Code MIT · Docs CC BY 4.0
