@@ -5,13 +5,6 @@
   const I18N = W.I18N = W.I18N || {};
   let DICTS = { zh:null, en:null, ja:null };
 
-  function guessLangFromOptionText(t) {
-    const s = (t||'').toLowerCase();
-    if (s.includes('en')) return 'en';
-    if (s.includes('ja') || s.includes('日')) return 'ja';
-    if (s.includes('zh') || s.includes('中')) return 'zh';
-    return null;
-  }
   function findLangSelect() {
     const sels = document.querySelectorAll('select');
     for (const sel of sels) {
@@ -40,21 +33,26 @@
     if (dict[norm] != null) return dict[norm];
     return orig;
   }
+  function resolve(dict, key, fallback){
+    if (!dict) return fallback;
+    if (key && dict[key] != null) return dict[key];
+    return translateText(dict, fallback);
+  }
   function applyToElement(dict, entry){
     const el = entry.el;
     if (!el || (el.closest && (el.closest('pre,code'))) ) return;
-    if (entry.title) {
-      const t = translateText(dict, entry.title);
-      if (t !== entry.title) el.setAttribute('title', t);
+    if (entry.title || entry.titleKey) {
+      const t = resolve(dict, entry.titleKey, entry.title);
+      if (t && t !== entry.title) el.setAttribute('title', t);
     }
-    if (entry.placeholder) {
-      const p = translateText(dict, entry.placeholder);
-      if (p !== entry.placeholder) el.setAttribute('placeholder', p);
+    if (entry.placeholder || entry.placeholderKey) {
+      const p = resolve(dict, entry.placeholderKey, entry.placeholder);
+      if (p && p !== entry.placeholder) el.setAttribute('placeholder', p);
     }
     const isForm = ['INPUT','TEXTAREA','SELECT'].includes(el.tagName);
     if (!isForm) {
-      const txt = translateText(dict, entry.text);
-      if (txt !== entry.text && txt !== '') {
+      const txt = resolve(dict, entry.key, entry.text);
+      if (txt !== entry.text && txt !== undefined && txt !== null && txt !== '') {
         if (el.childElementCount === 0) {
           el.textContent = txt;
         } else if (el.dataset && el.dataset.i18n) {
@@ -66,7 +64,7 @@
       }
     } else if (el.tagName === 'SELECT') {
       Array.from(el.options).forEach(opt=>{
-        const t = translateText(dict, (opt.textContent||'').trim());
+        const t = resolve(dict, opt.dataset && opt.dataset.i18n, (opt.textContent||'').trim());
         if (t && t !== opt.textContent) opt.textContent = t;
       });
     }
@@ -85,17 +83,24 @@
       const sel = findLangSelect();
       if (sel) {
         sel.addEventListener('change', ()=>{
-          const opt = sel.options[sel.selectedIndex];
-          const code = guessLangFromOptionText(opt ? opt.textContent : sel.value) || 'zh';
+          const code = sel.value || (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].value) || 'zh';
           switchLang(code);
         }, {passive:true});
-        const initOpt = sel.options[sel.selectedIndex];
-        const initCode = guessLangFromOptionText(initOpt ? initOpt.textContent : sel.value) || 'zh';
+        const initCode = sel.value || (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].value) || 'zh';
         switchLang(initCode);
       }
     } catch (e) { console.error('[i18n-overlay] init failed:', e); }
   }
   I18N.switch = switchLang;
+  I18N.init = cfg => {
+    if (cfg && cfg.defaultLang) switchLang(cfg.defaultLang);
+  };
+  W.i18nOverlay = {
+    init(cfg){
+      if (cfg && cfg.defaultLang) switchLang(cfg.defaultLang);
+    },
+    switch: switchLang
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
   else boot();
 })();

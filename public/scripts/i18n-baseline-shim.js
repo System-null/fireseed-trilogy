@@ -19,7 +19,10 @@
         el,
         text: (el.childElementCount ? el.textContent : (el.innerText || '')).trim(),
         placeholder: el.getAttribute && el.getAttribute('placeholder') || null,
-        title: el.getAttribute && el.getAttribute('title') || null
+        title: el.getAttribute && el.getAttribute('title') || null,
+        key: el.dataset && el.dataset.i18n || null,
+        placeholderKey: el.dataset && el.dataset.i18nPlaceholder || null,
+        titleKey: el.dataset && el.dataset.i18nTitle || null
       };
       map.set(i, entry);
     });
