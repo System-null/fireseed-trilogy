@@ -48,24 +48,43 @@
     return (v||"").trim();
   }
   function attach(){
-    // Locate an anchor button to place next to
-    const candidates = $all("button, a, input[type=button], input[type=submit]");
-    let anchor = candidates.find(b=>/导出\s*PDF|导出PDF|下载\s*YAML|下载YAML|保存|生成/i.test(b.textContent||b.value||""));
-    if(!anchor){
-      // fallback: append at bottom of body
-      anchor = h("div");
-      document.body.appendChild(anchor);
+    let btn = document.getElementById("btn-did-export");
+    if(!btn){
+      // Locate an anchor button to place next to
+      const candidates = $all("button, a, input[type=button], input[type=submit]");
+      let anchor = candidates.find(b=>/导出\s*PDF|导出PDF|下载\s*YAML|下载YAML|保存|生成/i.test(b.textContent||b.value||""));
+      if(!anchor){
+        // fallback: append at bottom of body
+        anchor = h("div");
+        document.body.appendChild(anchor);
+      }else{
+        // ensure anchor is in the DOM
+        anchor = anchor.parentElement || anchor;
+      }
+      btn = h("button", { type:"button", id:"btn-did-export" }, ["导出 W3C DID 文档（可选）"]);
+      btn.className = "btn btn-secondary";
+      btn.style.marginLeft = "8px";
+      btn.title = "将胶囊转为 W3C DID 文档，便于钱包/链上系统直接识别（可选）";
+      btn.dataset.i18n = btn.dataset.i18n || "buttons.exportDid";
+      btn.dataset.i18nTitle = btn.dataset.i18nTitle || "buttons.exportDidHint";
+      anchor.appendChild(btn);
+      const baseline = window.__i18nState && window.__i18nState.baseline;
+      if(baseline && typeof baseline.set === "function"){
+        baseline.set(baseline.size, {
+          el: btn,
+          text: btn.textContent.trim(),
+          placeholder: null,
+          title: btn.title,
+          key: btn.dataset.i18n,
+          placeholderKey: null,
+          titleKey: btn.dataset.i18nTitle
+        });
+      }
     }else{
-      // ensure anchor is in the DOM
-      anchor = anchor.parentElement || anchor;
+      if(!btn.dataset.i18n) btn.dataset.i18n = "buttons.exportDid";
+      if(!btn.dataset.i18nTitle) btn.dataset.i18nTitle = "buttons.exportDidHint";
+      if(!btn.title) btn.title = "将胶囊转为 W3C DID 文档，便于钱包/链上系统直接识别（可选）";
     }
-    const btn = h("button", {
-      type:"button",
-      title:"将胶囊转为 W3C DID 文档，便于钱包/链上系统直接识别（可选）",
-      className:"btn btn-secondary"
-    }, ["导出 W3C DID 文档（可选）"]);
-    btn.style.marginLeft = "8px";
-    anchor.appendChild(btn);
     btn.addEventListener("click", async function(){
       let tpl = "";
       try{ tpl = await fetchTemplate(); }
