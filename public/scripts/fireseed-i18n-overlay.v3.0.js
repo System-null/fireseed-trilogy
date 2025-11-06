@@ -43,19 +43,25 @@
     if (!el || (el.closest && (el.closest('pre,code'))) ) return;
     if (entry.title || entry.titleKey) {
       const t = resolve(dict, entry.titleKey, entry.title);
-      if (t && t !== entry.title) el.setAttribute('title', t);
+      const currentTitle = el.getAttribute ? el.getAttribute('title') : null;
+      if (t && t !== currentTitle) el.setAttribute('title', t);
     }
     if (entry.placeholder || entry.placeholderKey) {
       const p = resolve(dict, entry.placeholderKey, entry.placeholder);
-      if (p && p !== entry.placeholder) el.setAttribute('placeholder', p);
+      const currentPlaceholder = el.getAttribute ? el.getAttribute('placeholder') : null;
+      if (p && p !== currentPlaceholder) el.setAttribute('placeholder', p);
     }
     const isForm = ['INPUT','TEXTAREA','SELECT'].includes(el.tagName);
     if (!isForm) {
       const txt = resolve(dict, entry.key, entry.text);
-      if (txt !== entry.text && txt !== undefined && txt !== null && txt !== '') {
-        if (el.childElementCount === 0) {
-          el.textContent = txt;
-        } else if (el.dataset && el.dataset.i18n) {
+      const currentText = (()=>{
+        if (el.childElementCount === 0) return el.textContent || '';
+        if (el.dataset && el.dataset.i18n) return el.textContent || '';
+        const tn = Array.from(el.childNodes).find(n=>n.nodeType===Node.TEXT_NODE);
+        return tn ? tn.nodeValue || '' : '';
+      })();
+      if (txt !== undefined && txt !== null && txt !== '' && txt.trim() !== currentText.trim()) {
+        if (el.childElementCount === 0 || (el.dataset && el.dataset.i18n)) {
           el.textContent = txt;
         } else {
           const tn = Array.from(el.childNodes).find(n=>n.nodeType===Node.TEXT_NODE);
