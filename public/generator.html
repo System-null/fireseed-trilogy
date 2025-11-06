@@ -129,6 +129,22 @@
   </div>
 <script src="./scripts/i18n-baseline-shim.js"></script>
 <script src="./scripts/fireseed-i18n-overlay.v3.0.js"></script>
-  <script src="./scripts/did-export.js"></script>
+<script src="./scripts/did-export.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("🌐 Fireseed i18n initializing...");
+    if (window.i18nOverlay) {
+      window.i18nOverlay.init({
+        defaultLang: "zh",
+        supported: ["zh", "en", "ja"],
+        langDir: "./lang/",
+        selector: "[data-i18n-switch]"
+      });
+    } else {
+      console.error("❌ i18nOverlay not found. Check if fireseed-i18n-overlay.v3.0.js loaded correctly.");
+    }
+  });
+</script>
 </body>
 </html>
