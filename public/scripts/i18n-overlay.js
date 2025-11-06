@@ -1,20 +1,18 @@
 
-/*! Fireseed i18n overlay v2 (baseline-safe, multi-switch)
- *  - Does NOT change layout or core scripts.
- *  - Keeps a baseline snapshot of original texts/attributes/options,
- *    so you can switch languages back and forth indefinitely.
+/*! Fireseed i18n overlay v2.2
+ * - Based on v2.1 (Map baseline, multi-switch).
+ * - Plus: (a) force-localize DID export button, (b) inject tri-lingual note under language selector.
  */
 (function(){
   const LANG_KEY = "fireseed:lang";
   const ATTRS = ["placeholder","title","aria-label"];
-  const SKIP = "script,style,code,pre#yaml,[data-i18n-skip]"; // never touch YAML preview or skipped nodes
-  const CACHE = {}; // lang -> {map, keys, re}
-  const BASELINE_TEXT = new WeakMap(); // TextNode -> original
-  const BASELINE_ATTR = new WeakMap(); // Element -> {attr:value}
-  const BASELINE_OPT  = new WeakMap(); // HTMLOptionElement -> original text
+  const SKIP = "script,style,code,pre#yaml,[data-i18n-skip]";
+  const CACHE = {};
+  const BASELINE_TEXT = new Map();
+  const BASELINE_ATTR = new Map();
+  const BASELINE_OPT  = new Map();
   let current = "zh";
 
-  // utilities
   const $ = (s,root=document)=>root.querySelector(s);
   const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
 
@@ -22,11 +20,11 @@
     const v = localStorage.getItem(LANG_KEY) || document.documentElement.getAttribute("lang") || "zh";
     return (v||"").slice(0,2);
   }
-  function setSavedLang(v){ localStorage.setItem(LANG_KEY, v); }
+  function setSavedLang(v){ try{ localStorage.setItem(LANG_KEY, v); }catch(_){} }
 
   async function loadDict(lang){
     if (CACHE[lang]) return CACHE[lang];
-    try {
+    try{
       const res = await fetch(`./lang/${lang}.json`, {cache:"no-store"});
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const map = await res.json();
@@ -35,16 +33,14 @@
       const re = keys.length ? new RegExp(keys.map(esc).join("|"), "g") : /$^/;
       CACHE[lang] = { map, keys, re };
       return CACHE[lang];
-    } catch(e){
-      console.warn("i18n overlay: failed to load dict", lang, e);
-      CACHE[lang] = { map:{}, keys:[], re: /$^/ };
+    }catch(e){
+      console.warn("i18n overlay: load dict failed", lang, e);
+      CACHE[lang] = { map:{}, keys:[], re:/$^/ };
       return CACHE[lang];
     }
   }
 
-  // baseline capture
   function captureNodeBaseline(root){
-    // text nodes
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode(n){
         const p = n.parentElement;
@@ -59,8 +55,8 @@
       const n = walker.currentNode;
       if (!BASELINE_TEXT.has(n)) BASELINE_TEXT.set(n, n.nodeValue);
     }
-    // attributes
-    $$(ATTRS.map(a=>`[*|${a}], [${ATTRS.join("], [")}]`).join(",")).forEach(el=>{
+    const selector = ATTRS.map(a=>`[${a}]`).join(",");
+    $$(selector).forEach(el=>{
       if (el.matches(SKIP) || el.closest(SKIP)) return;
       const rec = BASELINE_ATTR.get(el) || {};
       for (const a of ATTRS){
@@ -70,7 +66,6 @@
       }
       if (Object.keys(rec).length) BASELINE_ATTR.set(el, rec);
     });
-    // select options
     $$("select option").forEach(opt=>{
       if (opt.matches(SKIP) || opt.closest(SKIP)) return;
       if (!BASELINE_OPT.has(opt)) BASELINE_OPT.set(opt, opt.textContent || "");
@@ -78,26 +73,23 @@
   }
 
   function translateFromBaseline(dict){
-    // text nodes
-    BASELINE_TEXT.forEach((orig, node)=>{
-      if (!node || !node.parentElement) return;
+    for (const [node, orig] of BASELINE_TEXT.entries()){
+      if (!node || !node.parentElement) continue;
       const out = (current==="zh") ? orig : orig.replace(dict.re, m => dict.map[m] ?? m);
       if (node.nodeValue !== out) node.nodeValue = out;
-    });
-    // attributes
-    BASELINE_ATTR.forEach((rec, el)=>{
+    }
+    for (const [el, rec] of BASELINE_ATTR.entries()){
       for (const a of Object.keys(rec)){
         const orig = rec[a];
         if (typeof orig !== "string") continue;
         const out = (current==="zh") ? orig : orig.replace(dict.re, m => dict.map[m] ?? m);
         if (el.getAttribute(a) !== out) el.setAttribute(a, out);
       }
-    });
-    // select options
-    BASELINE_OPT.forEach((orig, opt)=>{
+    }
+    for (const [opt, orig] of BASELINE_OPT.entries()){
       const out = (current==="zh") ? orig : orig.replace(dict.re, m => dict.map[m] ?? m);
       if (opt.textContent !== out) opt.textContent = out;
-    });
+    }
   }
 
   let observer;
@@ -111,9 +103,11 @@
             if (n.nodeType === 1){
               captureNodeBaseline(n);
               translateFromBaseline(dict);
+              patchSpecials(); // also fix special UI
             }else if (n.nodeType === 3){
               if (!BASELINE_TEXT.has(n)) BASELINE_TEXT.set(n, n.nodeValue);
               translateFromBaseline(dict);
+              patchSpecials();
             }
           });
         }else if (m.type === "attributes"){
@@ -124,12 +118,50 @@
             BASELINE_ATTR.set(el, rec);
             const dictNow = await loadDict(current);
             translateFromBaseline(dictNow);
+            patchSpecials();
           }
         }
       }
     });
     observer.observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter: ATTRS });
   }
+
+  // ---- Specials -------------------------------------------------------------
+  const DID_LABEL = {
+    zh: "导出 W3C DID 文档（可选）",
+    en: "Export W3C DID document (optional)",
+    ja: "W3C DID ドキュメントを書き出す（任意）"
+  };
+  const LANG_NOTE = [
+    "生成将遵循此处的语言；切到英文会将页面整体渲染为英文。",
+    "Generation will follow this language; switching to English renders the entire page in English.",
+    "生成はここで選んだ言語に従います。英語に切り替えるとページ全体が英語表示になります。"
+  ].join(" / ");
+
+  function patchSpecials(){
+    // 1) Language note: ensure a tri-lingual note exists right below the language <select>
+    const sel = document.querySelector('select[name="language"], select#language, select');
+    if (sel){
+      let note = sel.closest("div")?.querySelector(".lang-note");
+      if (!note){
+        note = document.createElement("div");
+        note.className = "lang-note";
+        note.style.cssText = "margin-top:6px;color:#666;font-size:12px;";
+        // insert after select
+        sel.parentElement.insertBefore(note, sel.nextSibling);
+      }
+      note.textContent = LANG_NOTE;
+    }
+
+    // 2) DID export button/anchor: find by text hint or by DID keyword
+    const cand = Array.from(document.querySelectorAll("a,button"))
+      .filter(el => /DID|导出 W3C DID|W3C DID/.test(el.textContent || ""));
+    cand.forEach(el=>{
+      el.textContent = DID_LABEL[current] || DID_LABEL.zh;
+      el.setAttribute("data-i18n-did", current);
+    });
+  }
+  // --------------------------------------------------------------------------
 
   async function apply(lang){
     current = lang;
@@ -138,7 +170,6 @@
     translateFromBaseline(dict);
     document.documentElement.setAttribute("lang", lang);
 
-    // normalize & sync selector
     const sel = document.querySelector('select[name="language"], select#language, select');
     if (sel){
       Array.from(sel.options).forEach(o=>{
@@ -149,28 +180,28 @@
       });
       sel.value = lang;
     }
-    console.log("i18n overlay v2 ->", lang);
+    patchSpecials();
+    console.log("i18n overlay v2.2 ->", lang);
   }
 
   async function init(){
-    // 1) capture baseline once
-    captureNodeBaseline(document.body);
-    // 2) start observing
-    startObserver();
-    // 3) apply saved language
-    await apply(getSavedLang());
-    // 4) bind selector
-    const sel = document.querySelector('select[name="language"], select#language, select');
-    if (sel){
-      sel.addEventListener("change", e => {
-        const v = (e.target.value || "").toLowerCase();
-        const lang = v.includes("en") ? "en" : v.includes("ja") ? "ja" : "zh";
-        apply(lang);
-      });
+    try{
+      captureNodeBaseline(document.body);
+      startObserver();
+      await apply(getSavedLang());
+      const sel = document.querySelector('select[name="language"], select#language, select');
+      if (sel){
+        sel.addEventListener("change", e => {
+          const v = (e.target.value || "").toLowerCase();
+          const lang = v.includes("en") ? "en" : v.includes("ja") ? "ja" : "zh";
+          apply(lang);
+        });
+      }
+      window.fireseedI18n = { apply };
+      console.log("✅ i18n overlay v2.2 initialized");
+    }catch(e){
+      console.error("i18n overlay init error", e);
     }
-    // expose API
-    window.fireseedI18n = { apply };
-    console.log("✅ i18n overlay v2 initialized");
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once:true });
