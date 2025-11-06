@@ -3,7 +3,24 @@
   "version": "0.2.7c",
   "private": true,
   "type": "module",
+  "description": "Machine-readable civilization interface schemas, generators, and docs.",
+  "license": "MIT",
+  "keywords": [
+    "agi",
+    "digital-legacy",
+    "schema",
+    "decentralized-identity"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/System-null/fireseed-trilogy.git"
+  },
+  "author": "Fireseed Trilogy Lab",
   "scripts": {
     "vendors": "node scripts/fetch-vendors.mjs"
+  },
+  "fireseed": {
+    "docsLicense": "CC-BY-4.0",
+    "contact": "security@fireseedtrilogy.org"
   }
 }
