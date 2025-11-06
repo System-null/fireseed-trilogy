@@ -1,11 +1,10 @@
 {
-  "Fireseed Capsule Generator · 向导版": "Fireseed Capsule Generator · 向导版",
-  "我是谁": "我是谁",
-  "我使用的语言": "我使用的语言",
-  "我最常引用的“参考书”": "我最常引用的“参考书”",
-  "我人生的三原则": "我人生的三原则",
-  "我的底线（non_negotiables）": "我的底线（non_negotiables）",
-  "我的行动的循环（loop）": "我的行动的循环（loop）",
-  "点击“生成胶囊”后在这里预览 YAML": "点击“生成胶囊”后在这里预览 YAML",
-  "这里会实时展示“人类可读”的摘要。": "这里会实时展示“人类可读”的摘要。"
+  "title": "Fireseed Capsule Generator · 向导版",
+  "who_am_i": "我是谁",
+  "language": "我使用的语言",
+  "references": "我思想的参考书",
+  "principles": "原则与底线",
+  "loop": "行动的循环",
+  "yaml_preview": "YAML 预览",
+  "human_preview": "人类可读预览"
 }

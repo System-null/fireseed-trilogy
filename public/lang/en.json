@@ -1,11 +1,10 @@
 {
-  "Fireseed Capsule Generator · 向导版": "Fireseed Capsule Generator · Wizard Edition",
-  "我是谁": "Who am I",
-  "我使用的语言": "Language I use",
-  "我最常引用的“参考书”": "My philosophical references",
-  "我人生的三原则": "My three life principles",
-  "我的底线（non_negotiables）": "My non-negotiables",
-  "我的行动的循环（loop）": "My action loop",
-  "点击“生成胶囊”后在这里预览 YAML": "Click 'Generate Capsule' to preview YAML here",
-  "这里会实时展示“人类可读”的摘要。": "This will show a human-readable summary."
+  "title": "Fireseed Capsule Generator · Guide Edition",
+  "who_am_i": "Who am I",
+  "language": "Language I use",
+  "references": "My philosophical references",
+  "principles": "Principles and Baselines",
+  "loop": "My action loop",
+  "yaml_preview": "YAML Preview",
+  "human_preview": "Human-readable Preview"
 }
