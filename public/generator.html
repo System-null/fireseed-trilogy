@@ -147,3 +147,37 @@ window.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+<!-- i18n overlay safe bootstrap: wait until overlay is ready (handles Safari/PAGES race) -->
+<script>
+(function(){
+  const LANG_DIR = "/fireseed-trilogy/public/lang/";
+  const SUPPORTED = ["zh","en","ja"];
+  const MAX_WAIT = 5000;     // 最多等 5 秒
+  const STEP = 120;          // 每 120ms 轮询一次
+
+  function initOnce(){
+    try{
+      window.i18nOverlay.init({
+        defaultLang: "zh",
+        supported: SUPPORTED,
+        langDir: LANG_DIR
+      });
+      console.log("[i18n-boot] initialized ✔");
+    }catch(e){
+      console.error("[i18n-boot] init failed:", e);
+    }
+  }
+
+  function wait(msLeft){
+    if (window.i18nOverlay && typeof window.i18nOverlay.init === "function"){
+      return initOnce();
+    }
+    if (msLeft <= 0){
+      return console.error("❌ i18nOverlay not ready after timeout. Check script URL & cache.");
+    }
+    setTimeout(() => wait(msLeft - STEP), STEP);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => wait(MAX_WAIT));
+})();
+</script>
