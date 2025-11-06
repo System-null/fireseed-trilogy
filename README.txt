@@ -1,19 +1,22 @@
-Fireseed Capsule Generator v3.7
---------------------------------
-这是一款离线运行的文明接口工具。
-你可以在 3 分钟内，生成一份机器可读的人类火种。
+Generator i18n Fix Kit (no-structure-change)
+--------------------------------------------
+This kit inserts a small init snippet into your existing public/generator.html
+so i18n runs after the page loads. It does NOT change any structure, styles,
+or script order.
 
-用法：
-1. 打开 public/generator.html
-2. 填写表单（可留空）
-3. 点击“生成胶囊”
-4. 下载 YAML 或 打印 PDF；可选上传 IPFS（留空也可）
+USAGE (macOS / zsh)
+1) Unzip this kit into your repo root (the folder that contains the 'public' dir):
+   unzip -o ~/Downloads/generator-i18n-fixed.zip -d .
 
-说明：
-- 纯前端运行，不上传任何数据
-- YAML + PDF 多格式导出
-- 兼容 Fireseed Schema v0.3.x
+2) Run the patch:
+   bash patch_i18n_init.sh
 
-法律提示：
-本工具仅用于记录思想与意愿，不具备法律效力。
-涉及遗嘱、隐私、资产等事项请咨询专业律师。
+3) Commit & push:
+   git add public/generator.html
+   git commit -m "fix(i18n): enable language switch with initI18n() call"
+   git push origin main
+
+After 1–2 minutes, open:
+https://system-null.github.io/<owner>/fireseed-trilogy/public/generator.html
+
+If the page was cached, force refresh (Shift + Reload).
