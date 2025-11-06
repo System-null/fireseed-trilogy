@@ -1,107 +1,101 @@
-(function(){
-  const S = { lang:'zh', dicts:{}, baseline:new WeakMap(), inited:false };
-  const t = s => (s||'').replace(/\s+/g,' ').trim();
-  const log = (...a)=>console.log('[i18n]', ...a);
+/*! fireseed-i18n overlay v3.0 (non-intrusive) */
+(function () {
+  const W = window;
+  const S = W.__i18nState = W.__i18nState || {};
+  const I18N = W.I18N = W.I18N || {};
+  let DICTS = { zh:null, en:null, ja:null };
 
-  async function load(lang){
-    if(S.dicts[lang]) return S.dicts[lang];
-    const res = await fetch(`./lang/${lang}.json`, {cache:'no-store'});
-    if(!res.ok) throw new Error('load failed: '+lang);
-    S.dicts[lang] = await res.json();
-    return S.dicts[lang];
+  function guessLangFromOptionText(t) {
+    const s = (t||'').toLowerCase();
+    if (s.includes('en')) return 'en';
+    if (s.includes('ja') || s.includes('日')) return 'ja';
+    if (s.includes('zh') || s.includes('中')) return 'zh';
+    return null;
   }
-
-  function* nodes(){
-    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-      acceptNode(n){
-        if(!n.nodeValue) return NodeFilter.FILTER_REJECT;
-        const s = t(n.nodeValue);
-        if(!s) return NodeFilter.FILTER_REJECT;
-        const p = n.parentElement; if(!p) return NodeFilter.FILTER_REJECT;
-        const tag = p.tagName; if(tag==='SCRIPT'||tag==='STYLE') return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
+  function findLangSelect() {
+    const sels = document.querySelectorAll('select');
+    for (const sel of sels) {
+      const joined = Array.from(sel.options).map(o => (o.textContent||'').toLowerCase()).join(',');
+      if (/(zh|中)/.test(joined) && /(en|english)/.test(joined) && /(ja|日)/.test(joined)) return sel;
+    }
+    return null;
+  }
+  function langPath(code){
+    const pageBase = new URL('.', location.href);
+    return new URL('./lang/'+code+'.json', pageBase).toString();
+  }
+  async function loadDict(code){
+    if (DICTS[code]) return DICTS[code];
+    const url = langPath(code);
+    const res = await fetch(url, {cache:'no-cache'});
+    if (!res.ok) throw new Error('dict fetch failed: '+url);
+    const data = await res.json();
+    DICTS[code] = data;
+    return data;
+  }
+  function translateText(dict, orig){
+    if (!orig) return orig;
+    if (dict[orig] != null) return dict[orig];
+    const norm = orig.replace(/\s+/g,' ').trim();
+    if (dict[norm] != null) return dict[norm];
+    return orig;
+  }
+  function applyToElement(dict, entry){
+    const el = entry.el;
+    if (!el || (el.closest && (el.closest('pre,code'))) ) return;
+    if (entry.title) {
+      const t = translateText(dict, entry.title);
+      if (t !== entry.title) el.setAttribute('title', t);
+    }
+    if (entry.placeholder) {
+      const p = translateText(dict, entry.placeholder);
+      if (p !== entry.placeholder) el.setAttribute('placeholder', p);
+    }
+    const isForm = ['INPUT','TEXTAREA','SELECT'].includes(el.tagName);
+    if (!isForm) {
+      const txt = translateText(dict, entry.text);
+      if (txt !== entry.text && txt !== '') {
+        if (el.childElementCount === 0) {
+          el.textContent = txt;
+        } else if (el.dataset && el.dataset.i18n) {
+          el.textContent = txt;
+        } else {
+          const tn = Array.from(el.childNodes).find(n=>n.nodeType===Node.TEXT_NODE);
+          if (tn) tn.nodeValue = txt;
+        }
       }
-    });
-    let n; while(n=w.nextNode()) yield n;
-  }
-
-  function ensureBaseline(){
-    for(const n of nodes()){
-      if(!S.baseline.has(n)) S.baseline.set(n, n.nodeValue);
+    } else if (el.tagName === 'SELECT') {
+      Array.from(el.options).forEach(opt=>{
+        const t = translateText(dict, (opt.textContent||'').trim());
+        if (t && t !== opt.textContent) opt.textContent = t;
+      });
     }
-    document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{
-      if(!el.dataset.i18nPh) el.dataset.i18nPh = el.getAttribute('placeholder')||'';
-    });
   }
-
-  function apply(lang){
-    const dict = S.dicts[lang];
-    const zh = S.dicts['zh'];
-    if(!dict || !zh) return;
-
-    const tmap = dict.text || {}; 
-    const pmap = dict.placeholder || {};
-
-    for(const n of S.baseline.keys()){
-      const origFull = S.baseline.get(n);
-      const key = t(origFull);
-      if(key && tmap[key]!==undefined){
-        // replace only the trimmed segment, keep surrounding spaces
-        n.nodeValue = origFull.replace(key, tmap[key]);
-      }else{
-        n.nodeValue = origFull;
+  async function switchLang(code){
+    try {
+      if (!S.baseline || typeof S.baseline.keys !== 'function') return;
+      const dict = await loadDict(code);
+      for (const [,entry] of S.baseline.entries()) applyToElement(dict, entry);
+      console.log('[i18n-overlay] switched to', code);
+    } catch (e) { console.error('[i18n-overlay] switch failed:', e); }
+  }
+  async function boot(){
+    try {
+      await Promise.all([loadDict('zh'), loadDict('en'), loadDict('ja')]);
+      const sel = findLangSelect();
+      if (sel) {
+        sel.addEventListener('change', ()=>{
+          const opt = sel.options[sel.selectedIndex];
+          const code = guessLangFromOptionText(opt ? opt.textContent : sel.value) || 'zh';
+          switchLang(code);
+        }, {passive:true});
+        const initOpt = sel.options[sel.selectedIndex];
+        const initCode = guessLangFromOptionText(initOpt ? initOpt.textContent : sel.value) || 'zh';
+        switchLang(initCode);
       }
-    }
-
-    document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{
-      const o = t(el.dataset.i18nPh || '');
-      const v = (o && pmap[o]) ? pmap[o] : (el.dataset.i18nPh||'');
-      el.setAttribute('placeholder', v);
-    });
-
-    // Update DID button text if present
-    const did = document.getElementById('did-export');
-    if(did){
-      did.textContent = (lang==='ja') ? 'W3C DID 文書をエクスポート（任意）' :
-                      (lang==='en') ? 'Export W3C DID document (optional)' :
-                                       '导出 W3C DID 文档（可选）';
-    }
-    S.lang = lang;
-    localStorage.setItem('fireseed.lang', lang);
-    log('switched', lang);
+    } catch (e) { console.error('[i18n-overlay] init failed:', e); }
   }
-
-  function ensureDID(){
-    const exists = Array.from(document.querySelectorAll('button,a')).some(el=>/DID/i.test(el.textContent||''));
-    if(exists) return;
-    const anchor = Array.from(document.querySelectorAll('button,a')).find(el=>/(生成胶囊|Generate capsule|下载 YAML|YAML|PDF)/i.test(el.textContent||''));
-    if(!anchor) return;
-    const btn = document.createElement('button');
-    btn.id = 'did-export';
-    btn.type = 'button';
-    btn.textContent = '导出 W3C DID 文档（可选）';
-    btn.addEventListener('click', ()=>{
-      if(typeof window.exportDID === 'function'){ window.exportDID(); }
-      else alert('DID export handler not found.');
-    });
-    anchor.parentElement.appendChild(btn);
-  }
-
-  async function init(){
-    await Promise.all(['zh','en','ja'].map(load));
-    ensureBaseline();
-    ensureDID();
-
-    // hook language select
-    const sel = Array.from(document.querySelectorAll('select')).find(s=>/中文|English|日本語|zh|en|ja/i.test(s.textContent||''));
-    if(sel){
-      sel.addEventListener('change', ()=>{
-        const v = (sel.value||'').toLowerCase();
-        apply(/ja/.test(v)?'ja':/en/.test(v)?'en':'zh');
-      }, {passive:true});
-    }
-    apply(localStorage.getItem('fireseed.lang') || 'zh');
-    log('overlay ready');
-  }
-  document.addEventListener('DOMContentLoaded', init);
+  I18N.switch = switchLang;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
+  else boot();
 })();
