@@ -131,5 +131,17 @@
   <script src="./scripts/generator.js"></script>
   <script src="./scripts/pdf-export.js"></script>
 <script src="./scripts/did-export.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (typeof initI18n === "function") {
+      initI18n();
+      console.log("✅ i18n initialized");
+    } else {
+      console.warn("⚠️ i18n.js not loaded properly");
+    }
+  });
+</script>
+
 </body>
 </html>
