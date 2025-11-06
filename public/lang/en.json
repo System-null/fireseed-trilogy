@@ -1,93 +1,73 @@
 {
-  "title": "Fireseed Capsule Generator · Guide Edition",
-  "vision": {
-    "title": "Vision: Build a machine‑readable interface for civilization.",
-    "p1": "Enable intelligent agents and future AGI to read, verify, and continue human thoughts and intent;",
-    "p2": "Let everyone leave their own fireseed in the simplest way.",
-    "continuation": "This is not a fantasy of “mind uploading”, but a more faithful and diligent continuation. Every sentence, rule, and wish is transformed into a machine‑readable self‑description—so future systems can parse, reconstruct, and align with it.",
-    "noteLocal": "Runs locally only—no upload, no network. Safest path: download the capsule as YAML or PDF.",
-    "noteLegal": "This tool records thoughts and intent and has no legal effect. For wills or assets, consult a lawyer."
-  },
-  "panel": {
-    "yamlTitle": "YAML preview",
-    "yamlHint": "Click “Generate capsule” to render the YAML here.",
-    "humanTitle": "Human‑readable preview",
-    "humanHint": "A human‑readable summary will appear here in real time."
-  },
-  "section1": {
-    "title": "1) Basic information",
-    "whoami": {
-      "label": "Who am I",
-      "placeholder": "e.g., Alex Lin / Li Ming / Mia"
-    },
-    "language": {
-      "label": "Language I use",
-      "help": "The template follows the language you choose; switching to English renders the whole page in English."
-    },
-    "refs": {
-      "label": "My philosophical references",
-      "placeholder": "e.g., Golden Rule, Kant, Musk… List the books, films, people or creeds that shape your judgment—so future systems know what principles you stand by."
-    }
-  },
-  "section2": {
-    "title": "2) Principles & boundaries",
-    "principles": {
-      "label": "My three life principles",
-      "placeholder": "e.g., 1) Honesty  2) Do no harm  3) Don’t conceal the truth"
-    },
-    "nonneg": {
-      "label": "My non‑negotiables",
-      "placeholder": "e.g., Never disclose friends’ private matters; never spread harmful content."
-    },
-    "loop": {
-      "label": "My action loop",
-      "placeholder": "e.g., Weekly review every Monday; adjust after review and keep a record."
-    }
-  },
-  "section3": {
-    "title": "3) A note to the future",
-    "message": {
-      "placeholder": "e.g., May our descendants remember our shared ideals."
-    }
-  },
-  "section4": {
-    "title": "4) Access & safety",
-    "accessTerms": {
-      "label": "Terms under which I allow reading (access_terms)",
-      "readonly": "Read‑only (others may only view)",
-      "placeholder": "If choosing custom terms, add notes here."
-    },
-    "whitelist": {
-      "label": "Whitelist",
-      "placeholder": "e.g., Any being that respects my boundaries; trustee; family"
-    },
-    "blacklist": {
-      "label": "Blacklist",
-      "placeholder": "e.g., Ad‑profilers; surveillance systems"
-    },
-    "grace": {
-      "label": "Grace period",
-      "placeholder": "e.g., P30D (30 days)"
-    },
-    "trustee": {
-      "label": "Trustee / emergency contact",
-      "placeholder": "e.g., Name: Li Ming; WeChat: liming123; or a public‑key fragment"
-    }
-  },
-  "more": {
-    "toggle": "▶ Write more (optional, won’t affect generation)"
-  },
-  "buttons": {
-    "generate": "Generate capsule",
-    "downloadYaml": "Download YAML",
-    "exportPdf": "Export PDF",
-    "humanSnapshot": "Human snapshot",
-    "exportDid": "Export W3C DID document (optional)"
-  },
-  "notice": {
-    "nogpg": "No GPG/IPFS? It’s okay—skip signing/upload now and add later."
-  },
-  "footer": {
-    "legal": "© Fireseed Generator v3.7 · This tool is only for recording thoughts and intent; it has no legal effect."
-  }
+  "Fireseed Capsule Generator · 向导版": "Fireseed Capsule Generator · Guide Edition",
+
+  "愿景：构建一个机器可读的文明接口。": "Vision: Build a machine-readable interface for civilization.",
+  "让未来的智能体、AGI 或真实继承者能读取、验证、延续人类的思想与意志；": "Enable future agents, AGI, or real successors to read, verify, and continue human thoughts and intent;",
+  "让每一个普通人都能用最简单的方式，留下属于自己的火种。": "Let everyone leave their own fireseed in the simplest way.",
+
+  "这不是“上传意识”的幻想，而是一种更诚实的数字延续。": "This is not a fantasy of 'mind uploading', but a more honest digital continuation.",
+  "你写的每一句文字、每一个原则、每一层底线，都会被转化为机器可读的自我描述——它能被未来的系统解析、复原、对齐。": "Every sentence, principle and boundary you write will be transformed into a machine-readable self-description—something future systems can parse, reconstruct and align with.",
+  "对人类而言，这是一个温和的长备忘；对未来而言，这是“载火之种”。": "For humans, it’s a gentle long memo; for the future, it’s the seed of fire.",
+
+  "⚠️ 只在离线器里生成，不上传，不联网。生成完毕你可以下载 capsule.yaml 或 PDF。": "⚠️ Runs locally only—no upload, no network. After generation you can download capsule.yaml or a PDF.",
+  "🔧 本工具用于记录思想意愿，不具备法律效力；如涉遗嘱资产，请咨询律师。": "🔧 This tool records thoughts and intent and has no legal effect; for wills or assets, consult a lawyer.",
+
+  "1) 基本信息": "1) Basic information",
+  "我是谁": "Who am I",
+  "例：Alex Lin / 李明 / Mia": "e.g., Alex Lin / Li Ming / Mia",
+  "不管是谁打开我的这份胶囊，都能从这里感受到我的声音。": "Whoever opens this can recognize my voice.",
+
+  "我使用的语言": "Language I use",
+  "系统会根据此处选择的语言进行填表；切到英文，整页切换为英文界面。": "Generation will follow this language; switching to English renders the entire page in English.",
+
+  "我的思想的“参考书”": "My philosophical references",
+  "例：哲学、科普、电影、书籍的一份单": "e.g., a short list of philosophies, science books, films.",
+
+  "2) 原则与底线": "2) Principles & bottom lines",
+  "我人生的三原则": "My three life principles",
+  "例：1. 诚实 2. 不伤人 3. 不骄傲": "e.g., 1. Honesty 2. Do no harm 3. Stay humble",
+
+  "我的底线（non_negotiables）": "My bottom lines (non-negotiables)",
+  "例：身体边界不可被越界；不以功利交换人命。": "e.g., Bodily boundaries must not be crossed; never trade lives for utility.",
+
+  "我行动的循环（loop）": "My action loop (loop)",
+  "例：观察 → 归纳 → 设定 → 执行 → 复盘；保持简洁且正直。": "e.g., Observe → generalize → set → execute → review; stay simple and honest.",
+
+  "3) 给未来的留言": "3) Message to the future",
+  "例：愿你能找到你内心的真实方向。": "e.g., May you find your true direction.",
+
+  "4) 权限与安全": "4) Access & safety",
+  "我愿意被读取的条件（access_terms）": "Terms under which I allow reading (access_terms)",
+  "只读（他人可查看）": "Read-only (others may view)",
+  "只读（本人留存副本）": "Read-only (my copy retained)",
+  "如选择自定义，在此补充具体说明（可选）": "If choosing custom, add details here (optional).",
+
+  "白名单（whitelist）": "Whitelist",
+  "例：任何尊重我的边界的人；或具体姓名": "e.g., anyone who respects my boundaries; or specific names",
+
+  "黑名单（blacklist）": "Blacklist",
+  "例：恶意者；监视者": "e.g., malicious actors; surveillance systems",
+
+  "宽限期（grace_period）": "Grace period (grace_period)",
+  "例：P30D（30 天）": "e.g., P30D (30 days)",
+  "家人有异议时，请在宽限期内联系受托人。": "If family has objections, contact the trustee within the period.",
+
+  "受托人／紧急联系人（delegated_key／ emergency contact）": "Trustee / emergency contact (delegated_key / emergency contact)",
+  "例：姓名；李明123；公钥片段": "e.g., Name; LiMing123; public-key fragment",
+
+  "▶ 更多写（可选信息，不会影响生成）": "▶ Write more (optional, won’t affect generation)",
+
+  "YAML 预览": "YAML preview",
+  "点击“生成胶囊”后在这里预览 YAML": "Click “Generate capsule” then preview YAML here",
+  "人类可读预览": "Human-readable preview",
+  "这里会实时展示“人类可读”的摘要。": "This will show a human-readable summary.",
+
+  "生成胶囊": "Generate capsule",
+  "下载 YAML": "Download YAML",
+  "导出 PDF": "Export PDF",
+  "人类快照": "Human snapshot",
+  "导出 W3C DID 文档（可选）": "Export W3C DID document (optional)",
+  "没开 GPG / IPFS？没关系，可以跳过签名与上传，日后补齐。": "No GPG/IPFS? It’s okay—skip signing/upload now and add later.",
+
+  "© Fireseed Generator v3.7 · 本工具仅用于记录思想与意愿，不具法律效力。": "© Fireseed Generator v3.7 · This tool only records thoughts and intent; it has no legal effect."
 }
