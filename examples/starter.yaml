@@ -1,0 +1,15 @@
+id: did:fireseed:bafkreihashdemo123
+version: v0.3.8
+profile:
+  name: "Yang Fan"
+  locale: "zh-CN"
+values:
+  core:
+    - "尊重人的尊严"
+    - "追求真理与透明"
+  constraints:
+    - "非伤害"
+    - "避免偏见"
+links:
+  - "https://system-null.github.io/fireseed-trilogy/public/generator.html"
+  - "ipfs://bafkreihashdemo123"

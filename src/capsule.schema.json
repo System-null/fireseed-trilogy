@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fireseed Capsule v0",
+  "type": "object",
+  "required": ["id", "version", "profile", "values"],
+  "properties": {
+    "id": {"type": "string"},
+    "version": {"type": "string", "pattern": "^v\\d+\\.\\d+\\.\\d+$"},
+    "profile": {"type": "object", "required": ["name", "locale"]},
+    "values": {"type": "object", "minProperties": 1},
+    "links": {"type": "array", "items": {"type": "string"}}
+  }
+}
