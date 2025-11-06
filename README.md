@@ -1,59 +1,66 @@
-<!-- One‑click offline -->
+# Fireseed Trilogy — Machine-readable Civilization Framework  
+# 火种三部曲：机器可读的文明接口
+
+> **Vision 愿景**  
+> Build a **machine-readable civilization interface** that future AGI can parse, verify and continue — while staying human-friendly through simple templates and forms.  
+> 构建一个**机器可读的文明接口**，让未来的 AGI 能读取、验证并延续人类文明火种，同时让普通人通过简洁表单留下思想。
+
+---
+
 [![Download ZIP](https://img.shields.io/badge/Download-%E7%A6%BB%E7%BA%BF%E5%8C%85-brightgreen?style=for-the-badge)](https://github.com/System-null/fireseed-trilogy/releases/latest)
-> 断网也能用：解压后直接打开 `public/generator.html` 即可三分钟生成。
-
-# Fireseed Trilogy — Machine-readable Civilization Framework
-
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17500749.svg)](https://doi.org/10.5281/zenodo.17500749)
 ![Release](https://img.shields.io/github/v/release/System-null/fireseed-trilogy?include_prereleases)
 ![License](https://img.shields.io/github/license/System-null/fireseed-trilogy)
 
 ---
 
-### 🚀 Quick Access / 快速导航
+## 🚀 Quick Access / 快速入口
 
 | 入口 | 功能说明 |
 |------|-----------|
-| 🔥 [Start Here / 从这里开始](./START_HERE.md) | 阅读仓库使用导引（适合第一次访问） |
-| 🧩 [Fireseed Generator / 火种生成器](https://system-null.github.io/fireseed-trilogy/public/generator.html) | 可视化界面，一键生成 capsule_v0.yaml 文件 |
-| ✅ [Capsule Validator / 验证器](https://system-null.github.io/fireseed-trilogy/tools/validator.html) | 检查 YAML 结构与签名有效性 |
-| 🧠 [Templates & Schemas / 模板与结构](./templates/) | 最小模板与 JSON Schema 说明 |
-| 📚 [Reading Guide / 阅读指引](./docs/books/README.md) | 三部曲章节摘要与电子版链接 |
-| 📖 [中文电子书下载 / EPUB 全文](#中文电子书下载--epub全文) | 三部曲完整中文电子版 EPUB |
+| 🧩 [Fireseed Generator / 火种生成器](https://system-null.github.io/fireseed-trilogy/public/generator.html) | 可视化界面，一键生成 capsule_v0.yaml |
+| ✅ [Capsule Validator / 验证器](https://system-null.github.io/fireseed-trilogy/public/validator.html) | 检查 YAML 结构与签名有效性 |
+| 📸 [Snapshot Viewer / 快照查看](https://system-null.github.io/fireseed-trilogy/public/snapshot.html) | 预览或打印人类快照 |
+| 🧠 [Templates & Schemas 模板与模式](./templates/) | 最小模板与 JSON Schema |
+| 📚 [Reading Guide / 阅读指引](./docs/books/README.md) | 三部曲章节摘要与电子版下载 |
 
 ---
 
-### 📖 中文电子书下载 / EPUB 全文
+## 📘 Reading / 阅读
 
-| 卷名 | EPUB 文件 | 简介 |
-|------|-------------|------|
-| 《系统外者手册》 *(System Exodus — ISBN 979-8298437653)* | [📘 点击下载](./docs/books/vol1/系统外者手册中文版.epub) | 探讨个体如何在体系外部保持自洽与存在意义。 |
-| 《超越系统手册》 *(Beyond the System — ISBN 979-8297886889)* | [📙 点击下载](./docs/books/vol2/超越系统手册中文版.epub) | 探索系统边界、认知极限与高维意识模型。 |
-| 《终极命题手册》 *(The Last Interface — ISBN 979-8298417594)* | [📗 点击下载](./docs/books/vol3/终极命题手册中文版.epub) | 收尾篇，关于终极命题、自由与格式闭环的思考。 |
-
----
-
-> **Vision / 愿景**  
-> Build a **machine-readable civilization interface** that future AGI (and higher-dimensional intelligence) can parse, verify and continue — while remaining friendly to humans via simple templates and forms.  
-> 构建一个**机器可读的文明接口**：既能被未来的 AGI 或高维智慧读取、验证、延续，也能让普通人通过**表单与模板**留下自己的文明火种。
+> **中文电子书（EPUB 下载）**  
+> - 《系统外者手册》 · [下载 EPUB](./docs/books/vol1/系统外者手册中文版.epub)  
+> - 《超越系统手册》 · [下载 EPUB](./docs/books/vol2/超越系统手册中文版.epub)  
+> - 《终极命题手册》 · [下载 EPUB](./docs/books/vol3/终极命题手册中文版.epub)  
+> 更多阅读见 [Reading Guide 阅读指引](./docs/books/README.md)。
 
 ---
 
-### 🔖 Citation / 引用
-参见仓库根目录的 [`CITATION.cff`](./CITATION.cff) 与 [`docs/CITING.md`](./docs/CITING.md)。
+## 🧭 Metadata / 元信息
+
+| 项 | 内容 |
+|----|------|
+| **DOI** | [10.5281/zenodo.17500749](https://doi.org/10.5281/zenodo.17500749) |
+| **ISBN** | 979-8298437653 · 979-8297886889 · 979-8298417594 |
+| **Authors 作者** | System Null · JiaMing Yang |
+| **Version 版本** | v0.3.3 Metadata Update |
+| **License 许可** | MIT（代码） / CC BY 4.0（文档） |
 
 ---
 
-**DOI**: [10.5281/zenodo.17500749](https://doi.org/10.5281/zenodo.17500749)  
-**ISBN (EN)**:  
-- *System Exodus* — 979-8298437653  
-- *Beyond the System* — 979-8297886889  
-- *The Last Interface* — 979-8298417594  
+> 💡 **离线可用 Offline-Ready**  
+> 下载离线包后直接打开 `public/generator.html` 即可在 3 分钟内生成你的文明火种。  
+> Once downloaded, open `public/generator.html` to generate your capsule offline.
 
-**Authors / 作者**：System Null · JiaMing Yang  
-**Version**：v0.3.3 Metadata Update Release
+---
 
-## Fireseed Generator
-[打开生成器 → public/generator.html](./public/generator.html)
+## 🪐 About Fireseed / 关于火种
 
-[查看快照 → public/snapshot.html](./public/snapshot.html)
+Fireseed Trilogy 是一个开放的文明接口实验，旨在为未来的智能体提供可验证、可延续的人格与思想记录格式。  
+它融合了 YAML 模板、人机共编机制、IPFS 分布式存储以及 W3C DID 标准。
+
+Fireseed Trilogy is an open civilization-interface experiment designed to preserve and extend human thoughts in formats readable by future intelligences.
+
+---
+
+© Fireseed Trilogy Lab · MIT License for Code · CC BY 4.0 for Documentation
