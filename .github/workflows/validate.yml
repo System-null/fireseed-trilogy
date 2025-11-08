@@ -1,28 +1,29 @@
 name: validate
 
 on:
-  push:
-    branches:
-      - "*"
   pull_request:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  push:
+    branches: [ main ]
 
 jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: requirements.txt
+
       - name: Install dependencies
-        run: pip install --upgrade pip && pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest==8.3.3
+
       - name: Generate test vectors
         run: python scripts/generate_test_vectors.py
+
       - name: Run pytest
-        run: pytest -q tests/test_verify.py
+        run: python -m pytest -q tests/test_verify.py
