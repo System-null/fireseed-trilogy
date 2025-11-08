@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import orjson
 import logging
 import time
@@ -20,12 +21,22 @@ from .sharecard import (
     render_sharecard,
 )
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
 
 limiter = limiter_module.get_limiter()
 app.state.limiter = limiter
 
+# 初始化日志记录器
 logger = logging.getLogger(__name__)
+
+# 尝试导入 sharecard 路由（PR2 未安装 Pillow 时跳过）
+try:
+    from server.sharecard import router as sharecard_router  # type: ignore
+    app.include_router(sharecard_router, prefix="/sharecard")
+except Exception as e:  # pragma: no cover
+    logger.warning("sharecard route disabled: %s", e)
 
 
 def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
