@@ -10,3 +10,5 @@ slowapi==0.1.9
 redis==5.0.7
 psutil==5.9.8
 huggingface-hub==0.25.2
+Pillow==10.4.0
+qrcode==7.4.2
