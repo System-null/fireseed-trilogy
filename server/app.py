@@ -15,13 +15,20 @@ from slowapi.errors import RateLimitExceeded
 
 from . import limiter as limiter_module
 from .score import compute_uniqueness
-from .sharecard import (
-    ICON_SIZE,
-    OG_SIZE,
-    choose_format,
-    compute_etag,
-    render_sharecard,
-)
+try:
+    from .sharecard import (
+        ICON_SIZE,
+        OG_SIZE,
+        choose_format,
+        compute_etag,
+        render_sharecard,
+    )
+except ModuleNotFoundError as e:
+    # 允许 CI 环境缺 Pillow 或 qrcode 时正常运行
+    ICON_SIZE = OG_SIZE = (0, 0)
+    choose_format = compute_etag = render_sharecard = None
+    import warnings
+    warnings.warn(f"Sharecard dependencies not available: {e}")
 
 logger = logging.getLogger(__name__)
 
