@@ -1,0 +1,27 @@
+{
+  "weights": {
+    "struct": 25,
+    "auth": 20,
+    "verify": 25,
+    "low_noise": 15,
+    "compat": 15
+  },
+  "struct_required": [
+    "title",
+    "author_pubkey",
+    "minimal_unit",
+    "survival_choice"
+  ],
+  "auth_required": [
+    "whitelist",
+    "purpose"
+  ],
+  "compat_signals": [
+    "has_json_schema",
+    "has_did"
+  ],
+  "robust_topk": 5,
+  "robust_margin": 0.02,
+  "max_examples_pool": 1000,
+  "verify_timeout_seconds": 5
+}
