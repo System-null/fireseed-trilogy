@@ -5,6 +5,8 @@ import orjson
 import logging
 import time
 from io import BytesIO
+import logging
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
@@ -25,6 +27,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+# 注册 sharecard 路由（容错）
+try:
+    from server.sharecard import router as sharecard_router  # type: ignore
+    app.include_router(sharecard_router, prefix="/sharecard")
+except ModuleNotFoundError as e:
+    # CI 环境未安装 Pillow 或 qrcode 时直接跳过
+    logger.warning("sharecard route disabled due to missing dependency: %s", e)
+except Exception as e:
+    logger.warning("sharecard route disabled: %s", e)
 limiter = limiter_module.get_limiter()
 app.state.limiter = limiter
 
