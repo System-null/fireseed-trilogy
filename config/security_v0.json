@@ -1,0 +1,17 @@
+{
+  "rate_limits": {
+    "/score": {
+      "rpm": 60,
+      "rpd": 1000,
+      "burst": 120
+    }
+  },
+  "feature_flags": {
+    "throttle_on_spike": true,
+    "spike_detection": {
+      "window_seconds": 60,
+      "requests_threshold": 300,
+      "cpu_threshold_percent": 80
+    }
+  }
+}
