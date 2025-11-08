@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import orjson
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -9,10 +10,19 @@ from slowapi.errors import RateLimitExceeded
 from . import limiter as limiter_module
 from .score import compute_uniqueness
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
 
 limiter = limiter_module.get_limiter()
 app.state.limiter = limiter
+
+try:
+    from server.sharecard import router as sharecard_router  # type: ignore
+
+    app.include_router(sharecard_router, prefix="/sharecard")
+except Exception as e:  # pragma: no cover - best effort optional dependency
+    logger.warning("sharecard route disabled: %s", e)
 
 
 def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
