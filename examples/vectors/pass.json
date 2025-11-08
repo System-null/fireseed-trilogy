@@ -1,0 +1,19 @@
+{
+  "author": {
+    "email": "capsule@example.com",
+    "name": "Capsule MVP"
+  },
+  "author_pubkey": "IaBNa99FDC4fZuSuhQjxENSIyaDq9/nE9jC8PSZF4CA=",
+  "capsule_id": "capsule-min-example",
+  "issued_at": "2000-01-01T00:00:00Z",
+  "payload": {
+    "message": "Fireseed Trilogy signing test capsule.",
+    "nonce": 42,
+    "principles": [
+      "preserve knowledge",
+      "ensure authenticity"
+    ]
+  },
+  "signature": "pA+PR20VJD+8mvGj9eOkASYCaBi0Fq7EUnXRN6A+Qw/N9P4oTzXoboTbLO3Z68TdGypbetHjS/J5SrdjStNKAQ==",
+  "version": "capsule_v0"
+}

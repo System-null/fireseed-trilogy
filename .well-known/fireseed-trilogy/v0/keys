@@ -1,0 +1,16 @@
+{
+  "version": 0,
+  "fingerprint_alg": "hex_lower(sha256(base64_decode(pubkey)))[0:16]",
+  "pubkeys": [
+    {
+      "fingerprint": "29af90aa5f10df4c",
+      "pubkey": "IaBNa99FDC4fZuSuhQjxENSIyaDq9/nE9jC8PSZF4CA=",
+      "updated_at": "2000-01-01T00:00:00Z"
+    },
+    {
+      "fingerprint": "ef35e6a19d785a44",
+      "pubkey": "lIOZmnGtlCI1NH2qIKcy8kN9CWQ7T9J5Ajm0LJtzh/k=",
+      "updated_at": "2000-01-01T00:00:00Z"
+    }
+  ]
+}
