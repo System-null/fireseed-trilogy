@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+LOCAL_FILES_ONLY="${LOCAL_FILES_ONLY:-1}"
+echo "LOCAL_FILES_ONLY=${LOCAL_FILES_ONLY}"
+
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 MODELS_DIR="$ROOT_DIR/models"
 MODEL_NAME="bge-small-zh-v1.5"
@@ -21,6 +24,7 @@ fi
 python - "$MODEL_REPO" "$MODEL_DIR" <<'PY'
 from pathlib import Path
 from sys import argv
+import os
 from huggingface_hub import snapshot_download
 
 repo_id, model_dir = argv[1], Path(argv[2])
@@ -28,7 +32,7 @@ snapshot_download(
     repo_id=repo_id,
     local_dir=model_dir,
     local_dir_use_symlinks=False,
-    local_files_only=True,
+    local_files_only=os.getenv("LOCAL_FILES_ONLY", "1") == "1",
 )
 PY
 
@@ -59,10 +63,14 @@ model_dir = root / "models" / "bge-small-zh-v1.5"
 index_path = root / "data" / "examples.index"
 index_path.parent.mkdir(parents=True, exist_ok=True)
 
+import os
 from sentence_transformers import SentenceTransformer
 import faiss
 
-model = SentenceTransformer(str(model_dir))
+model = SentenceTransformer(
+    str(model_dir),
+    local_files_only=(os.getenv("LOCAL_FILES_ONLY", "1") == "1"),
+)
 dim = int(model.get_sentence_embedding_dimension())
 index = faiss.IndexFlatIP(dim)
 

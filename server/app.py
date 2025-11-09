@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 
 try:
     from fastapi.templating import Jinja2Templates
@@ -41,6 +42,16 @@ from .pin import pin_endpoint
 from .status import pin_status
 from .ethics import render_ethics
 from .appeal import handle_appeal
+from .metrics import (
+    metrics_endpoint,
+    score_latency_seconds,
+    sharecard_errors_total,
+    verification_failures_total,
+)
+from .logging import configure_logging
+
+configure_logging()
+logger = logging.getLogger(__name__)
 try:
     from .sharecard import (
         ICON_SIZE,
@@ -56,8 +67,6 @@ except ModuleNotFoundError as e:
     import warnings
     warnings.warn(f"Sharecard dependencies not available: {e}")
 
-logger = logging.getLogger(__name__)
-
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -68,6 +77,33 @@ except Exception as e:
     logger.warning("ProxyHeadersMiddleware unavailable: %s", e)
 if ProxyHeadersMiddleware is not None:
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):  # type: ignore[override]
+        start = time.perf_counter()
+        path = request.url.path
+        status = 500
+        response = None
+        try:
+            response = await call_next(request)
+        except Exception:
+            raise
+        else:
+            status = response.status_code
+        finally:
+            elapsed = time.perf_counter() - start
+            if path == "/score":
+                score_latency_seconds.observe(elapsed)
+            if status >= 400:
+                if path == "/sharecard":
+                    sharecard_errors_total.inc()
+                elif path in ("/appeal", "/pin"):
+                    verification_failures_total.inc()
+        return response
+
+
+app.add_middleware(MetricsMiddleware)
 
 # 注册 sharecard 路由（容错）
 try:
@@ -80,9 +116,6 @@ except Exception as e:
     logger.warning("sharecard route disabled: %s", e)
 limiter = limiter_module.get_limiter()
 app.state.limiter = limiter
-
-# 初始化日志记录器
-logger = logging.getLogger(__name__)
 
 # 尝试导入 sharecard 路由（PR2 未安装 Pillow 时跳过）
 try:
@@ -102,6 +135,11 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse
 
 
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+
+@app.get("/metrics")
+async def metrics_route(request: Request):
+    return await metrics_endpoint(request)
 
 
 @app.get("/ethics")
