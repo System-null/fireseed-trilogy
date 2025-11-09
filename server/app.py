@@ -14,7 +14,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 from slowapi.errors import RateLimitExceeded
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+# Proxy headers（可选，某些 starlette 版本无该模块）
+try:  # 兼容旧版 starlette，导入失败就跳过
+    from starlette.middleware.proxy_headers import ProxyHeadersMiddleware  # type: ignore
+except Exception as e:  # pragma: no cover
+    ProxyHeadersMiddleware = None  # type: ignore
+    logger.warning("ProxyHeadersMiddleware unavailable: %s", e)
+
+if ProxyHeadersMiddleware is not None:
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 from . import limiter as limiter_module
 from .score import compute_uniqueness
