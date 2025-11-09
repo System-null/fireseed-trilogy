@@ -10,8 +10,11 @@ logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from . import limiter as limiter_module
 from .score import compute_uniqueness
@@ -33,6 +36,10 @@ except ModuleNotFoundError as e:
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+templates = Jinja2Templates(directory="server/templates")
+app.state.templates = templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 注册 sharecard 路由（容错）
 try:
@@ -46,15 +53,9 @@ except Exception as e:
 limiter = limiter_module.get_limiter()
 app.state.limiter = limiter
 
-# 初始化日志记录器
-logger = logging.getLogger(__name__)
+from server.landing import render_landing_page
 
-# 尝试导入 sharecard 路由（PR2 未安装 Pillow 时跳过）
-try:
-    from server.sharecard import router as sharecard_router  # type: ignore
-    app.include_router(sharecard_router, prefix="/sharecard")
-except Exception as e:  # pragma: no cover
-    logger.warning("sharecard route disabled: %s", e)
+app.get("/landing/{id}")(render_landing_page)
 
 
 def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:

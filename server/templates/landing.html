@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ og_desc }}">
+  <meta property="og:image" content="{{ og_image_url }}">
+  <meta property="og:url" content="{{ og_url }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>{{ title }}</title>
+  <style>body{font-family:sans-serif;max-width:600px;margin:auto;padding:1rem;}</style>
+</head>
+<body>
+<main>
+  <h1>{{ title }}</h1>
+  {% if subtitle %}<h2>{{ subtitle }}</h2>{% endif %}
+  {% if explanations %}
+    <details open><summary>Explanations</summary>
+      <ul>{% for e in explanations %}<li>{{ e }}</li>{% endfor %}</ul>
+    </details>
+  {% endif %}
+</main>
+<footer><a href="/ethics">数据伦理</a></footer>
+</body>
+</html>
