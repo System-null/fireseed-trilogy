@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  fastapi:
+    build: .
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - LOCAL_FILES_ONLY=1
+    volumes:
+      - ./data:/app/data
+      - ./static/og:/app/static/og
+    ports: ["8000:8000"]
+    depends_on: [redis]
+
+  prometheus:
+    image: prom/prometheus
+    ports: ["9090:9090"]
+    volumes: ["./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    depends_on: [fastapi]
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    ports: ["3000:3000"]
+    volumes: ["./ops/grafana:/var/lib/grafana"]
+    depends_on: [prometheus]

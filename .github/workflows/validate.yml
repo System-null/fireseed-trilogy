@@ -34,3 +34,5 @@ jobs:
         run: pytest -q tests/test_ethics.py tests/test_appeal.py
       - name: Run PR6 tests
         run: pytest -q tests/test_ipfs.py
+      - name: Run PR7 tests
+        run: pytest -q tests/test_metrics.py

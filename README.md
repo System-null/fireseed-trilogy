@@ -72,4 +72,16 @@ Help us keep the fireseed alive by sharing feedback, opening discussions, or men
 
 ---
 
+## 🛠️ Operations & Observability
+
+Run the full stack with Docker Compose:
+
+```bash
+docker compose up --build -d
+```
+
+This boots Redis (6379), the FastAPI capsule service (8000), Prometheus (9090), and Grafana (3000). Grafana ships with a local volume at `ops/grafana`; point a Prometheus data source at `http://prometheus:9090` and you will see the exported `score_latency_seconds`, `verification_failures_total`, and `sharecard_errors_total` metrics from `/metrics`.
+
+---
+
 © 2025 Fireseed Trilogy Lab · Code: MIT · Docs: CC BY 4.0
