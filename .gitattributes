@@ -1,1 +1,4 @@
 assets/fonts/* binary
+
+server/templates/* text
+static/og/* binary

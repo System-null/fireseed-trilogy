@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="{{ title }}">
+    <meta property="og:description" content="{{ og_desc }}">
+    <meta property="og:image" content="{{ og_image_url }}">
+    <meta property="og:url" content="{{ og_url }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <title>{{ title }}</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #0d1017;
+            color: #e9edf2;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        main {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 3rem;
+        }
+        header {
+            margin-bottom: 1.5rem;
+        }
+        h1 {
+            margin: 0 0 0.75rem;
+            font-size: clamp(1.75rem, 4vw, 2.75rem);
+            line-height: 1.15;
+        }
+        .subtitle {
+            margin: 0;
+            font-size: 1.05rem;
+            color: #c0cad6;
+        }
+        .score-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            list-style: none;
+            padding: 0;
+            margin: 1.25rem 0 1.75rem;
+        }
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(56,189,248,0.18));
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .score-label {
+            opacity: 0.8;
+            font-size: 0.85rem;
+        }
+        .share-preview {
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.35);
+            margin: 0 0 1.75rem;
+        }
+        .share-preview img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        details {
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            background: rgba(15, 23, 42, 0.25);
+            margin-bottom: 1.75rem;
+        }
+        details > summary {
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            outline: none;
+        }
+        details ul {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+        .expanded {
+            border-left: 3px solid rgba(99, 102, 241, 0.55);
+            padding-left: 1rem;
+            margin-bottom: 2rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: rgba(15, 23, 42, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        footer {
+            border-top: 1px solid rgba(148, 163, 184, 0.25);
+            padding-top: 1.5rem;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        footer a {
+            color: inherit;
+        }
+        @media (min-width: 768px) {
+            main {
+                padding-top: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>{{ title }}</h1>
+            {% if subtitle %}
+            <p class="subtitle">{{ subtitle }}</p>
+            {% endif %}
+        </header>
+        {% if scores %}
+        <ul class="score-list">
+            {% for score in scores %}
+            <li class="score-badge">
+                <span class="score-label">{{ score.label }}</span>
+                <span>{{ score.value }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <figure class="share-preview">
+            <img src="{{ og_image_url }}" alt="分享预览图" loading="lazy">
+        </figure>
+        {% if explanations %}
+        <details open>
+            <summary>模型解释</summary>
+            <ul>
+                {% for item in explanations %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+        {% if expanded_text %}
+        <section class="expanded">{{ expanded_text }}</section>
+        {% endif %}
+    </main>
+    <footer>
+        <a href="/ethics">数据伦理</a>
+    </footer>
+</body>
+</html>

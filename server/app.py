@@ -5,15 +5,20 @@ import orjson
 import logging
 import time
 from io import BytesIO
+from pathlib import Path
+from urllib.parse import unquote
 import logging
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 from slowapi.errors import RateLimitExceeded
 
 from . import limiter as limiter_module
+from .landing import DATA_DIR, get_capsule_cached, is_safe_id, safe_desc
 from .score import compute_uniqueness
 try:
     from .sharecard import (
@@ -33,6 +38,63 @@ except ModuleNotFoundError as e:
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+templates = Jinja2Templates(directory="server/templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+try:
+    from starlette.middleware.proxy_headers import ProxyHeadersMiddleware  # type: ignore
+except Exception as e:  # pragma: no cover
+    ProxyHeadersMiddleware = None  # type: ignore
+    logger.warning("ProxyHeadersMiddleware unavailable: %s", e)
+
+if ProxyHeadersMiddleware is not None:
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+
+@app.middleware("http")
+async def landing_path_guard(request: Request, call_next):
+    raw_path = request.scope.get("raw_path", b"")
+    if isinstance(raw_path, (bytes, bytearray)):
+        raw_path_str = raw_path.decode("latin-1", errors="ignore")
+    else:
+        raw_path_str = str(raw_path or "")
+
+    if raw_path_str.startswith("/landing/"):
+        candidate = raw_path_str[len("/landing/"):]
+        if "?" in candidate:
+            candidate = candidate.split("?", 1)[0]
+        decoded = unquote(candidate)
+        if decoded and not is_safe_id(decoded):
+            response = HTMLResponse(
+                content=(
+                    "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                    "<title>Bad Request</title></head>"
+                    "<body><h1>Bad Request</h1></body></html>"
+                ),
+                status_code=400,
+            )
+            limiter_module.inject_rate_headers(response, request)
+            if limiter_module.spike_header_active(request):
+                response.headers["X-Fireseed-Spike"] = "true"
+            return response
+
+    sanitized_path = request.url.path
+    if sanitized_path.startswith("/etc/"):
+        response = HTMLResponse(
+            content=(
+                "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                "<title>Bad Request</title></head>"
+                "<body><h1>Bad Request</h1></body></html>"
+            ),
+            status_code=400,
+        )
+        limiter_module.inject_rate_headers(response, request)
+        if limiter_module.spike_header_active(request):
+            response.headers["X-Fireseed-Spike"] = "true"
+        return response
+
+    return await call_next(request)
+
 
 # 注册 sharecard 路由（容错）
 try:
@@ -242,4 +304,87 @@ async def sharecard_endpoint(request: Request) -> Response:
         },
     )
 
+    return response
+
+
+@app.get("/landing/{capsule_id:path}")
+@limiter.limit(limiter_module.score_limit_string)
+async def landing_page(request: Request, capsule_id: str):
+    limiter_module.consume_request_context(request)
+    if not is_safe_id(capsule_id):
+        raise HTTPException(status_code=400, detail="invalid capsule id")
+
+    capsule_json = DATA_DIR / f"{capsule_id}.json"
+    if not capsule_json.exists():
+        html = (
+            "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+            "<title>Page Not Found</title></head>"
+            "<body><h1>Page Not Found</h1></body></html>"
+        )
+        response = HTMLResponse(content=html, status_code=404)
+        limiter_module.inject_rate_headers(response, request)
+        if limiter_module.spike_header_active(request):
+            response.headers["X-Fireseed-Spike"] = "true"
+        return response
+
+    capsule = get_capsule_cached(capsule_id)
+    title = str(capsule.get("title") or "").strip() or capsule_id
+    subtitle = str(capsule.get("subtitle") or "").strip()
+
+    uniqueness_raw = capsule.get("uniqueness")
+    ari_raw = capsule.get("ari")
+    scores: list[dict[str, str | int]] = []
+    if isinstance(uniqueness_raw, (int, float)):
+        scores.append({
+            "label": "Uniqueness",
+            "value": int(round(float(uniqueness_raw))),
+        })
+    if isinstance(ari_raw, (int, float)):
+        scores.append({
+            "label": "ARI",
+            "value": int(round(float(ari_raw))),
+        })
+
+    explanations_raw = capsule.get("explanations") or []
+    if not isinstance(explanations_raw, list):
+        explanations_raw = [explanations_raw]
+    explanations = [str(item) for item in explanations_raw if str(item).strip()]
+
+    expanded_text = ""
+    expanded_path = DATA_DIR / f"{capsule_id}.expanded.md"
+    if expanded_path.exists():
+        expanded_text = expanded_path.read_text(encoding="utf-8", errors="ignore")
+
+    desc_source = subtitle or expanded_text or " ".join(explanations)
+    if not desc_source and isinstance(uniqueness_raw, (int, float)):
+        desc_source = f"Uniqueness {int(round(float(uniqueness_raw)))}"
+    if not desc_source:
+        desc_source = title
+    og_desc = safe_desc(desc_source)
+    if not og_desc:
+        og_desc = title
+
+    og_rel_path = Path("og") / f"{capsule_id}.png"
+    og_static_path = Path("static") / og_rel_path
+    if not og_static_path.exists():
+        og_rel_path = Path("og") / "placeholder.png"
+    og_image_url = str(request.url_for("static", path=str(og_rel_path).replace("\\", "/")))
+    og_url = str(request.url)
+
+    context = {
+        "request": request,
+        "title": title,
+        "subtitle": subtitle,
+        "scores": scores,
+        "explanations": explanations,
+        "expanded_text": expanded_text,
+        "og_image_url": og_image_url,
+        "og_url": og_url,
+        "og_desc": og_desc,
+    }
+
+    response = templates.TemplateResponse(request, "landing.html", context)
+    limiter_module.inject_rate_headers(response, request)
+    if limiter_module.spike_header_active(request):
+        response.headers["X-Fireseed-Spike"] = "true"
     return response
