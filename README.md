@@ -72,4 +72,16 @@ Help us keep the fireseed alive by sharing feedback, opening discussions, or men
 
 ---
 
+## 部署（Docker Compose）
+
+1. `docker compose up --build -d`
+2. 验证：
+   - FastAPI: <http://localhost:8000/docs>
+   - /metrics: <http://localhost:8000/metrics>
+   - Prometheus: <http://localhost:9090>
+   - Grafana: <http://localhost:3000>（默认 admin/admin）
+3. 在 Grafana 添加 Prometheus 数据源（URL: <http://prometheus:9090>），创建图表（`score_latency_seconds`、`verification_failures_total`、`sharecard_errors_total`）
+
+---
+
 © 2025 Fireseed Trilogy Lab · Code: MIT · Docs: CC BY 4.0

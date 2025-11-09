@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# 构建期允许联网，运行时默认本地（PR2 已支持此变量）
+LOCAL_FILES_ONLY="${LOCAL_FILES_ONLY:-1}"
+echo "LOCAL_FILES_ONLY=${LOCAL_FILES_ONLY}"
 
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 MODELS_DIR="$ROOT_DIR/models"
@@ -51,6 +54,7 @@ echo "Detected embedding dimension: $DIM"
 
 python - <<'PY'
 from pathlib import Path
+import os
 import orjson
 import numpy as np
 
@@ -62,7 +66,10 @@ index_path.parent.mkdir(parents=True, exist_ok=True)
 from sentence_transformers import SentenceTransformer
 import faiss
 
-model = SentenceTransformer(str(model_dir))
+model = SentenceTransformer(
+    str(model_dir),
+    local_files_only=(os.getenv("LOCAL_FILES_ONLY", "1") == "1"),
+)
 dim = int(model.get_sentence_embedding_dimension())
 index = faiss.IndexFlatIP(dim)
 

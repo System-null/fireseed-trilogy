@@ -1,2 +1,4 @@
 .DS_Store
 reports/
+static/og/*.png
+!static/og/.gitkeep
