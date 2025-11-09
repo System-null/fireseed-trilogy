@@ -37,6 +37,8 @@ def get_templates() -> Any | None:
 from . import limiter as limiter_module
 from .score import compute_uniqueness
 from .landing import is_safe_id, render_landing
+from .ethics import render_ethics
+from .appeal import handle_appeal
 try:
     from .sharecard import (
         ICON_SIZE,
@@ -98,6 +100,34 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse
 
 
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+
+@app.get("/ethics")
+@limiter.limit("10/minute")
+def ethics_page(request: Request):
+    limiter_module.consume_request_context(request)
+    response = render_ethics(request)
+    limiter_module.inject_rate_headers(response, request)
+    if limiter_module.spike_header_active(request):
+        response.headers["X-Fireseed-Spike"] = "true"
+    return response
+
+
+@app.post("/appeal")
+@limiter.limit("5/minute")
+async def appeal_endpoint(request: Request):
+    limiter_module.consume_request_context(request)
+    if limiter_module.should_block_for_spike(request):
+        response = JSONResponse({"detail": "Rate limit exceeded"}, status_code=429)
+        limiter_module.inject_rate_headers(response, request)
+        response.headers["X-Fireseed-Spike"] = "true"
+        return response
+    result = await handle_appeal(request)
+    response = JSONResponse(result)
+    limiter_module.inject_rate_headers(response, request)
+    if limiter_module.spike_header_active(request):
+        response.headers["X-Fireseed-Spike"] = "true"
+    return response
 
 
 class ScoreRequest(BaseModel):

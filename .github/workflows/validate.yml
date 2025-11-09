@@ -31,3 +31,5 @@ jobs:
 
       - name: Run pytest
         run: python -m pytest -q tests/test_score.py tests/test_rate_limit.py
+      - name: Run PR5 tests
+        run: pytest -q tests/test_ethics.py tests/test_appeal.py
