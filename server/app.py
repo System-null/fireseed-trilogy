@@ -1,20 +1,42 @@
 from __future__ import annotations
 
 import logging
-import orjson
-import logging
 import time
 from io import BytesIO
-import logging
-logger = logging.getLogger(__name__)
+from typing import Any
 
+import orjson
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from slowapi.errors import RateLimitExceeded
 
+try:
+    from fastapi.templating import Jinja2Templates
+except Exception:
+    Jinja2Templates = None  # type: ignore
+
+logger = logging.getLogger(__name__)
+
+_templates: Any | None = None
+
+def get_templates() -> Any | None:
+    global _templates
+    if _templates is not None:
+        return _templates
+    if Jinja2Templates is None:
+        return None
+    try:
+        _templates = Jinja2Templates(directory="server/templates")
+    except AssertionError as e:
+        logger.warning("jinja2 unavailable: %s", e)
+        _templates = None
+    return _templates
+
 from . import limiter as limiter_module
 from .score import compute_uniqueness
+from .landing import is_safe_id, render_landing
 try:
     from .sharecard import (
         ICON_SIZE,
@@ -33,6 +55,15 @@ except ModuleNotFoundError as e:
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+try:
+    from starlette.middleware.proxy_headers import ProxyHeadersMiddleware  # type: ignore
+except Exception as e:
+    ProxyHeadersMiddleware = None  # type: ignore
+    logger.warning("ProxyHeadersMiddleware unavailable: %s", e)
+if ProxyHeadersMiddleware is not None:
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 # 注册 sharecard 路由（容错）
 try:
@@ -243,3 +274,12 @@ async def sharecard_endpoint(request: Request) -> Response:
     )
 
     return response
+
+
+@app.get("/landing/{capsule_id}")
+@limiter.limit(limiter_module.score_limit_string)
+async def landing_page(request: Request, capsule_id: str):
+    if not is_safe_id(capsule_id):
+        raise HTTPException(status_code=400, detail="invalid id")
+    templates = get_templates()
+    return await render_landing(request, capsule_id, templates)

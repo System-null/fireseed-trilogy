@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ og_desc }}">
+  <meta property="og:image" content="{{ og_image_url }}">
+  <meta property="og:url" content="{{ og_url }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>{{ title }}</title>
+  <style>{{ styles }}</style>
+</head>
+<body>
+  <main>
+    <h1>{{ title }}</h1>
+    {% if score %}
+    <div class="badge">Uniq {{ score }}</div>
+    {% endif %}
+    <div class="og-image">
+      <img src="{{ og_image_url }}" alt="分享图">
+    </div>
+    {% if explanations %}
+    <details open>
+      <summary>解读</summary>
+      <ul>
+        {% for item in explanations %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% if expanded %}
+    <section class="expanded">
+      <h2>扩展解读</h2>
+      <pre>{{ expanded }}</pre>
+    </section>
+    {% endif %}
+  </main>
+  <footer><a href="/ethics">数据伦理</a></footer>
+</body>
+</html>
