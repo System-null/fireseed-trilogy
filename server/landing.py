@@ -222,6 +222,13 @@ def _build_context(
         "styles": _INLINE_STYLES,
         "expanded": capsule_payload.get("expanded"),
     }
+    ipfs_cid = capsule.get("ipfs_cid")
+    if not isinstance(ipfs_cid, str):
+        ipfs_cid = capsule_payload.get("ipfs_cid")
+        if not isinstance(ipfs_cid, str):
+            ipfs_cid = None
+    if ipfs_cid:
+        context["ipfs_cid"] = ipfs_cid
     return context
 
 

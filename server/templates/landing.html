@@ -37,6 +37,19 @@
       <pre>{{ expanded }}</pre>
     </section>
     {% endif %}
+    {% if ipfs_cid %}
+    <div id="ipfs-status" data-cid="{{ ipfs_cid }}"></div>
+    <script>
+      (function(){
+        var el=document.getElementById('ipfs-status'); if(!el) return;
+        var cid=el.dataset.cid;
+        fetch('/pin-status?cid='+encodeURIComponent(cid))
+          .then(function(r){return r.json();})
+          .then(function(d){ el.textContent='IPFS: '+(d.ipfs_io?'✅':'❌')+' / '+(d.cloudflare?'✅':'❌')+(d.local!==undefined?(' / '+(d.local?'✅':'❌')):''); })
+          .catch(function(){ el.textContent='IPFS: N/A'; });
+      })();
+    </script>
+    {% endif %}
   </main>
   <footer><a href="/ethics">数据伦理</a></footer>
 </body>

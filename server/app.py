@@ -6,7 +6,7 @@ from io import BytesIO
 from typing import Any
 
 import orjson
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
@@ -37,6 +37,8 @@ def get_templates() -> Any | None:
 from . import limiter as limiter_module
 from .score import compute_uniqueness
 from .landing import is_safe_id, render_landing
+from .pin import pin_endpoint
+from .status import pin_status
 from .ethics import render_ethics
 from .appeal import handle_appeal
 try:
@@ -124,6 +126,35 @@ async def appeal_endpoint(request: Request):
         return response
     result = await handle_appeal(request)
     response = JSONResponse(result)
+    limiter_module.inject_rate_headers(response, request)
+    if limiter_module.spike_header_active(request):
+        response.headers["X-Fireseed-Spike"] = "true"
+    return response
+
+
+@app.post("/pin")
+@limiter.limit("5/minute")
+async def pin_route(request: Request):
+    limiter_module.consume_request_context(request)
+    if limiter_module.should_block_for_spike(request):
+        response = JSONResponse({"detail": "Rate limit exceeded"}, status_code=429)
+        limiter_module.inject_rate_headers(response, request)
+        response.headers["X-Fireseed-Spike"] = "true"
+        return response
+    background_tasks = BackgroundTasks()
+    response = await pin_endpoint(request, background_tasks)
+    response.background = background_tasks
+    limiter_module.inject_rate_headers(response, request)
+    if limiter_module.spike_header_active(request):
+        response.headers["X-Fireseed-Spike"] = "true"
+    return response
+
+
+@app.get("/pin-status")
+@limiter.limit("60/minute")
+async def pin_status_route(request: Request):
+    limiter_module.consume_request_context(request)
+    response = await pin_status(request)
     limiter_module.inject_rate_headers(response, request)
     if limiter_module.spike_header_active(request):
         response.headers["X-Fireseed-Spike"] = "true"
