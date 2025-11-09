@@ -1,19 +1,36 @@
 from __future__ import annotations
 
 import logging
-import orjson
-import logging
 import time
 from io import BytesIO
-import logging
-logger = logging.getLogger(__name__)
 
+import orjson
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 from slowapi.errors import RateLimitExceeded
+try:  # Starlette >=0.37 moved proxy headers middleware out of the default distribution
+    from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim
+    from starlette.datastructures import Headers
+    from starlette.types import ASGIApp, Receive, Scope, Send
+
+    class ProxyHeadersMiddleware:  # type: ignore[override]
+        def __init__(self, app: ASGIApp, trusted_hosts: str | list[str] | None = "*") -> None:
+            self.app = app
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            if scope["type"] in {"http", "websocket"}:
+                headers = Headers(scope=scope)
+                forwarded_proto = headers.get("x-forwarded-proto")
+                if forwarded_proto:
+                    scope["scheme"] = forwarded_proto.split(",")[0].strip()
+            await self.app(scope, receive, send)
 
 from . import limiter as limiter_module
+from .landing import render_landing_page
 from .score import compute_uniqueness
 try:
     from .sharecard import (
@@ -33,6 +50,9 @@ except ModuleNotFoundError as e:
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+templates = Jinja2Templates(directory="server/templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 # 注册 sharecard 路由（容错）
 try:
@@ -105,6 +125,27 @@ async def score_endpoint(request: Request) -> JSONResponse:
             "explanations": explanations,
         }
     )
+    limiter_module.inject_rate_headers(response, request)
+    if limiter_module.spike_header_active(request):
+        response.headers["X-Fireseed-Spike"] = "true"
+    return response
+
+
+@app.get("/landing/{capsule_id}")
+@limiter.limit(limiter_module.score_limit_string)
+async def landing_endpoint(request: Request, capsule_id: str) -> HTMLResponse:
+    limiter_module.consume_request_context(request)
+    if limiter_module.should_block_for_spike(request):
+        content = (
+            "<!DOCTYPE html><html><head><title>Rate Limit</title></head>"
+            "<body><h1>Rate limit exceeded</h1></body></html>"
+        )
+        response = HTMLResponse(content=content, status_code=429)
+        limiter_module.inject_rate_headers(response, request)
+        response.headers["X-Fireseed-Spike"] = "true"
+        return response
+
+    response = render_landing_page(request, capsule_id, templates)
     limiter_module.inject_rate_headers(response, request)
     if limiter_module.spike_header_active(request):
         response.headers["X-Fireseed-Spike"] = "true"
