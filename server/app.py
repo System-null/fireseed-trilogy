@@ -11,13 +11,46 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 
 try:
     from fastapi.templating import Jinja2Templates
 except Exception:
     Jinja2Templates = None  # type: ignore
 
+from .metrics import (
+    metrics_endpoint,
+    score_latency_seconds,
+    sharecard_errors_total,
+    verification_failures_total,
+)
+from .logging import configure_logging
+
+configure_logging()
+
 logger = logging.getLogger(__name__)
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):  # type: ignore[override]
+        start = time.perf_counter()
+        path = request.url.path
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+        except Exception:
+            raise
+        finally:
+            elapsed = time.perf_counter() - start
+            if path == "/score":
+                score_latency_seconds.observe(elapsed)
+            if status >= 400:
+                if path == "/sharecard":
+                    sharecard_errors_total.inc()
+                elif path in ("/appeal", "/pin"):
+                    verification_failures_total.inc()
+        return response
 
 _templates: Any | None = None
 
@@ -69,6 +102,8 @@ except Exception as e:
 if ProxyHeadersMiddleware is not None:
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
+app.add_middleware(MetricsMiddleware)
+
 # 注册 sharecard 路由（容错）
 try:
     from server.sharecard import router as sharecard_router  # type: ignore
@@ -102,6 +137,11 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse
 
 
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+
+@app.get("/metrics")
+async def metrics_route(request: Request):
+    return await metrics_endpoint(request)
 
 
 @app.get("/ethics")

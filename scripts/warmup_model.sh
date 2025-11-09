@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+LOCAL_FILES_ONLY="${LOCAL_FILES_ONLY:-1}"
+echo "LOCAL_FILES_ONLY=${LOCAL_FILES_ONLY}"
+
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 MODELS_DIR="$ROOT_DIR/models"
 MODEL_NAME="bge-small-zh-v1.5"
@@ -15,7 +18,12 @@ fi
 
 mkdir -p "$MODELS_DIR"
 if [ ! -d "$MODEL_DIR" ] || [ -z "$(ls -A "$MODEL_DIR" 2>/dev/null)" ]; then
-  huggingface-cli download "$MODEL_REPO" --local-dir "$MODEL_DIR" --local-dir-use-symlinks False
+  if [ "$LOCAL_FILES_ONLY" = "0" ]; then
+    huggingface-cli download "$MODEL_REPO" --local-dir "$MODEL_DIR" --local-dir-use-symlinks False
+  else
+    echo "Model directory $MODEL_DIR missing and LOCAL_FILES_ONLY=1" >&2
+    exit 1
+  fi
 fi
 
 python - "$MODEL_REPO" "$MODEL_DIR" <<'PY'
@@ -61,8 +69,12 @@ index_path.parent.mkdir(parents=True, exist_ok=True)
 
 from sentence_transformers import SentenceTransformer
 import faiss
+import os
 
-model = SentenceTransformer(str(model_dir))
+model = SentenceTransformer(
+    str(model_dir),
+    local_files_only=(os.getenv("LOCAL_FILES_ONLY", "1") == "1"),
+)
 dim = int(model.get_sentence_embedding_dimension())
 index = faiss.IndexFlatIP(dim)
 
