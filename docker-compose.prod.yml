@@ -1,0 +1,12 @@
+services:
+  fastapi:
+    container_name: fireseed-trilogy-fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/metrics || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
