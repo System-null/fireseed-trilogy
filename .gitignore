@@ -1,4 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+
+# Docker / 构建缓存
+*.log
+*.cache/
+.cache/
+
+# 本地数据与大文件
+models/
+data/
+*.bin
+*.pt
+*.onnx
+
+# OS
 .DS_Store
-reports/
-static/og/*.png
-!static/og/.gitkeep
