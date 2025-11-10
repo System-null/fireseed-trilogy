@@ -1,8 +1,7 @@
 services:
   fastapi:
     container_name: fireseed-trilogy-fastapi-staging
-    ports:
-      - "8001:8000"
+    ports: ["8001:8000"]
     environment:
       - ENV=staging
     healthcheck:
@@ -10,3 +9,14 @@ services:
       interval: 30s
       timeout: 3s
       retries: 5
+
+  # 关键：不对外暴露 redis 端口（内部照样能用）
+  redis:
+    ports: []
+
+  # 如需对外用到再映射；否则也建议不要暴露
+  prometheus:
+    ports: []
+
+  grafana:
+    ports: []
