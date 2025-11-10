@@ -1,0 +1,22 @@
+name: Deploy Production
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy to production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/fireseed-trilogy
+            git fetch origin
+            git checkout main
+            git pull --rebase origin main
+            docker compose -p fireseed-prod \
+              -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
