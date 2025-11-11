@@ -1,12 +1,13 @@
 name: CI | publish (manual & release)
 
 on:
+  # 仅手动或正式发布触发，避免 push 分支时误触
   workflow_dispatch:
     inputs:
       input_json:
-        description: "JSON path to pack (default: examples/capsule.sample.json)"
+        description: 'JSON path to pack (default: examples/capsule.sample.json)'
         required: false
-        default: "examples/capsule.sample.json"
+        default: 'examples/capsule.sample.json'
   release:
     types: [published]
 
@@ -16,7 +17,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -28,62 +29,24 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install build deps
+      # 只装构建 CAR 所需的最小依赖；不装项目依赖，避免 lockfile 分歧
+      - name: Install build deps only
         run: |
-          npm i -D @ipld/dag-cbor@8.1.0 multiformats@12.1.3 @ipld/car@5.2.4 --no-audit --no-fund
+          npm i -D @ipld/dag-cbor@8.0.1 multiformats@12.1.3 @ipld/car@5.2.4 --no-audit --no-fund
 
-      - name: Build CAR from JSON (DAG-CBOR single block)
+      - name: Build CAR from JSON
         id: build
+        env:
+          JSON_PATH: ${{ github.event.inputs.input_json || 'examples/capsule.sample.json' }}
         run: |
           mkdir -p artifacts
-          JSON_PATH="${{ github.event.inputs.input_json || 'examples/capsule.sample.json' }}"
+          # 你的脚本应已存在（scripts/build-car.mjs）；保持与仓库一致
           CID=$(node scripts/build-car.mjs "$JSON_PATH")
-          echo "cid=$CID" >> $GITHUB_OUTPUT
-          echo "Built CAR with CID: $CID"
+          echo "$CID" | tee artifacts/cid.txt
+          echo "cid=$CID" >> "$GITHUB_OUTPUT"
 
-      - name: Upload CAR artifact
+      - name: Upload CAR artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ipfs-car
-          path: |
-            artifacts/capsule.car
-            artifacts/cid.txt
-          if-no-files-found: error
-
-      # --- Optional Pin #1: web3.storage (skips if secret missing) ---
-      - name: Upload to web3.storage
-        id: w3
-        if: ${{ secrets.WEB3_STORAGE_TOKEN != '' }}
-        run: |
-          set -eux
-          RESP=$(curl -sS -X POST https://api.web3.storage/upload \
-            -H "Authorization: Bearer ${{ secrets.WEB3_STORAGE_TOKEN }}" \
-            -H "Content-Type: application/car" \
-            --data-binary @artifacts/capsule.car)
-          echo "$RESP" | tee artifacts/web3_storage_response.json
-          # Try to parse returned CID if jq exists
-          if command -v jq >/dev/null 2>&1; then
-            R_CID=$(echo "$RESP" | jq -r '.cid // empty')
-            echo "web3_cid=$R_CID" >> $GITHUB_OUTPUT || true
-          fi
-
-      # --- Optional Pin #2: Pinata (by CID) ---
-      - name: Pin on Pinata by CID
-        if: ${{ secrets.PINATA_JWT != '' }}
-        run: |
-          set -eux
-          curl -sS -X POST https://api.pinata.cloud/pinning/pinByHash \
-            -H "Authorization: Bearer ${{ secrets.PINATA_JWT }}" \
-            -H "Content-Type: application/json" \
-            -d '{"hashToPin":"${{ steps.build.outputs.cid }}","pinataMetadata":{"name":"fireseed-capsule"}}' \
-            | tee artifacts/pinata_response.json
-
-      # --- Optional Pin #3: IPFS Cluster (if you have one) ---
-      - name: Pin on IPFS Cluster
-        if: ${{ secrets.CLUSTER_URL != '' && secrets.CLUSTER_BASIC_AUTH != '' }}
-        run: |
-          set -eux
-          curl -sS -X POST "${{ secrets.CLUSTER_URL }}/pins/${{ steps.build.outputs.cid }}" \
-            -H "Authorization: Basic ${{ secrets.CLUSTER_BASIC_AUTH }}" \
-            -H "Content-Type: application/json" \
-            -d '{}' | tee artifacts/cluster_response.json
+          name: fireseed-car
+          path: artifacts/
