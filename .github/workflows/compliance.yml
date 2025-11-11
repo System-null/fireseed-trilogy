@@ -28,28 +28,25 @@ jobs:
       - name: Install dependencies (tolerant)
         run: |
           if [ -f package-lock.json ]; then
-            # 尝试严格方式；若 package.json 与 lock 不匹配则回退到宽松安装
-            npm ci --ignore-scripts --omit=optional || npm i --ignore-scripts --omit=optional --no-audit --no-fund
+            npm ci --ignore-scripts --omit=optional \
+            || npm i --ignore-scripts --omit=optional --no-audit --no-fund
           else
-            echo "No lockfile found, skipping project install"
+            echo "No lockfile found; skipping strict install"
           fi
 
       - name: Generate SBOM (CycloneDX JSON)
-        uses: anchore/sbom-action@v0
-        with:
-          path: .
-          format: cyclonedx-json
-          output-file: sbom.cdx.json
+        run: |
+          npx -y @cyclonedx/cyclonedx-npm@8.2.0 --output-file sbom.json || true
 
       - name: Assert SBOM generated
-        run: test -s sbom.cdx.json
+        run: test -s sbom.json
 
       # ✅ 去掉 --skip-git；固定镜像版本；输出保存为 JSON 报告
       - name: Run OSV-Scanner (container)
         continue-on-error: true                 # 有漏洞不让 CI 整体失败（仅报告）
         run: |
           docker run --rm -v "$PWD:/work" -w /work "$OSV_IMAGE" \
-            --sbom=sbom.cdx.json --format json > osv-report.json
+            --sbom=sbom.json --format json > osv-report.json
 
       - name: License summary (prod deps only)
         if: hashFiles('**/package.json') != ''
@@ -62,6 +59,6 @@ jobs:
         with:
           name: compliance-artifacts
           path: |
-            sbom.cdx.json
+            sbom.json
             osv-report.json
           if-no-files-found: error
