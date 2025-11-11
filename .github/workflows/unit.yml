@@ -19,7 +19,9 @@ jobs:
 
       # 无 lockfile 也能跑；确保测试依赖存在
       - name: Install dev deps
-        run: npm i -D ajv@8.17.1 ajv-formats@2.1.1 vitest@2.1.1 --no-audit --no-fund
+        run: |
+          npm i -D ajv@8.17.1 ajv-formats@2.1.1 vitest@2.1.1 --no-audit --no-fund
+          npm i -D @ipld/dag-cbor@8.0.1 multiformats@12.1.3 @noble/ed25519@2.0.0 @noble/hashes@1.4.0 json-canonicalize@1.0.6 --no-audit --no-fund
 
       - name: Run unit tests
         run: npm test

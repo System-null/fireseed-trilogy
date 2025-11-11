@@ -18,20 +18,20 @@
   "author": "Fireseed Trilogy Lab",
   "scripts": {
     "vendors": "node scripts/fetch-vendors.mjs",
-    "sign": "node scripts/sign-capsule.js",
-    "test:determinism": "node tests/determinism.test.js",
+    "sign": "node scripts/sign-capsule.mjs examples/capsule.sample.json --privkey 21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a",
+    "test:determinism": "CI=1 vitest run tests/determinism.test.js --reporter=dot",
     "verify:keychain": "node scripts/verify-keychain.mjs --timeline tests/fixtures/timeline.valid.json --revocations tests/fixtures/revocations.empty.json",
-    "test": "vitest run --reporter=basic"
+    "test": "CI=1 vitest run --reporter=dot"
   },
   "devDependencies": {
-    "@ipld/dag-cbor": "^9.0.0",
-    "@noble/ed25519": "^2.0.0",
-    "@noble/hashes": "^1.4.0",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^2.1.1",
-    "json-canonicalize": "^1.0.6",
-    "multiformats": "^12.1.0",
-    "vitest": "^2.1.1"
+    "@ipld/dag-cbor": "8.0.1",
+    "@noble/ed25519": "2.0.0",
+    "@noble/hashes": "1.4.0",
+    "ajv": "8.17.1",
+    "ajv-formats": "2.1.1",
+    "json-canonicalize": "1.0.6",
+    "multiformats": "12.1.3",
+    "vitest": "2.1.1"
   },
   "fireseed": {
     "docsLicense": "CC-BY-4.0",
