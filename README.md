@@ -102,5 +102,14 @@ This boots Redis (6379), the FastAPI capsule service (8000), Prometheus (9090), 
 
 ---
 
+## Legal & Security
+
+- [TERMS.md](TERMS.md) — Terms of Use  
+- [PRIVACY.md](PRIVACY.md) — Privacy Policy  
+- [LEGAL.md](LEGAL.md) — Legal Notice (ECCN 5D002, disclaimers)  
+- [SECURITY.md](SECURITY.md) — Security policy & vulnerability reporting
+
+Compliance artifacts (CycloneDX SBOM & OSV report) are published by the **CI | compliance** workflow.
+
 © 2025 Fireseed Trilogy Lab · Code: MIT · Docs: CC BY 4.0
 Test update at Tue Nov 11 00:29:21 CST 2025
