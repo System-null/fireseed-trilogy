@@ -17,6 +17,6 @@ jobs:
             git fetch origin
             git checkout main
             git pull --rebase origin main
-            docker compose -p fireseed-prod \
-              -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+            docker compose -p fireseed-prod -f docker-compose.yml -f docker-compose.prod.yml down || true
+            docker compose -p fireseed-prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
