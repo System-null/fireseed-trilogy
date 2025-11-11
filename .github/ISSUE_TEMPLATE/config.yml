@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Advisories
+    url: https://github.com/System-null/fireseed-trilogy/security/advisories
+    about: 发现安全问题请走私有通道
