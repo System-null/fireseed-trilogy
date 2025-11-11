@@ -18,13 +18,10 @@ jobs:
             git fetch origin
             git checkout main
             git pull --rebase origin main
-
-            # 关键：先停再起，清孤儿，避免端口被占
-            docker compose -p fireseed-prod down || true
-            docker compose -p fireseed-prod \
-              -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
-
-            # 可选：顺手清理悬挂镜像
-            docker image prune -f || true
-
+            # 私有包时启用下一行，并在仓库设置 GHCR_PAT（read:packages）
+            # docker login ghcr.io -u $GITHUB_ACTOR -p '${{ secrets.GHCR_PAT }}' || true
+            export IMAGE_TAG=latest
+            docker compose -p fireseed-prod -f docker-compose.yml -f docker-compose.prod.yml down || true
+            docker compose -p fireseed-prod -f docker-compose.yml -f docker-compose.prod.yml pull
+            docker compose -p fireseed-prod -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
