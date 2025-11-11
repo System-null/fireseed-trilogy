@@ -1,6 +1,7 @@
 name: Deploy Production
 on:
   workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -17,6 +18,13 @@ jobs:
             git fetch origin
             git checkout main
             git pull --rebase origin main
-            docker compose -p fireseed-prod -f docker-compose.yml -f docker-compose.prod.yml down || true
-            docker compose -p fireseed-prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+
+            # 关键：先停再起，清孤儿，避免端口被占
+            docker compose -p fireseed-prod down || true
+            docker compose -p fireseed-prod \
+              -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+
+            # 可选：顺手清理悬挂镜像
+            docker image prune -f || true
+
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
