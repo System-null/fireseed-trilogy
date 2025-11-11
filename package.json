@@ -19,6 +19,10 @@
   "scripts": {
     "vendors": "node scripts/fetch-vendors.mjs",
     "sign": "node scripts/sign-capsule.mjs examples/capsule.sample.json --privkey 21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a",
+    "seed:gen": "node scripts/seed-tools.mjs gen",
+    "seed:to-ed25519": "node scripts/seed-tools.mjs to-ed25519",
+    "revocations:build": "node scripts/build-revocations.mjs revocations.list --out artifacts/revocations.car",
+    "revocations:verify": "node scripts/verify-revocations.mjs artifacts/revocations.car revocations.list",
     "test:determinism": "CI=1 vitest run tests/determinism.test.js --reporter=dot",
     "verify:keychain": "node scripts/verify-keychain.mjs --timeline tests/fixtures/timeline.valid.json --revocations tests/fixtures/revocations.empty.json",
     "test": "CI=1 vitest run --reporter=dot",
@@ -29,10 +33,12 @@
     "start": "next start -p 3000"
   },
   "devDependencies": {
-    "@ipld/car": "^5.2.4",
+    "@ipld/car": "5.2.4",
     "@ipld/dag-cbor": "8.0.1",
     "@noble/ed25519": "2.0.0",
     "@noble/hashes": "1.4.0",
+    "@scure/bip39": "1.2.0",
+    "@scure/wordlists": "1.2.0",
     "ajv": "8.17.1",
     "ajv-formats": "2.1.1",
     "json-canonicalize": "1.0.6",
