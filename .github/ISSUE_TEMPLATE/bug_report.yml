@@ -1,0 +1,26 @@
+name: Bug report
+description: 报告一个问题或回归
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么？
+      description: 清晰描述、预期与实际行为
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤 / 最小复现
+      description: 尽量提供最小 JSON / 命令 / 日志
+      render: bash
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / 提交
+      description: 语义化版本或 commit SHA
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options: ["schema", "signing", "key-timeline", "ci", "docs", "other"]

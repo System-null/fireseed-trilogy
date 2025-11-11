@@ -1,0 +1,24 @@
+name: CI | stale
+on:
+  schedule:
+    - cron: "0 2 * * 1"   # 每周一 02:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-stale: 90
+          days-before-close: 14
+          stale-issue-label: "stale"
+          stale-pr-label: "stale"
+          exempt-issue-labels: "security"
+          exempt-pr-labels: "security"
+          stale-issue-message: "此 Issue 已 90 天无更新，将在 14 天后关闭。如需保留请回复。"
+          stale-pr-message: "此 PR 已 90 天无更新，将在 14 天后关闭。"
