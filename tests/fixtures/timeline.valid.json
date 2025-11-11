@@ -1,0 +1,20 @@
+[
+  {
+    "key_id": "key_abcd1",
+    "algorithm": "ed25519",
+    "pubkey": "BASE64_PUBKEY_A",
+    "record_cid": "bafyvalid111",
+    "prev_cid": null,
+    "valid_from_cid": null,
+    "valid_to_cid": null
+  },
+  {
+    "key_id": "key_efgh2",
+    "algorithm": "ed25519",
+    "pubkey": "BASE64_PUBKEY_B",
+    "record_cid": "bafyvalid222",
+    "prev_cid": "bafyvalid111",
+    "valid_from_cid": null,
+    "valid_to_cid": null
+  }
+]
