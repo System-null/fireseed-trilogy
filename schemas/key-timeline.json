@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fireseed.dev/schemas/key-timeline.json",
+  "title": "Fireseed Key Timeline",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["key_id", "algorithm", "pubkey", "record_cid"],
+    "properties": {
+      "key_id": { "type": "string", "pattern": "^key_[a-z0-9]{4,}$" },
+      "algorithm": { "type": "string", "enum": ["ed25519"] },
+      "pubkey": { "type": "string" },
+      "record_cid": { "type": "string" },
+      "prev_cid": { "type": ["string", "null"], "default": null },
+      "valid_from_cid": { "type": ["string", "null"] },
+      "valid_to_cid": { "type": ["string", "null"] }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+import { describe, it, expect } from 'vitest';
 
 import { signCapsule } from '../scripts/sign-capsule.js';
 
@@ -42,12 +42,14 @@ function reorderObject(value, comparator) {
 const capsuleAscending = reorderObject(baseCapsule, (a, b) => a.localeCompare(b));
 const capsuleDescending = reorderObject(baseCapsule, (a, b) => b.localeCompare(a));
 
-const signedAscending = await signCapsule(capsuleAscending, PRIVATE_KEY_HEX);
-const signedDescending = await signCapsule(capsuleDescending, PRIVATE_KEY_HEX);
+describe('capsule signing determinism', () => {
+  it('produces stable signatures regardless of key order', async () => {
+    const signedAscending = await signCapsule(capsuleAscending, PRIVATE_KEY_HEX);
+    const signedDescending = await signCapsule(capsuleDescending, PRIVATE_KEY_HEX);
 
-assert.equal(signedAscending.cid, signedDescending.cid, 'CID should be stable regardless of key order');
-assert.equal(signedAscending.cidBytes, signedDescending.cidBytes, 'CID bytes must remain stable');
-assert.equal(signedAscending.signature, signedDescending.signature, 'Signature must be stable');
-assert.equal(signedAscending.publicKey, signedDescending.publicKey, 'Public key encoding must match');
-
-console.log('Deterministic signing test passed.');
+    expect(signedAscending.cid).toEqual(signedDescending.cid);
+    expect(signedAscending.cidBytes).toEqual(signedDescending.cidBytes);
+    expect(signedAscending.signature).toEqual(signedDescending.signature);
+    expect(signedAscending.publicKey).toEqual(signedDescending.publicKey);
+  });
+});

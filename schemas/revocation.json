@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fireseed.dev/schemas/revocation.json",
+  "title": "Revocation List",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["revoked"],
+  "properties": {
+    "revoked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "ts"],
+        "properties": {
+          "key_id": { "type": "string" },
+          "reason": { "type": "string" },
+          "ts": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
