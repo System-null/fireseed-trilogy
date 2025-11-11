@@ -19,10 +19,10 @@ jobs:
             git fetch origin
             git checkout main
             git pull --rebase origin main
-            # 私有包时启用下一行，并在仓库设置 GHCR_PAT（read:packages）
+            # 私有包时再打开下一行并配置 GHCR_PAT
             # docker login ghcr.io -u $GITHUB_ACTOR -p '${{ secrets.GHCR_PAT }}' || true
-            export IMAGE_TAG=${GITHUB_SHA}
+            export IMAGE_TAG=${{ github.sha }}
             docker compose -p fireseed-staging -f docker-compose.yml -f docker-compose.staging.yml down || true
             docker compose -p fireseed-staging -f docker-compose.yml -f docker-compose.staging.yml pull
             docker compose -p fireseed-staging -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
-            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
