@@ -44,46 +44,42 @@ jobs:
       - name: Upload CAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ipfs-car
-          path: |
-            artifacts/capsule.car
-            artifacts/cid.txt
-          if-no-files-found: error
+          name: fireseed-car
+          path: artifacts/*.car
 
-      # --- Optional Pin #1: web3.storage (skips if secret missing) ---
-      - name: Upload to web3.storage
-        id: w3
+      # === Optional: web3.storage 上传并 Pin（配置了 token 才执行）===
+      - name: Upload to web3.storage (optional)
+        id: w3s
         if: ${{ secrets.WEB3_STORAGE_TOKEN != '' }}
+        env:
+          WEB3_STORAGE_TOKEN: ${{ secrets.WEB3_STORAGE_TOKEN }}
         run: |
-          set -eux
-          RESP=$(curl -sS -X POST https://api.web3.storage/upload \
-            -H "Authorization: Bearer ${{ secrets.WEB3_STORAGE_TOKEN }}" \
+          set -e
+          CAR=$(ls artifacts/*.car | head -n1)
+          # 直传 CAR；返回 JSON 含 cid
+          curl -sS -X POST https://api.web3.storage/upload \
+            -H "Authorization: Bearer $WEB3_STORAGE_TOKEN" \
             -H "Content-Type: application/car" \
-            --data-binary @artifacts/capsule.car)
-          echo "$RESP" | tee artifacts/web3_storage_response.json
-          # Try to parse returned CID if jq exists
-          if command -v jq >/dev/null 2>&1; then
-            R_CID=$(echo "$RESP" | jq -r '.cid // empty')
-            echo "web3_cid=$R_CID" >> $GITHUB_OUTPUT || true
-          fi
+            --data-binary "@${CAR}" > web3.json
+          echo "cid=$(node -e \"console.log(JSON.parse(require('fs').readFileSync('web3.json','utf8')).cid)\")" >> $GITHUB_OUTPUT
 
-      # --- Optional Pin #2: Pinata (by CID) ---
-      - name: Pin on Pinata by CID
+      # === Optional: Pinata 复 Pin（有 JWT 才执行；若上一步拿到 CID 用其，否则用 build 输出）===
+      - name: Pin to Pinata (optional)
         if: ${{ secrets.PINATA_JWT != '' }}
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
         run: |
-          set -eux
+          set -e
+          CID="${{ steps.w3s.outputs.cid || steps.build.outputs.cid }}"
+          [ -n "$CID" ] || { echo "No CID to pin, skipping."; exit 0; }
           curl -sS -X POST https://api.pinata.cloud/pinning/pinByHash \
-            -H "Authorization: Bearer ${{ secrets.PINATA_JWT }}" \
+            -H "Authorization: Bearer $PINATA_JWT" \
             -H "Content-Type: application/json" \
-            -d '{"hashToPin":"${{ steps.build.outputs.cid }}","pinataMetadata":{"name":"fireseed-capsule"}}' \
-            | tee artifacts/pinata_response.json
+            -d "{\"hashToPin\":\"$CID\",\"pinataOptions\":{\"cidVersion\":1}}" >/dev/null || true
 
-      # --- Optional Pin #3: IPFS Cluster (if you have one) ---
-      - name: Pin on IPFS Cluster
-        if: ${{ secrets.CLUSTER_URL != '' && secrets.CLUSTER_BASIC_AUTH != '' }}
+      # === Optional: 网关探活（有 web3.storage 上传结果才做；失败不阻断）===
+      - name: Gateway probe (optional)
+        if: ${{ steps.w3s.outputs.cid != '' }}
         run: |
-          set -eux
-          curl -sS -X POST "${{ secrets.CLUSTER_URL }}/pins/${{ steps.build.outputs.cid }}" \
-            -H "Authorization: Basic ${{ secrets.CLUSTER_BASIC_AUTH }}" \
-            -H "Content-Type: application/json" \
-            -d '{}' | tee artifacts/cluster_response.json
+          CID="${{ steps.w3s.outputs.cid }}"
+          curl -sSIf "https://w3s.link/ipfs/${CID}" || true
