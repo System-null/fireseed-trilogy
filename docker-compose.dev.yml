@@ -1,9 +1,10 @@
+version: "3.8"
 services:
   redis:
     image: redis:7-alpine
 
   fastapi:
-    image: ghcr.io/system-null/fireseed-trilogy:${IMAGE_TAG:-latest}
+    build: .
     environment:
       - REDIS_URL=redis://redis:6379/0
       - HF_HUB_DISABLE_TELEMETRY=1
