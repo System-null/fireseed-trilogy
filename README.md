@@ -113,3 +113,8 @@ Compliance artifacts (CycloneDX SBOM & OSV report) are published by the **CI | c
 
 © 2025 Fireseed Trilogy Lab · Code: MIT · Docs: CC BY 4.0
 Test update at Tue Nov 11 00:29:21 CST 2025
+
+## Security & Docs
+
+- **Threat Model · 威胁模型**: see [`docs/threat-model.md`](docs/threat-model.md)
+- **ADR-0001: Browser Security Baseline**: see [`docs/adr/0001-security-baseline.md`](docs/adr/0001-security-baseline.md)
