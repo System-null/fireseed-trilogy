@@ -43,3 +43,14 @@ Fireseed touches on long-term stewardship and digital legacy. When proposing cha
 - Share context (logs, schema snippets, screenshots) to accelerate triage.
 
 We are grateful for every contribution that helps illuminate and preserve the fireseed. Thank you for building the machine-readable future with us.
+
+## Commit message convention
+
+Use **Conventional Commits**:
+- `feat:` new feature → minor bump
+- `fix:` bug fix → patch bump
+- `perf:`, `refactor:`, `docs:`, `chore:` → no release by default
+
+Examples:
+- `feat(access): add orgOnly mode`
+- `fix(sign): handle empty object deterministically`
