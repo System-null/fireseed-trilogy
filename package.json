@@ -22,7 +22,8 @@
     "test:determinism": "CI=1 vitest run tests/determinism.test.js --reporter=dot",
     "verify:keychain": "node scripts/verify-keychain.mjs --timeline tests/fixtures/timeline.valid.json --revocations tests/fixtures/revocations.empty.json",
     "test": "CI=1 vitest run --reporter=dot",
-    "validate:access": "node scripts/validate-access.mjs tests/fixtures/access.public.json"
+    "validate:access": "node scripts/validate-access.mjs tests/fixtures/access.public.json",
+    "release": "semantic-release"
   },
   "devDependencies": {
     "@ipld/car": "^5.2.4",
