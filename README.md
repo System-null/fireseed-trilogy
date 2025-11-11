@@ -72,6 +72,24 @@ Help us keep the fireseed alive by sharing feedback, opening discussions, or men
 
 ---
 
+## 🔐 Canonicalization & Signing
+
+Fireseed capsules **must be signed over their DAG-CBOR content identifier (CID) bytes**, not over the raw JSON/YAML text. This ensures that the same semantic object always receives the same fingerprint, regardless of whitespace or key ordering.
+
+1. Normalize the object via DAG-CBOR encoding and compute a CIDv1 with the `dag-cbor` multicodec.
+2. Sign `cid.bytes` using Ed25519. _Do not sign `JSON.stringify()` output; textual representations are not stable across runtimes._
+3. Publish the Ed25519 public key with its multicodec prefix (e.g., `ed25519-pub`) so verifiers can reconstruct the verification key material.
+
+Use the helper script to automate these steps:
+
+```bash
+npm run sign -- ./path/to/capsule.json --key <hex-encoded-private-key>
+```
+
+The script emits the CID, a Base64 signature over `cid.bytes`, the multibase/multicodec public key, and the canonicalized JSON for auditing.
+
+---
+
 ## 🛠️ Operations & Observability
 
 Run the full stack with Docker Compose:
