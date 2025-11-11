@@ -25,9 +25,14 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies (only if lockfile exists)
-        if: hashFiles('**/package-lock.json') != ''
-        run: npm ci
+      - name: Install dependencies (tolerant)
+        run: |
+          if [ -f package-lock.json ]; then
+            # 尝试严格方式；若 package.json 与 lock 不匹配则回退到宽松安装
+            npm ci --ignore-scripts --omit=optional || npm i --ignore-scripts --omit=optional --no-audit --no-fund
+          else
+            echo "No lockfile found, skipping project install"
+          fi
 
       - name: Generate SBOM (CycloneDX JSON)
         uses: anchore/sbom-action@v0
