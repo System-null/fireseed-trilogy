@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fireseed.dev/schemas/access.schema.json",
+  "title": "Access Control (mutually exclusive)",
+  "description": "Exactly one of: public | orgOnly | whitelist",
+  "type": "object",
+  "oneOf": [
+    {
+      "title": "public",
+      "type": "object",
+      "properties": { "access": { "const": "public" } },
+      "required": ["access"],
+      "unevaluatedProperties": false
+    },
+    {
+      "title": "orgOnly",
+      "type": "object",
+      "properties": {
+        "access": { "const": "orgOnly" },
+        "org": { "type": "string", "pattern": "^did:web:.+" }
+      },
+      "required": ["access", "org"],
+      "unevaluatedProperties": false
+    },
+    {
+      "title": "whitelist",
+      "type": "object",
+      "properties": {
+        "access": { "const": "whitelist" },
+        "whitelist": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^did:[a-z0-9]+:.+$" }
+        }
+      },
+      "required": ["access", "whitelist"],
+      "unevaluatedProperties": false
+    }
+  ]
+}

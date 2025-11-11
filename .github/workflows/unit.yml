@@ -26,5 +26,8 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Run access schema CLI on fixtures
+        run: npm run -s validate:access
+
       - name: Run keychain CLI on fixtures
         run: npm run verify:keychain
