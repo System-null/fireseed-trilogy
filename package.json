@@ -17,7 +17,16 @@
   },
   "author": "Fireseed Trilogy Lab",
   "scripts": {
-    "vendors": "node scripts/fetch-vendors.mjs"
+    "vendors": "node scripts/fetch-vendors.mjs",
+    "sign": "node scripts/sign-capsule.js",
+    "test:determinism": "node tests/determinism.test.js"
+  },
+  "devDependencies": {
+    "@ipld/dag-cbor": "^9.0.0",
+    "@noble/ed25519": "^2.0.0",
+    "@noble/hashes": "^1.4.0",
+    "json-canonicalize": "^1.0.6",
+    "multiformats": "^12.1.0"
   },
   "fireseed": {
     "docsLicense": "CC-BY-4.0",
