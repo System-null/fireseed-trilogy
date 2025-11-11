@@ -1,0 +1,60 @@
+name: CI | compliance (pull_request)
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 若无 lockfile 自动跳过，不会失败
+      - name: Install dependencies (only if lockfile exists)
+        if: hashFiles('**/package-lock.json') != ''
+        run: npm ci
+
+      # 用稳定的 syft action 生成 CycloneDX JSON，避免 npx 包版本 404
+      - name: Generate SBOM (CycloneDX JSON)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+
+      - name: Assert SBOM generated
+        run: test -s sbom.cdx.json
+
+      # 用官方容器跑 OSV-Scanner，规避二进制下载变化
+      - name: Run OSV-Scanner (container)
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work ghcr.io/google/osv-scanner:latest \
+            --sbom=sbom.cdx.json --skip-git
+
+      # 只检查生产依赖的许可证，避免 peer/dev 误报
+      - name: License summary (prod deps only)
+        if: hashFiles('**/package.json') != ''
+        run: |
+          npm i -g license-checker@25
+          license-checker --production --summary
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          if-no-files-found: error
