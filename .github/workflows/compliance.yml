@@ -1,0 +1,62 @@
+name: CI | compliance (pull_request)
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OSV_IMAGE: ghcr.io/google/osv-scanner:v1.7.3   # 固定版本，避免 latest 带来的 CLI 变化
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (only if lockfile exists)
+        if: hashFiles('**/package-lock.json') != ''
+        run: npm ci
+
+      - name: Generate SBOM (CycloneDX JSON)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+
+      - name: Assert SBOM generated
+        run: test -s sbom.cdx.json
+
+      # ✅ 去掉 --skip-git；固定镜像版本；输出保存为 JSON 报告
+      - name: Run OSV-Scanner (container)
+        continue-on-error: true                 # 有漏洞不让 CI 整体失败（仅报告）
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work "$OSV_IMAGE" \
+            --sbom=sbom.cdx.json --format json > osv-report.json
+
+      - name: License summary (prod deps only)
+        if: hashFiles('**/package.json') != ''
+        run: |
+          npm i -g license-checker@25
+          license-checker --production --summary
+
+      - name: Upload compliance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-artifacts
+          path: |
+            sbom.cdx.json
+            osv-report.json
+          if-no-files-found: error
