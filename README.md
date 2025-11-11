@@ -7,7 +7,8 @@
 ---
 
 [![Download ZIP](https://img.shields.io/badge/Download-%E7%A6%BB%E7%BA%BF%E5%8C%85-brightgreen)](https://github.com/System-null/fireseed-trilogy/releases/latest)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17500749.svg)](https://doi.org/10.5281/zenodo.17500749)  
+[![CI / SBOM](https://github.com/System-null/fireseed-trilogy/actions/workflows/ci.yml/badge.svg?label=CI%20%2F%20SBOM)](https://github.com/System-null/fireseed-trilogy/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17500749.svg)](https://doi.org/10.5281/zenodo.17500749)
 ![Release](https://img.shields.io/github/v/release/System-null/fireseed-trilogy?include_prereleases)
 ![License](https://img.shields.io/github/license/System-null/fireseed-trilogy)
 
@@ -22,6 +23,14 @@
 | 📸 [Snapshot Viewer / 快照查看](https://system-null.github.io/fireseed-trilogy/public/snapshot.html) | 预览或打印人类快照 |
 | 🧠 [Templates & Schemas 模板与模式](./templates/) | 最小模板与 JSON Schema |
 | 📚 [Reading Guide / 阅读指引](./docs/books/README.md) | 三部曲章节摘要与电子版下载 |
+
+---
+
+## 🛡️ Security & Compliance
+
+- GitHub Actions CI 使用 `npm ci` 锁定依赖树，并生成 CycloneDX `sbom.json` 工件。
+- 通过 [OSV-Scanner](https://google.github.io/osv-scanner/) 对依赖进行安全扫描，并使用 `license-checker --summary` 输出许可证概览。
+- CI 产出的 SBOM 会以 artifact 形式保存，并打印 IPFS CID 以供校验。
 
 ---
 

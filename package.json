@@ -19,13 +19,18 @@
   "scripts": {
     "vendors": "node scripts/fetch-vendors.mjs",
     "sign": "node scripts/sign-capsule.js",
-    "test:determinism": "node tests/determinism.test.js"
+    "test:determinism": "node tests/determinism.test.js",
+    "sbom": "cyclonedx-npm --output-format json --output-file sbom.json",
+    "scan:licenses": "license-checker --summary"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "^4.1.1",
     "@ipld/dag-cbor": "^9.0.0",
     "@noble/ed25519": "^2.0.0",
     "@noble/hashes": "^1.4.0",
+    "ipfs-only-hash": "^4.0.0",
     "json-canonicalize": "^1.0.6",
+    "license-checker": "^25.0.1",
     "multiformats": "^12.1.0"
   },
   "fireseed": {
