@@ -34,7 +34,8 @@ function bytesFromB64url(s: string) {
 /** WebAuthn 注册：返回 credentialId（Base64URL） */
 export async function registerPasskey(): Promise<string> {
   if (!('credentials' in navigator)) throw new Error('WebAuthn not supported');
-  const challenge = randomBuf(32);
+  const challenge = new Uint8Array(32);
+  crypto.getRandomValues(challenge);
   const userId = getOrMakeUserId();
 
   const cred = await navigator.credentials.create({
@@ -43,7 +44,7 @@ export async function registerPasskey(): Promise<string> {
       rp: { id: location.hostname, name: 'Fireseed' },
       user: { id: userId, name: 'fireseed-user', displayName: 'Fireseed User' },
       pubKeyCredParams: [{ alg: -7, type: 'public-key' }], // ES256
-      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
       timeout: 60000
     }
   }) as PublicKeyCredential;

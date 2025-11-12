@@ -1,0 +1,9 @@
+{
+  "name": "fast-check",
+  "version": "3.17.1",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  }
+}

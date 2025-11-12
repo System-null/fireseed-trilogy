@@ -43,6 +43,7 @@ export default function KeystoreDemo() {
       </div>
       <pre style={{whiteSpace:'pre-wrap'}}>{log}</pre>
       <p style={{marginTop:12, color:'#666'}}>提示：WebAuthn 必须在 HTTPS 或 localhost 运行。</p>
+      <p style={{marginTop:4, color:'#b36b00'}}>注意：演示环境未校验证书 attestation，生产部署前请接入后端验证。</p>
     </main>
   );
 }

@@ -1,26 +1,26 @@
-name: CI | unit (pull_request)
+name: CI | unit
 
 on:
   pull_request:
-    branches: [ main ]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   unit:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
+      - name: Disable core dumps
+        run: |
+          ulimit -S -c 0 || true
+
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install test-only deps
-        run: |
-          npm i -D vitest@2.1.1 ajv@8.17.1 ajv-formats@2.1.1 \
-            @ipld/dag-cbor@8.0.1 multiformats@12.1.3 \
-            @noble/ed25519@2.0.0 @noble/hashes@1.4.0 \
-            json-canonicalize@1.0.6 @scure/bip39@1.4.0 --no-audit --no-fund
-
-      - name: Run unit tests
-        run: npm test || npx vitest run --reporter=dot
+      - run: npm ci
+      - run: npm test -- --run

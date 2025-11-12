@@ -1,32 +1,30 @@
 #!/usr/bin/env node
-// Build a single-block CAR from a JSON file using DAG-CBOR and print the CID
-import fs from "node:fs/promises";
-import path from "node:path";
-import * as dagCbor from "@ipld/dag-cbor";      // v8.x
-import { sha256 } from "multiformats/hashes/sha2";
-import { CID } from "multiformats/cid";
-import { CarWriter } from "@ipld/car";
+// Build a single-block CAR from a JSON or YAML file using DAG-CBOR and print the CID
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { Buffer } from 'node:buffer';
+import { CarWriter } from '@ipld/car';
+import { encodeAndCid } from './lib/encode.mjs';
+import { assertCarMatchesCid } from './lib/car-utils.mjs';
 
-const inPath = process.argv[2] || "examples/capsule.sample.json";
-const outDir = "artifacts";
+const inPath = process.argv[2] || 'examples/capsule.sample.json';
+const outDir = 'artifacts';
 await fs.mkdir(outDir, { recursive: true });
 
-const content = JSON.parse(await fs.readFile(inPath, "utf8"));
-const bytes = dagCbor.encode(content);
-const hash = await sha256.digest(bytes);
-const cid = CID.createV1(dagCbor.code, hash);
+const { encodedBytes, cid, cidObj } = await encodeAndCid(inPath);
 
-// write single-block CAR
-const carPath = path.join(outDir, "capsule.car");
-const { writer, out } = CarWriter.create([cid]);
+const carPath = path.join(outDir, 'capsule.car');
+const { writer, out } = CarWriter.create([cidObj]);
 const chunks = [];
 const consumer = (async () => {
-  for await (const chunk of out) chunks.push(chunk);
-  await fs.writeFile(carPath, Buffer.concat(chunks));
+  for await (const chunk of out) chunks.push(Buffer.from(chunk));
 })();
-await writer.put({ cid, bytes });
+await writer.put({ cid: cidObj, bytes: encodedBytes });
 await writer.close();
 await consumer;
+const carBytes = Buffer.concat(chunks);
+await fs.writeFile(carPath, carBytes);
+await assertCarMatchesCid(carBytes, cid);
 
-await fs.writeFile(path.join(outDir, "cid.txt"), cid.toString() + "\n");
-console.log(cid.toString());
+await fs.writeFile(path.join(outDir, 'cid.txt'), cid + '\n');
+console.log(cid);

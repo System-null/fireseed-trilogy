@@ -1,55 +1,58 @@
-name: CI | compliance (pull_request)
+name: CI | compliance
 
 on:
   pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   compliance:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Disable core dumps
+        run: |
+          ulimit -S -c 0 || true
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # 用 cdxgen 生成 CycloneDX SBOM；若网络/解析异常，写入最小空 BOM，保证后续步骤有工件
+      - name: Install
+        run: npm ci
+
       - name: Generate SBOM (CycloneDX JSON)
-        shell: bash
-        run: |
-          npx -y @cyclonedx/cdxgen@latest -o sbom.json -t json || \
-          node -e "const fs=require('fs');fs.writeFileSync('sbom.json',JSON.stringify({bomFormat:'CycloneDX',specVersion:'1.5',version:1,components:[]},null,2))"
+        run: npx -y @cyclonedx/cyclonedx-npm@8.2.0 --output-file sbom.json
 
-      - name: Assert SBOM generated
-        run: test -s sbom.json
-
-      # 用容器版 OSV 扫 SBOM。即使发现漏洞或偶发拉取错误，也不让 PR 变红。
-      - name: Run OSV-Scanner (container)
-        shell: bash
+      - name: Assert SBOM exists & valid
         run: |
-          docker run --rm -v "$PWD:/work" ghcr.io/google/osv-scanner:latest \
-            --skip-git --sbom /work/sbom.json || true
+          test -s sbom.json
+          npx -y @cyclonedx/cyclonedx-cli@0.27.0 validate --input-file sbom.json
 
-      # 粗略生成“仅生产依赖”的许可证清单（不安装依赖、不解析树）
-      - name: License summary (prod deps only)
-        shell: bash
+      - name: OSV scan
+        uses: google/osv-scanner-action@v1
+        with:
+          args: '--format=json --output=osv.json'
+
+      - name: Fail on vulnerabilities
         run: |
-          if [ -f package.json ]; then
-            node -e "const fs=require('fs');const p=require('./package.json');const d=Object.keys(p.dependencies||{});fs.writeFileSync('licenses.txt', d.join('\n'))"
-          else
-            echo 'no package.json' > licenses.txt
+          if [ -s osv.json ]; then
+            echo "::error::OSV found vulnerabilities"
+            exit 1
           fi
 
-      - name: Upload compliance artifacts
-        uses: actions/upload-artifact@v4
+      - name: Dependency Review (diff only)
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/dependency-review-action@v4
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: compliance
+          name: compliance-artifacts
           path: |
             sbom.json
-            licenses.txt
+            osv.json

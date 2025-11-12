@@ -1,17 +1,34 @@
 # Security Policy
 
-## Supported
-This is an open-source project without SLAs. Security fixes are released on a best-effort basis.
-
-## Where Keys Live
-- Client-side only. Prefer WebAuthn/TPM when available; otherwise use non-exportable SubtleCrypto keys plus IndexedDB.
-- **Never** store private keys in `localStorage`.
+## Supported Versions
+- `main` branch CI must pass unit + compliance.
 
 ## Reporting a Vulnerability
-- **Do not** open a public issue.
-- Use GitHub **Private Security Advisories**: Security → Advisories → “Report a vulnerability”.
-- Please provide a minimal PoC and affected versions. We follow a **90-day** disclosure policy by default.
+Please open a private advisory: https://github.com/System-null/fireseed-trilogy/security/advisories
 
-## Threat Model (high level)
-- Private-key theft (browser extensions/XSS): mitigated via WebAuthn/Trusted Types/CSP.
-- IPFS data loss: users must pin via at least two independent services; this repo provides optional automation only.
+## Key Compromise Response (KCR)
+If you suspect your Ed25519 private key has been compromised:
+
+1. **Rotate Immediately**
+   - Update the signing key in GitHub Environments/Secrets (use reviewers).
+2. **Re-sign Capsules**
+   ```bash
+   npm run resign:capsules -- --key-id=<new-key-id>
+   ```
+3. **Publish Revocation**
+   - Add entry to your CRL and push (TBD schema schemas/revocation.schema.json).
+4. **Audit History**
+   ```bash
+   git log -p --grep="privkey\|privateKey\|d:" --all
+   ```
+5. **Document**
+   - Open a security advisory and describe impact and mitigation.
+
+> 你的 `resign:capsules` 可先作为占位命令，后续实现。
+
+---
+
+## Additional Guidance
+- Client-side keys should prefer WebAuthn/TPM; avoid storing private keys in `localStorage`.
+- For vulnerability disclosure, provide a minimal PoC and affected versions. Default disclosure window is 90 days.
+- Threat focus: private-key theft (mitigated by WebAuthn/Trusted Types/CSP) and IPFS data-loss (mitigated via redundant pinning).
