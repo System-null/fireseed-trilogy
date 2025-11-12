@@ -1,0 +1,125 @@
+name: CI | static (shell/json/yaml/actionlint)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 只在相关文件有改动时才跑
+      - name: Detect changed static files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            sh:
+              - '**/*.sh'
+            json:
+              - '**/*.json'
+            yaml:
+              - '**/*.yml'
+              - '**/*.yaml'
+            gha:
+              - '.github/workflows/**/*.yml'
+
+      # 基础工具：shellcheck + jq（apt 安装，长期稳定）
+      - name: Install base linters (shellcheck, jq)
+        if: >
+          steps.filter.outputs.sh == 'true' ||
+          steps.filter.outputs.json == 'true'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends shellcheck jq
+
+      # Shell 脚本检查（非阻断）
+      - name: Shellcheck (non-gating)
+        if: steps.filter.outputs.sh == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "==> shellcheck on changed files"
+          # 找到变更的 .sh 文件；若获取不到增量，兜底全仓库
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}... | grep -E '\\.sh$' || true)
+          if [ -z "$CHANGED" ]; then
+            CHANGED=$(git ls-files '**/*.sh' || true)
+          fi
+          if [ -z "$CHANGED" ]; then
+            echo "No .sh files to check."
+            exit 0
+          fi
+          echo "$CHANGED" | xargs -r shellcheck -S style
+
+      # JSON 语法校验（非阻断）
+      - name: JSON validate with jq (non-gating)
+        if: steps.filter.outputs.json == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "==> jq validate on changed JSON files"
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}... | grep -E '\\.json$' || true)
+          if [ -z "$CHANGED" ]; then
+            CHANGED=$(git ls-files '**/*.json' || true)
+          fi
+          if [ -z "$CHANGED" ]; then
+            echo "No .json files to check."
+            exit 0
+          fi
+          OK=0
+          for f in $CHANGED; do
+            echo "- $f"
+            if ! jq -e . "$f" > /dev/null; then
+              echo "::warning file=$f::Invalid JSON"
+              OK=1
+            fi
+          done
+          exit 0  # 非阻断
+
+      # YAML 语法校验使用官方 yq 容器（非阻断）
+      - name: YAML validate with yq (non-gating)
+        if: steps.filter.outputs.yaml == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "==> yq parse on changed YAML files (via docker)"
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}... | grep -E '\\.ya?ml$' || true)
+          if [ -z "$CHANGED" ]; then
+            CHANGED=$(git ls-files '**/*.yml' '**/*.yaml' || true)
+          fi
+          if [ -z "$CHANGED" ]; then
+            echo "No YAML files to check."
+            exit 0
+          fi
+          for f in $CHANGED; do
+            echo "- $f"
+            docker run --rm -v "$PWD":/work mikefarah/yq:4 yq e '.' "/work/$f" > /dev/null || \
+              echo "::warning file=$f::Invalid YAML"
+          done
+          exit 0  # 非阻断
+
+      # GitHub Actions 工作流语法检查：使用 rhysd/actionlint 官方镜像（非阻断）
+      - name: actionlint (non-gating)
+        if: steps.filter.outputs.gha == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "==> actionlint docker image"
+          # 使用固定版本镜像，避免 tag 解析翻车
+          docker run --rm -v "$PWD":/repo -w /repo ghcr.io/rhysd/actionlint:1.7.1 \
+            -color -format '{{- join .Failures "\n" -}}'
+          # 非阻断：即使有告警也不让 PR 变红
+
+      # 汇总提示
+      - name: Summary
+        if: always()
+        run: |
+          echo "Static checks finished (non-gating). See job logs for details."
