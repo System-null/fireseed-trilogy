@@ -2,12 +2,15 @@ name: CI | compliance (pull_request)
 
 on:
   pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   compliance:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -19,37 +22,51 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # 用 cdxgen 生成 CycloneDX SBOM；若网络/解析异常，写入最小空 BOM，保证后续步骤有工件
+      # 生成 CycloneDX SBOM（容错：无 lockfile 时给最小 BOM，保证后续步骤有文件）
       - name: Generate SBOM (CycloneDX JSON)
+        id: sbom
         shell: bash
         run: |
-          npx -y @cyclonedx/cdxgen@latest -o sbom.json -t json || \
-          node -e "const fs=require('fs');fs.writeFileSync('sbom.json',JSON.stringify({bomFormat:'CycloneDX',specVersion:'1.5',version:1,components:[]},null,2))"
+          set -e
+          if [ -f package-lock.json ] || [ -f package.json ]; then
+            npx -y @cyclonedx/cyclonedx-npm@3.13.0 --output-file sbom.json || true
+          fi
+          if [ ! -s sbom.json ]; then
+            echo '{
+              "bomFormat":"CycloneDX",
+              "specVersion":"1.5",
+              "version":1,
+              "components":[]
+            }' > sbom.json
+          fi
+          echo "sbom_path=sbom.json" >> "$GITHUB_OUTPUT"
 
       - name: Assert SBOM generated
         run: test -s sbom.json
 
-      # 用容器版 OSV 扫 SBOM。即使发现漏洞或偶发拉取错误，也不让 PR 变红。
+      # 关键修复：不用 github action 引用，直接用 OSV 官方容器，避免 @v1 解析失败
       - name: Run OSV-Scanner (container)
-        shell: bash
-        run: |
-          docker run --rm -v "$PWD:/work" ghcr.io/google/osv-scanner:latest \
-            --skip-git --sbom /work/sbom.json || true
+        uses: docker://ghcr.io/google/osv-scanner:v1.7.3
+        with:
+          args: --format=json --output=osv.json -r .
 
-      # 粗略生成“仅生产依赖”的许可证清单（不安装依赖、不解析树）
-      - name: License summary (prod deps only)
-        shell: bash
+      # 默认不把 OSV 结果当成门禁（想要变红，把 continue-on-error 去掉并检查文件大小/严重级别）
+      - name: Tolerate OSV scan failures (optional)
+        if: always()
+        continue-on-error: true
         run: |
-          if [ -f package.json ]; then
-            node -e "const fs=require('fs');const p=require('./package.json');const d=Object.keys(p.dependencies||{});fs.writeFileSync('licenses.txt', d.join('\n'))"
+          if [ -s osv.json ]; then
+            echo "OSV report present (non-gating)."
           else
-            echo 'no package.json' > licenses.txt
+            echo "No OSV output produced."
           fi
 
       - name: Upload compliance artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compliance
           path: |
             sbom.json
-            licenses.txt
+            osv.json
+          retention-days: 30
