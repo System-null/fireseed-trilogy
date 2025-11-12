@@ -1,9 +1,8 @@
 import './globals.css';
-import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import Script from 'next/script';
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = headers().get('x-nonce') ?? undefined;
 
   return (
@@ -15,13 +14,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              (() => {
+              (function () {
                 try {
                   if (window.trustedTypes && !window.trustedTypes.getPolicy('fireseed-policy')) {
+                    // 最小白名单：只允许 createHTML
                     window.trustedTypes.createPolicy('fireseed-policy', {
-                      createHTML: (s) => s,
-                      createScript: (s) => s,
-                      createScriptURL: (s) => s
+                      createHTML: (s) => s
                     });
                   }
                 } catch (_) {}
