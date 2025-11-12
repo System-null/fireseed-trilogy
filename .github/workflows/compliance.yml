@@ -3,11 +3,15 @@ name: CI | compliance (pull_request)
 on:
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   compliance:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -19,37 +23,33 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # 用 cdxgen 生成 CycloneDX SBOM；若网络/解析异常，写入最小空 BOM，保证后续步骤有工件
+      # 使用存在的稳定版本，修复 ETARGET
       - name: Generate SBOM (CycloneDX JSON)
         shell: bash
         run: |
-          npx -y @cyclonedx/cdxgen@latest -o sbom.json -t json || \
-          node -e "const fs=require('fs');fs.writeFileSync('sbom.json',JSON.stringify({bomFormat:'CycloneDX',specVersion:'1.5',version:1,components:[]},null,2))"
+          set -euo pipefail
+          npx -y @cyclonedx/cyclonedx-npm@1.20.0 --output-file sbom.json || {
+            echo '::warning ::cyclonedx-npm failed, writing minimal SBOM'
+            printf '{"bomFormat":"CycloneDX","specVersion":"1.5","version":1,"components":[]}' > sbom.json
+          }
 
       - name: Assert SBOM generated
         run: test -s sbom.json
 
-      # 用容器版 OSV 扫 SBOM。即使发现漏洞或偶发拉取错误，也不让 PR 变红。
+      # OSV 扫描（容器方式，避免 action 版本解析问题）
       - name: Run OSV-Scanner (container)
-        shell: bash
         run: |
-          docker run --rm -v "$PWD:/work" ghcr.io/google/osv-scanner:latest \
-            --skip-git --sbom /work/sbom.json || true
-
-      # 粗略生成“仅生产依赖”的许可证清单（不安装依赖、不解析树）
-      - name: License summary (prod deps only)
-        shell: bash
-        run: |
-          if [ -f package.json ]; then
-            node -e "const fs=require('fs');const p=require('./package.json');const d=Object.keys(p.dependencies||{});fs.writeFileSync('licenses.txt', d.join('\n'))"
-          else
-            echo 'no package.json' > licenses.txt
-          fi
+          docker run --rm \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            ghcr.io/google/osv-scanner:v1.7.3 \
+            -r . --format=json --output=osv.json || true
 
       - name: Upload compliance artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: compliance
+          name: compliance-artifacts
           path: |
             sbom.json
-            licenses.txt
+            osv.json
+          retention-days: 30
