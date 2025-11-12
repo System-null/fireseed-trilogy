@@ -1,0 +1,44 @@
+name: CI | docs (links)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed markdown files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            md:
+              - '**/*.md'
+
+      - name: No markdown changes, skip
+        if: steps.filter.outputs.md != 'true'
+        run: echo "No .md changes; skipping docs links check."
+
+      - name: Link check with lychee (non-gating)
+        if: steps.filter.outputs.md == 'true'
+        continue-on-error: true
+        uses: lycheeverse/lychee-action@v1
+        with:
+          # 限并发，避开速率限制；仅检查仓库中文档
+          args: >
+            --verbose
+            --max-concurrency 2
+            --no-progress
+            --exclude-mail
+            --base .
+            **/*.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
