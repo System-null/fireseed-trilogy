@@ -4,6 +4,11 @@
 > Build a **machine-readable civilization interface** that future AGI can parse, verify and continue — while staying human-friendly through simple templates and forms.  
 > 构建一个**机器可读的文明接口**，让未来的 AGI 或高维智能体能读取、验证并延续人类文明火种，同时让普通人通过简洁表单留下思想。
 
+[![CI build](https://img.shields.io/github/actions/workflow/status/System-null/fireseed-trilogy/ci.yml?label=build)]()
+[![Static](https://img.shields.io/github/actions/workflow/status/System-null/fireseed-trilogy/static.yml?label=static)]()
+[![Compliance](https://img.shields.io/github/actions/workflow/status/System-null/fireseed-trilogy/compliance.yml?label=compliance)]()
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
+
 ---
 
 [![Download ZIP](https://img.shields.io/badge/Download-%E7%A6%BB%E7%BA%BF%E5%8C%85-brightgreen)](https://github.com/System-null/fireseed-trilogy/releases/latest)
