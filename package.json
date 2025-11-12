@@ -21,7 +21,9 @@
   },
   "scripts": {
     "vendors": "node scripts/fetch-vendors.mjs",
-    "sign": "node scripts/sign-capsule.mjs examples/capsule.sample.json --privkey 21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a",
+    "sign": "node scripts/sign-capsule.mjs examples/capsule.sample.json",
+    "sign:file": "node scripts/sign-capsule.mjs examples/capsule.sample.json --privkey-file .secrets/dev-capsule.key",
+    "sign:env": "FIRESEED_PRIVKEY=\"$(cat .secrets/dev-capsule.key)\" node scripts/sign-capsule.mjs examples/capsule.sample.json",
     "test:determinism": "CI=1 vitest run tests/determinism.test.js --reporter=dot",
     "verify:keychain": "node scripts/verify-keychain.mjs --timeline tests/fixtures/timeline.valid.json --revocations tests/fixtures/revocations.empty.json",
     "test": "CI=1 vitest run --reporter=dot",
