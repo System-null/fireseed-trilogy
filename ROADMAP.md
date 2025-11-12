@@ -1,7 +1,5 @@
-# Fireseed Trilogy Roadmap
-
-## 2025 Priorities
-- Harden capsule validation and signature tooling for offline-first workflows.
-- Publish iterative schema updates with versioned diffs under `schemas/`.
-- Expand the public generator with accessibility upgrades and multilingual support.
-- Demonstrate interoperability through reference integrations with decentralized identity providers.
+# Roadmap (public, non-binding)
+- Q4: harden keystore demo (attestation checks, offline bundle signature)
+- Q4: provenance/SLSA L1 for releases
+- Q1: capsule revocation list (CRL) schema + verifier
+- Q1: fuzz/property-based tests for deterministic encoding
