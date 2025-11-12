@@ -26,7 +26,8 @@
     "release": "semantic-release",
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start -p 3000"
+    "start": "next start -p 3000",
+    "seed:gen": "node scripts/seed.mjs"
   },
   "devDependencies": {
     "@ipld/car": "^5.2.4",
@@ -41,7 +42,8 @@
     "@types/node": "20.12.12",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "@scure/bip39": "1.4.0"
   },
   "fireseed": {
     "docsLicense": "CC-BY-4.0",
