@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fireseed.dev/schemas/revocation_v0.schema.json",
+  "title": "Capsule Revocation List v0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string", "const": "v0" },
+    "revoked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "cid": { "type": "string", "minLength": 10 },
+          "reason": { "type": "string", "enum": ["key_compromise", "superseded", "malformed"] },
+          "revoked_at": { "type": "string", "format": "date-time" },
+          "signature": { "type": "string", "minLength": 32 }
+        },
+        "required": ["cid", "reason", "revoked_at", "signature"]
+      }
+    }
+  },
+  "required": ["version", "revoked"]
+}
