@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit secret scan (gitleaks)…"
+npx --yes gitleaks@latest protect --staged --redact || exit 1
