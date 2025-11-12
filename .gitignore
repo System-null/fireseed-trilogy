@@ -1,20 +1,29 @@
-# macOS
+# OS / 编辑器
 .DS_Store
 .AppleDouble
 .Icon?
-# Node / Next.js
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Node / Next
 node_modules/
 .npm/
 .next/
 out/
+dist/
 coverage/
 *.log
-# Env
+
+# Artifacts
+artifacts/
+sbom.json
+osv.json
+
+# Misc
 .env
 .env.*
-# Python (if any)
+*.local
 __pycache__/
 *.py[cod]
-# Editor
-.vscode/
-.idea/
