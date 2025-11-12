@@ -5,6 +5,10 @@
 ![Compliance](https://img.shields.io/badge/compliance-enabled-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+**Project stance**: experimental toolset accompanying the Fireseed Trilogy.  
+Focus: secure client-side key experience + verifiable artifacts & governance.  
+Not a distributed storage network; integrations are demo-level by design.
+
 ## Licensing
 - Code: MIT (LICENSE)
 - Non-code content (docs/, media): CC BY 4.0 (CONTENT-LICENSE)
