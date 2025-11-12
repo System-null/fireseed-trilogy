@@ -5,6 +5,12 @@ __pycache__/
 .env
 .env.*
 
+# Node / Next.js
+.next
+node_modules
+dist
+coverage
+
 # Docker / 构建缓存
 *.log
 *.cache/
