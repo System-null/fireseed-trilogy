@@ -1,0 +1,67 @@
+name: CI | pin (manual & release)
+on:
+  workflow_dispatch:
+    inputs:
+      input_json:
+        description: 'JSON path to pack (default: examples/capsule.sample.json)'
+        required: false
+        default: 'examples/capsule.sample.json'
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+
+      - name: Install build deps
+        run: |
+          npm i -D @ipld/dag-cbor@8.0.1 multiformats@12.1.3 @ipld/car@5.2.4 --no-audit --no-fund
+
+      - name: Build CAR from JSON (DAG-CBOR single block)
+        id: build
+        run: |
+          mkdir -p artifacts
+          JSON_PATH="${{ github.event.inputs.input_json || 'examples/capsule.sample.json' }}"
+          CID=$(node scripts/build-car.mjs "$JSON_PATH")
+          echo "cid=$CID" >> $GITHUB_OUTPUT
+          echo "$CID" > artifacts/cid.txt
+
+      - name: Upload CAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: car
+          path: artifacts/*.car
+
+      - name: Upload CID artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cid
+          path: artifacts/cid.txt
+
+      - name: Pin to web3.storage (optional)
+        if: ${{ secrets.WEB3_STORAGE_TOKEN != '' }}
+        run: |
+          curl -sSfX POST https://api.web3.storage/upload \
+            -H "Authorization: Bearer ${{ secrets.WEB3_STORAGE_TOKEN }}" \
+            -H "Content-Type: application/car" \
+            --data-binary "@artifacts/capsule.car" | tee web3.json
+
+      - name: Pin to Pinata by CID (optional)
+        if: ${{ secrets.PINATA_JWT != '' }}
+        run: |
+          CID="${{ steps.build.outputs.cid }}"
+          curl -sSfX POST https://api.pinata.cloud/pinning/pinByHash \
+            -H "Authorization: Bearer ${{ secrets.PINATA_JWT }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"hashToPin\":\"$CID\",\"pinataOptions\":{\"cidVersion\":1}}"
