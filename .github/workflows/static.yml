@@ -1,0 +1,72 @@
+name: CI | static (yaml/json/shell/action)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            yaml:
+              - '**/*.yml'
+              - '**/*.yaml'
+            json:
+              - '**/*.json'
+            sh:
+              - '**/*.sh'
+            gha:
+              - '.github/workflows/*.yml'
+
+      - name: Nothing to validate, skip
+        if: |
+          steps.filter.outputs.yaml != 'true' &&
+          steps.filter.outputs.json != 'true' &&
+          steps.filter.outputs.sh   != 'true' &&
+          steps.filter.outputs.gha  != 'true'
+        run: echo "No static files changed; skipping."
+
+      # actionlint（校验 GitHub Actions 语法）
+      - name: actionlint
+        if: steps.filter.outputs.gha == 'true'
+        uses: reviewdog/action-actionlint@v1
+        continue-on-error: true
+        with:
+          fail_on_error: false
+
+      # yamllint（带默认规则；仓库根存在 .yamllint.yml 会自动使用）
+      - name: yamllint
+        if: steps.filter.outputs.yaml == 'true'
+        uses: ibiqlik/action-yamllint@v3
+        continue-on-error: true
+
+      # JSON 结构合法性（jq）
+      - name: Validate JSON with jq
+        if: steps.filter.outputs.json == 'true'
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          mapfile -t files < <(git ls-files '*.json')
+          echo "Checking ${#files[@]} json file(s)"
+          for f in "${files[@]}"; do
+            jq . "$f" >/dev/null || echo "::warning file=$f::invalid JSON"
+          done
+
+      # ShellCheck（静态脚本检查）
+      - name: shellcheck
+        if: steps.filter.outputs.sh == 'true'
+        uses: ludeeus/action-shellcheck@v2
+        continue-on-error: true
