@@ -1,0 +1,51 @@
+name: CI | compliance (release strict)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  compliance_release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 使用 cdxgen 生成 CycloneDX SBOM（严格：失败即红）
+      - name: Generate SBOM (CycloneDX JSON)
+        run: |
+          npx -y @cyclonedx/cdxgen@10.5.2 -o sbom.json -t nodejs -r .
+          test -s sbom.json
+
+      # 使用 OSV-Scanner 容器扫描 SBOM（严格：发现问题或错误即红）
+      - name: Run OSV-Scanner (SBOM, strict)
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work ghcr.io/google/osv-scanner:v1.7.3 scan --format json --sbom=sbom.json > osv.json
+          test -s osv.json
+          # 若存在已知漏洞，osv-scanner 会非零退出，从而让工作流失败
+
+      # 许可证清单（仅生产依赖；失败不忽略）
+      - name: License summary (prod deps only)
+        run: |
+          npx -y license-checker@25.0.1 --production --json > licenses.json
+          test -s licenses.json
+
+      - name: Upload compliance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-release
+          path: |
+            sbom.json
+            osv.json
+            licenses.json
