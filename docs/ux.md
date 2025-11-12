@@ -1,5 +1,4 @@
-
-# v0.3.1-ux 补丁说明（无代码用户友好）
+# Fireseed UX Patch (v0.3.1-ux)
 
 ## 包含内容
 - `public/generator.html`：网页表单生成 `capsule_v0.yaml`（AJV 校验，支持 CDN 回退）
