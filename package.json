@@ -16,6 +16,9 @@
     "url": "https://github.com/System-null/fireseed-trilogy.git"
   },
   "author": "Fireseed Trilogy Lab",
+  "engines": {
+    "node": ">=18.17"
+  },
   "scripts": {
     "vendors": "node scripts/fetch-vendors.mjs",
     "sign": "node scripts/sign-capsule.mjs examples/capsule.sample.json --privkey 21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a21a1d5b0a5b0e7b52e4b7b8c3c1f2a1a",
