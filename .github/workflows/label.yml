@@ -1,7 +1,7 @@
-name: CI | labeler
+name: CI | labeler (pull_request_target)
+
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
@@ -13,5 +13,5 @@ jobs:
     steps:
       - uses: actions/labeler@v5
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: .github/labeler.yml
-          sync-labels: true

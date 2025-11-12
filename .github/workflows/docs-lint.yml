@@ -1,0 +1,29 @@
+name: CI | docs lint (markdown)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 仅在 docs/** 与 *.md 变更时运行；否则直接成功
+      - name: Skip if no docs changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+              - '**/*.md'
+
+      - name: Markdown lint (if changed)
+        if: steps.changes.outputs.docs == 'true'
+        continue-on-error: true
+        run: |
+          npx -y markdownlint-cli@0.40.0 '**/*.md' || true

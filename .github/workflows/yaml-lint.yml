@@ -1,0 +1,28 @@
+name: CI | yaml lint
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint YAML (tolerant)
+        continue-on-error: true
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              line-length: disable
+              truthy:
+                allowed-values: ['true', 'false', 'on', 'off', 'yes', 'no']
+              comments:
+                min-spaces-from-content: 1
+          file_or_dir: |
+            .
