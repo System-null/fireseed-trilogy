@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fireseed.dev/schemas/capsule_v0.schema.json",
+  "title": "Fireseed Capsule v0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string", "const": "v0" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "author": { "type": "string", "maxLength": 256 }
+      },
+      "required": ["version", "createdAt"]
+    },
+    "content": {
+      "type": ["string", "object", "array", "number", "boolean", "null"],
+      "description": "Deterministically encoded content",
+      "maxLength": 1048576
+    }
+  },
+  "required": ["meta", "content"]
+}
