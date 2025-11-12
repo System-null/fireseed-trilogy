@@ -1,12 +1,10 @@
-schema:
-  - changed-files:
-      - any-glob-to-any-file: ["schemas/**"]
-signing:
-  - changed-files:
-      - any-glob-to-any-file: ["scripts/sign-*.mjs", "tests/determinism.test.js"]
 ci:
-  - changed-files:
-      - any-glob-to-any-file: [".github/workflows/**"]
+  - .github/workflows/**
 docs:
-  - changed-files:
-      - any-glob-to-any-file: ["README.md", "docs/**", "LEGAL.md", "PRIVACY.md", "TERMS.md", "SECURITY.md"]
+  - docs/**
+frontend:
+  - app/** 
+  - lib/** 
+security:
+  - "**/*keystore*"
+  - "**/middleware.ts"

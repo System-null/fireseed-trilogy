@@ -1,7 +1,8 @@
-name: CI | stale
+name: governance | stale
+
 on:
   schedule:
-    - cron: "0 2 * * 1"   # 每周一 02:00 UTC
+    - cron: "17 2 * * 1"  # 每周一
   workflow_dispatch:
 
 permissions:
@@ -14,11 +15,9 @@ jobs:
     steps:
       - uses: actions/stale@v9
         with:
-          days-before-stale: 90
-          days-before-close: 14
+          days-before-stale: 30
+          days-before-close: -1
+          stale-issue-message: "长期无更新，是否需要补充进展？"
+          stale-pr-message: "PR 长期无更新，考虑补充说明或关闭。"
           stale-issue-label: "stale"
           stale-pr-label: "stale"
-          exempt-issue-labels: "security"
-          exempt-pr-labels: "security"
-          stale-issue-message: "此 Issue 已 90 天无更新，将在 14 天后关闭。如需保留请回复。"
-          stale-pr-message: "此 PR 已 90 天无更新，将在 14 天后关闭。"

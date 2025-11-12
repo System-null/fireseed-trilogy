@@ -1,0 +1,45 @@
+name: CI | build & smoke test (pull_request)
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps (lockfile-aware, keep optional)
+        run: |
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund
+          else
+            npm install --ignore-scripts --no-audit --no-fund
+          fi
+
+      - name: Ensure rollup native binding (linux-x64) if needed
+        run: |
+          node -e "try{require.resolve('@rollup/rollup-linux-x64-gnu');process.exit(0)}catch(e){process.exit(1)}" \
+            || npm i -D @rollup/rollup-linux-x64-gnu@^4 || true
+
+      - name: Build (if present)
+        run: npm run -s build --if-present
+
+      - name: Smoke test (if present)
+        run: npm run -s test:smoke --if-present
