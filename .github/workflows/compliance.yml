@@ -1,70 +1,52 @@
 name: CI | compliance (pull_request)
-
-on:
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
+on: { pull_request: {} }
+permissions: { contents: read }
 jobs:
   compliance:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      OSV_IMAGE: ghcr.io/google/osv-scanner:v1.7.3   # 固定版本，避免 latest 带来的 CLI 变化
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install dependencies (tolerant)
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --ignore-scripts --omit=optional \
-            || npm i --ignore-scripts --omit=optional --no-audit --no-fund
-          else
-            echo "No lockfile found; skipping strict install"
-          fi
-
+          registry-url: 'https://registry.npmjs.org'
       - name: Generate SBOM (CycloneDX JSON)
         run: |
-          # 尝试生成；失败则写入最小可用的 CycloneDX 1.5 空清单
-          STUB='{"bomFormat":"CycloneDX","specVersion":"1.5","version":1,"components":[]}'
-          npx -y @cyclonedx/cyclonedx-npm@8.2.0 --output-file sbom.json || echo "$STUB" > sbom.json
-          # 再兜一层，确保文件非空
-          [ -s sbom.json ] || echo "$STUB" > sbom.json
-
-      - name: Assert SBOM generated
-        run: |
-          ls -lh sbom.json
+          set -euxo pipefail
+          if [ -f package-lock.json ]; then
+            npx --yes @cyclonedx/cyclonedx-npm --output-format JSON --output-file sbom.json
+          else
+            npx --yes @cyclonedx/cyclonedx-npm --spec-version 1.5 --output-format JSON --output-file sbom.json --no-package-lock
+          fi
           test -s sbom.json
-
-      # ✅ 去掉 --skip-git；固定镜像版本；输出保存为 JSON 报告
       - name: Run OSV-Scanner (container)
-        continue-on-error: true                 # 有漏洞不让 CI 整体失败（仅报告）
         run: |
-          docker run --rm -v "$PWD:/work" -w /work "$OSV_IMAGE" \
-            --sbom=sbom.json --format json > osv-report.json
-
+          docker run --rm -v "$PWD:/scan" ghcr.io/google/osv-scanner:latest \
+            --sbom=/scan/sbom.json --format=json --output=/scan/osv.json
+          test -s osv.json
       - name: License summary (prod deps only)
-        if: hashFiles('**/package.json') != ''
         run: |
-          npm i -g license-checker@25
-          license-checker --production --summary
-
+          set -euxo pipefail
+          jq -r '
+            .components[]? |
+            select(.bom-ref | test("npm:")) |
+            {
+              name: .name,
+              version: .version,
+              license: (
+                (.licenses[]?.license.id // .licenses[]?.license.name // "UNKNOWN") | tostring
+              )
+            } | @tsv
+          ' sbom.json | awk -F'\t' 'BEGIN{print "name\tversion\tlicense"}{print}' > licenses.tsv
+          test -s licenses.tsv
       - name: Upload compliance artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compliance-artifacts
           path: |
             sbom.json
-            osv-report.json
-          if-no-files-found: error
+            osv.json
+            licenses.tsv
