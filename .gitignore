@@ -1,7 +1,14 @@
+# Sensitive secrets
+.secrets/
+*.key
+*.pem
+.env
+
 # macOS
 .DS_Store
 .AppleDouble
 .Icon?
+
 # Node / Next.js
 node_modules/
 .npm/
@@ -9,15 +16,14 @@ node_modules/
 out/
 coverage/
 *.log
+
 # Env
-.env
 .env.*
-.secrets/
-*.pem
-*.key
+
 # Python (if any)
 __pycache__/
 *.py[cod]
+
 # Editor
 .vscode/
 .idea/
