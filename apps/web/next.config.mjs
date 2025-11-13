@@ -1,6 +1,7 @@
 const nextConfig = {
   experimental: {
-    typedRoutes: true
+    typedRoutes: true,
+    externalDir: true
   }
 };
 
