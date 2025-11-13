@@ -1,12 +1,21 @@
 {
-  "@context": "https://w3id.org/did/v1",
-  "id": "did:key:zREPLACE_WITH_YOUR_ED25519_DIDKEY",
+  "@context": [
+    "https://www.w3.org/ns/did/v1"
+  ],
+  "id": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4",
   "verificationMethod": [
     {
-      "id": "did:key:zREPLACE_WITH_YOUR_ED25519_DIDKEY#key-1",
+      "id": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4#key-1",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:key:zREPLACE_WITH_YOUR_ED25519_DIDKEY",
-      "publicKeyMultibase": "zREPLACE_WITH_MULTIBASE_PUBLIC_KEY"
+      "controller": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4",
+      "publicKeyMultibase": "z6MkrT4Nqk7FsX7UMYgQkKXfsaCZU45vL8dHcWCPsZ2P8zvX"
+    }
+  ],
+  "service": [
+    {
+      "id": "did:fireseed:bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4#capsule",
+      "type": "FireseedCapsule",
+      "serviceEndpoint": "ipfs://bafkreig3ygfqpsdcoyuy3i6gzxeledgsuzbklrjk5jz7tnimo2cgokzne4"
     }
   ]
 }
