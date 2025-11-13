@@ -1,12 +1,42 @@
 # Fireseed Trilogy
 
+## 10 行命令快速开始
+
+```bash
+git clone https://github.com/System-null/fireseed-trilogy.git
+cd fireseed-trilogy
+npm install
+mkdir -p .secrets
+openssl rand -hex 32 > .secrets/dev-capsule.key
+npm run build
+node scripts/sign-capsule.mjs examples/vectors/pass.json --privkey-file .secrets/dev-capsule.key
+node scripts/build-car.mjs examples/vectors/pass.json
+npm run dev --workspace @fireseed/web
+echo "Visit http://localhost:3000/capsule"
+```
+
+## 在线演示
+
+- Capsule Workspace (Next.js)：<https://fireseed.systems/lab/capsule>
+- Capsule 校验器 (静态版)：<https://system-null.github.io/fireseed-trilogy/public/validator.html>
+
+## 骨架图
+
+```text
+作者/贡献者 ──> capsule.json ──┐
+                               ├─> scripts/sign-capsule.mjs ──> capsule.car ──> IPFS (CID)
+验证节点 ──> scripts/verify.py <┘                    │
+                                                  Web /verify/[cid]
+                                                    └─> Fetch CAR → AJV → Ed25519 → 状态面板
+```
+
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 ![Static](https://img.shields.io/badge/static-ok-brightgreen)
 ![Compliance](https://img.shields.io/badge/compliance-enabled-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**Project stance**: experimental toolset accompanying the Fireseed Trilogy.  
-Focus: secure client-side key experience + verifiable artifacts & governance.  
+**Project stance**: experimental toolset accompanying the Fireseed Trilogy.
+Focus: secure client-side key experience + verifiable artifacts & governance.
 Not a distributed storage network; integrations are demo-level by design.
 
 ## Licensing
