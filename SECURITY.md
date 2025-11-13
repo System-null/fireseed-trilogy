@@ -7,7 +7,7 @@ If you believe you have found a security issue in this project, please:
 1. **Do not** open a public GitHub issue with sensitive details.
 2. Instead, send a private report to:
 
-   - Email: `security@system-null.com`
+   - Email: `security@system-null.com` (or an alternative private channel you control)
    - Include:
      - A clear description of the issue.
      - Steps to reproduce.

@@ -51,12 +51,12 @@ cd fireseed-trilogy
 npm install
 ```
 
-Useful scripts (see `package.json` for the full list):
+Useful scripts (may vary slightly, check `package.json`):
 
 ```bash
-npm run dev    # Start the Next.js app at http://localhost:3000
-npm test       # Run unit tests
-npm run lint   # Lint the codebase (if configured)
+npm run dev       # Start the Next.js app (http://localhost:3000)
+npm test          # Run unit tests
+npm run lint      # Lint the codebase (if configured)
 ```
 
 ---
@@ -65,12 +65,12 @@ npm run lint   # Lint the codebase (if configured)
 
 When submitting a pull request (PR):
 
-- Keep the scope focused when possible.
-- Make sure tests pass (`npm test`) and the code builds.
-- Update or add documentation if your change affects behavior or public APIs.
-- Write clear commit messages (Conventional Commits style is welcome but not required).
+1. Keep the scope focused when possible.
+2. Make sure tests pass (`npm test`) and the code builds.
+3. Update or add documentation if your change affects behavior or public APIs.
+4. Write clear commit messages (Conventional Commits style is welcome but not strictly required).
 
-Your PR description should include:
+PR descriptions should include:
 
 - What problem it solves.
 - What changed and why.
@@ -82,11 +82,12 @@ Your PR description should include:
 
 General guidelines:
 
-- Prefer TypeScript for new frontend code under `app/` and `lib/`.
+- Prefer TypeScript for new frontend code (under `app/` and `lib/`).
 - Keep CLI scripts small and composable under `scripts/`.
-- Avoid duplicating logic between the web app and CLI—share utilities when reasonable.
+- Avoid duplicating logic between the web app and CLI – share utilities when reasonable.
 - Write tests for non-trivial logic, especially anything related to determinism or security.
-- When in doubt, follow existing patterns in the codebase.
+
+If you are unsure about style, follow the existing patterns in the codebase.
 
 ---
 
