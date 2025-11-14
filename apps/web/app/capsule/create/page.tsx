@@ -310,7 +310,7 @@ export default function CapsuleCreatePage() {
             />
           </label>
 
-          <div className="wizard-grid">
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
             <label className="wizard-textarea">
               <span>关键节点 / 重大选择</span>
               <textarea
@@ -318,6 +318,7 @@ export default function CapsuleCreatePage() {
                 value={form.keyMoments}
                 onChange={e => update('keyMoments', e.target.value)}
                 placeholder="当 XX 发生时，我选择了 A 而不是 B... 如果重来一次，我会怎么做？"
+                className="w-full h-28 resize-none rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400/60 box-border"
               />
             </label>
             <label className="wizard-textarea">
@@ -327,6 +328,7 @@ export default function CapsuleCreatePage() {
                 value={form.nonNegotiables}
                 onChange={e => update('nonNegotiables', e.target.value)}
                 placeholder="绝不做哪些事 / 在任何世界线都必须坚持的原则？"
+                className="w-full h-28 resize-none rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400/60 box-border"
               />
             </label>
             <label className="wizard-textarea">
@@ -336,6 +338,7 @@ export default function CapsuleCreatePage() {
                 value={form.messageToFuture}
                 onChange={e => update('messageToFuture', e.target.value)}
                 placeholder="如果你在读这段话，说明..."
+                className="w-full h-28 resize-none rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400/60 box-border"
               />
             </label>
           </div>
@@ -411,6 +414,34 @@ export default function CapsuleCreatePage() {
             </div>
           </div>
         )}
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-5">
+        <h3 className="text-sm font-semibold text-zinc-200">高级工具（可选）</h3>
+        <p className="mt-1 text-xs text-zinc-400">
+          如果你熟悉 JSON / CID，可以在生成火种胶囊之后，使用下面的实验工具做更深入的检查。
+        </p>
+
+        <ul className="mt-3 space-y-2 text-sm">
+          <li>
+            <a
+              href="/capsule"
+              className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300"
+            >
+              <span>Capsule Workspace · 直接编辑 / 校验 capsule JSON</span>
+              <span className="text-xs text-zinc-500">(面向高级用户)</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="/verify/cid/demo"
+              className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300"
+            >
+              <span>Verify CID · 体验用 CID 检查 CAR / 胶囊结构</span>
+              <span className="text-xs text-zinc-500">(当前使用 demo CID，未来可替换为真实 CID)</span>
+            </a>
+          </li>
+        </ul>
       </section>
     </main>
   );
