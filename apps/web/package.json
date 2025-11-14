@@ -13,6 +13,7 @@
     "@noble/ed25519": "2.0.0",
     "ajv": "8.17.1",
     "ajv-formats": "2.1.1",
+    "jszip": "3.10.1",
     "idb": "8.0.0",
     "json-canonicalize": "1.0.6",
     "multiformats": "12.1.3",
