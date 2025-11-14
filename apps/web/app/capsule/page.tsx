@@ -38,7 +38,14 @@ export default function CapsulePage() {
   const validate = useMemo(() => {
     const ajv = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true });
     addFormats(ajv);
-    return ajv.compile<CapsuleRecord>(capsuleSchema as object);
+
+    // Ajv 默认没有内置 draft 2020-12 的 metaschema，这里删除 $schema，按普通 schema 处理
+    const schemaCopy: any = { ...(capsuleSchema as any) };
+    if (schemaCopy.$schema) {
+      delete schemaCopy.$schema;
+    }
+
+    return ajv.compile<CapsuleRecord>(schemaCopy);
   }, []);
 
   useEffect(() => {

@@ -35,7 +35,14 @@ interface VerificationOutcome {
 
 const ajv = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true });
 addFormats(ajv);
-const validateCapsule = ajv.compile<Record<string, unknown>>(capsuleSchema as object);
+
+// 删除 $schema，避免 Ajv 去寻找 draft 2020-12 的 metaschema
+const schemaCopy: any = { ...(capsuleSchema as any) };
+if (schemaCopy.$schema) {
+  delete schemaCopy.$schema;
+}
+
+const validateCapsule = ajv.compile<Record<string, unknown>>(schemaCopy);
 
 async function loadCar(cid: CID) {
   const res = await fetch(`https://w3s.link/ipfs/${cid.toString()}?format=car`, {
