@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Buffer } from 'node:buffer';
 import { CarReader } from '@ipld/car';
@@ -313,6 +314,21 @@ export default async function VerifyPage({ params }: VerifyPageProps) {
           <p style={{ color: '#6b7280' }}>尚未取得 capsule 内容。</p>
         </section>
       )}
+      <footer className="mt-12 text-sm text-neutral-400 space-y-1">
+        <p>想自己查看或编辑 capsule 结构？</p>
+        <p>
+          你可以：{' '}
+          <Link href="/capsule" className="underline">
+            打开 Capsule Workspace
+          </Link>
+          ，在浏览器中粘贴 JSON 做校验；
+          或者前往{' '}
+          <Link href="/capsule/create" className="underline">
+            火种胶囊一键向导
+          </Link>
+          ，先生成自己的胶囊再来验证。
+        </p>
+      </footer>
     </main>
   );
 }
