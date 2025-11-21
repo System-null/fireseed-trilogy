@@ -1,151 +1,309 @@
 // lib/fireseedIndex.ts
-//
-// Fireseed Index 计算工具（玩具级算法，用于给用户一个“被认真对待”的仪式感）。
-// 不依赖任何外部库，方便在前端和后端复用。
+// Fireseed Index 评分模型（专业版）。纯函数实现，可在前后端复用。
 
-export interface FireseedDiagnostics {
-  length: number;             // 字数
-  wordCount: number;          // 粗略词数（按空格/换行拆分）
-  uniqueWordCount: number;    // 粗略去重后的词数
-  entropyScore: number;       // 信息熵评分（词汇丰富度）
-  structureScore: number;     // 结构度评分（段落、小标题、列表）
-  emotionScore: number;       // 情绪/价值相关词评分
-  timeSpanScore: number;      // 时间跨度评分（覆盖人生不同阶段）
-  decisionScore: number;      // 决策模式评分（“当…时，我选择…”）
+export interface FireseedRawMetrics {
+  charCount: number;
+  wordCount: number;
+  sentenceCount: number;
+  paragraphCount: number;
+
+  // 词汇相关
+  uniqueWordCount: number;
+  typeTokenRatio: number; // TTR
+  herdansC: number; // log(V)/log(N)
+  sentenceLenMean: number;
+  sentenceLenStd: number;
+  sentenceBurstiness: number; // std / (mean + 1e-6)
+
+  // 结构 / 时间
+  headingCount: number;
+  listItemCount: number;
+  timeStageHits: number;
+  yearCount: number;
+  timeSpanYears: number;
+
+  // 决策 / 逻辑 / 情绪
+  decisionHits: number;
+  connectorHits: number;
+  emotionHits: number;
+}
+
+export interface FireseedIndexDetail {
+  lengthScore: number; // 0–15
+  lexicalScore: number; // 0–20
+  structureScore: number; // 0–15
+  timeSpanScore: number; // 0–15
+  logicScore: number; // 0–15
+  emotionScore: number; // 0–10
+  raw: FireseedRawMetrics; // 原始指标
 }
 
 export interface FireseedIndexResult {
-  index: number;              // 0 ~ 100 的火种指数
-  diagnostics: FireseedDiagnostics;
-  discoveryProbability: string; // 模拟发现概率的文案
+  score: number; // 0–100 总分
+  detail: FireseedIndexDetail;
 }
 
-function clamp(n: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, n));
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+function tokenize(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
 }
 
-// 粗略计算文本的“词熵”：这里只是玩具级实现，够用即可。
-function estimateEntropy(tokens: string[]): number {
-  if (!tokens.length) return 0;
-  const freq = new Map<string, number>();
-  for (const t of tokens) {
-    if (!t) continue;
-    freq.set(t, (freq.get(t) ?? 0) + 1);
-  }
-  const total = tokens.length;
-  let h = 0;
-  for (const count of freq.values()) {
-    const p = count / total;
-    h -= p * Math.log2(p);
-  }
-  return h;
-}
-
-export function calculateFireseedIndex(text: string): FireseedIndexResult {
-  const normalized = (text || '').trim();
+export function computeFireseedIndex(text: string): FireseedIndexResult {
+  const normalized = (text ?? "").trim();
   if (!normalized) {
     return {
-      index: 0,
-      diagnostics: {
-        length: 0,
-        wordCount: 0,
-        uniqueWordCount: 0,
-        entropyScore: 0,
+      score: 0,
+      detail: {
+        lengthScore: 0,
+        lexicalScore: 0,
         structureScore: 0,
-        emotionScore: 0,
         timeSpanScore: 0,
-        decisionScore: 0,
+        logicScore: 0,
+        emotionScore: 0,
+        raw: {
+          charCount: 0,
+          wordCount: 0,
+          sentenceCount: 0,
+          paragraphCount: 0,
+          uniqueWordCount: 0,
+          typeTokenRatio: 0,
+          herdansC: 0,
+          sentenceLenMean: 0,
+          sentenceLenStd: 0,
+          sentenceBurstiness: 0,
+          headingCount: 0,
+          listItemCount: 0,
+          timeStageHits: 0,
+          yearCount: 0,
+          timeSpanYears: 0,
+          decisionHits: 0,
+          connectorHits: 0,
+          emotionHits: 0,
+        },
       },
-      discoveryProbability: '文本为空：请先写点什么，再生成火种胶囊。',
     };
   }
 
-  const length = normalized.length;
-  const roughTokens = normalized
-    .replace(/\s+/g, ' ')
-    .split(' ')
-    .map(t => t.trim())
+  const tokens = tokenize(normalized);
+  const sentences = normalized
+    .split(/[。！？!?\.]+/g)
+    .map(s => s.trim())
+    .filter(Boolean);
+  const paragraphs = normalized
+    .split(/\n{2,}/g)
+    .map(s => s.trim())
     .filter(Boolean);
 
-  const wordCount = roughTokens.length;
-  const uniqueWordCount = new Set(roughTokens).size;
+  const charCount = normalized.length;
+  const wordCount = tokens.length;
+  const uniqueWordCount = new Set(tokens).size;
+  const sentenceCount = sentences.length;
+  const paragraphCount = paragraphs.length;
 
-  // 1. 信息熵评分：大致范围 [0, ~8]，我们映射到 [0, 35]
-  const entropy = estimateEntropy(roughTokens);
-  let entropyScore = 0;
-  if (entropy > 1) {
-    entropyScore = clamp((entropy - 1) * 7, 0, 35);
+  const typeTokenRatio = wordCount ? uniqueWordCount / wordCount : 0;
+  const herdansC =
+    wordCount > 1 && uniqueWordCount > 1 ? Math.log(uniqueWordCount) / Math.log(wordCount) : 0;
+
+  const sentenceLens = sentences
+    .map(s => tokenize(s).length)
+    .filter(n => n > 0);
+
+  const sentenceLenMean =
+    sentenceLens.length > 0 ? sentenceLens.reduce((a, b) => a + b, 0) / sentenceLens.length : 0;
+
+  const sentenceLenStd =
+    sentenceLens.length > 1
+      ? Math.sqrt(sentenceLens.map(n => (n - sentenceLenMean) ** 2).reduce((a, b) => a + b, 0) /
+          sentenceLens.length)
+      : 0;
+
+  const sentenceBurstiness = sentenceLenMean > 0 ? sentenceLenStd / (sentenceLenMean + 1e-6) : 0;
+
+  const headingMatches = normalized.match(/^#{1,6}\s+/gm) || [];
+  const headingCount = headingMatches.length;
+  const listMatches = normalized.match(/^(\*|-|\d+\.)\s+/gm) || [];
+  const listItemCount = listMatches.length;
+
+  const timeStages = [
+    "小时候",
+    "童年",
+    "初中",
+    "高中",
+    "大学",
+    "工作",
+    "结婚",
+    "生子",
+    "现在",
+    "此刻",
+    "中年",
+    "老年",
+    "临终",
+    "未来",
+  ];
+  let timeStageHits = 0;
+  for (const w of timeStages) {
+    if (normalized.includes(w)) timeStageHits++;
   }
 
-  // 2. 结构度评分：统计小标题/列表/段落特征
-  const headingMatches = normalized.match(/^#{1,6}\s+/gm) || [];
-  const listMatches = normalized.match(/^(\*|-|\d+\.)\s+/gm) || [];
-  const paragraphSplits = normalized.split(/\n{2,}/g);
-  const paragraphCount = paragraphSplits.length;
-  const structureScore = clamp(
-    headingMatches.length * 5 + listMatches.length * 2 + Math.max(0, paragraphCount - 1) * 2,
-    0,
-    25
-  );
+  const yearMatches = normalized.match(/\b(19|20)\d{2}\b/g) || [];
+  const yearCount = yearMatches.length;
+  let timeSpanYears = 0;
+  if (yearMatches.length >= 2) {
+    const years = yearMatches.map(y => parseInt(y, 10)).sort((a, b) => a - b);
+    timeSpanYears = years[years.length - 1] - years[0];
+  }
 
-  // 3. 情绪/价值相关词
-  const emotionWords = ['恐惧', '悔恨', '选择', '失去', '爱', '死亡', '意义', '后悔', '希望', '绝望'];
+  const decisionPatterns = [
+    /当[^。\n]{0,40}?时[^。\n]{0,20}?(我)?(选择|决定|必须)/g,
+    /我(决定|选择|下定决心)/g,
+    /(于是|所以)我[^。\n]{0,30}?(改|换|辞职|分手|搬走)/g,
+  ];
+  let decisionHits = 0;
+  for (const re of decisionPatterns) {
+    const m = normalized.match(re);
+    if (m) decisionHits += m.length;
+  }
+
+  const connectors = ["因为", "所以", "但是", "然而", "如果", "否则", "因此", "结果", "于是", "不过"];
+  let connectorHits = 0;
+  for (const w of connectors) {
+    const parts = normalized.split(w);
+    if (parts.length > 1) connectorHits += parts.length - 1;
+  }
+
+  const emotionLexicon = [
+    "恐惧",
+    "害怕",
+    "崩溃",
+    "绝望",
+    "愧疚",
+    "悔恨",
+    "震撼",
+    "痛苦",
+    "愤怒",
+    "后悔",
+    "释然",
+    "感激",
+    "欣慰",
+    "爱",
+    "自由",
+    "意义",
+  ];
   let emotionHits = 0;
-  for (const w of emotionWords) {
+  for (const w of emotionLexicon) {
     if (normalized.includes(w)) emotionHits++;
   }
-  const emotionScore = clamp(emotionHits * 4, 0, 20);
 
-  // 4. 时间跨度
-  const timeMarkers = ['小时候', '童年', '初中', '高中', '大学', '工作', '结婚', '现在', '此刻', '未来', '老了', '临终'];
-  let timeHits = 0;
-  for (const m of timeMarkers) {
-    if (normalized.includes(m)) timeHits++;
+  const raw: FireseedRawMetrics = {
+    charCount,
+    wordCount,
+    sentenceCount,
+    paragraphCount,
+    uniqueWordCount,
+    typeTokenRatio,
+    herdansC,
+    sentenceLenMean,
+    sentenceLenStd,
+    sentenceBurstiness,
+    headingCount,
+    listItemCount,
+    timeStageHits,
+    yearCount,
+    timeSpanYears,
+    decisionHits,
+    connectorHits,
+    emotionHits,
+  };
+
+  let lengthScore = 0;
+  if (wordCount < 80) {
+    lengthScore = 0;
+  } else if (wordCount <= 200) {
+    lengthScore = 5 + ((wordCount - 80) / 120) * 5;
+  } else if (wordCount <= 800) {
+    lengthScore = 10 + ((Math.min(wordCount, 800) - 200) / 600) * 5;
+  } else {
+    lengthScore = 15;
   }
-  const timeSpanScore = clamp(timeHits * 3, 0, 15);
+  lengthScore = clamp(Math.round(lengthScore), 0, 15);
 
-  // 5. 决策模式
-  const decisionMatches = normalized.match(/当.*?时.*?(选择|决定|应该)/g) || [];
-  const decisionScore = clamp(decisionMatches.length * 6, 0, 20);
-
-  // 初始基准分 40，再叠加各维度
-  let indexRaw =
-    40 +
-    entropyScore * 0.7 +
-    structureScore * 0.6 +
-    emotionScore * 0.8 +
-    timeSpanScore * 0.7 +
-    decisionScore;
-
-  // 文本太短则整体打折
-  if (length < 200) {
-    indexRaw *= 0.6;
-  } else if (length < 600) {
-    indexRaw *= 0.8;
+  let ttrScore = 0;
+  if (typeTokenRatio > 0.25) {
+    ttrScore = ((Math.min(typeTokenRatio, 0.6) - 0.25) / 0.35) * 12;
   }
 
-  const index = clamp(Math.round(indexRaw), 0, 100);
+  let herdansScore = 0;
+  if (herdansC > 0.6) {
+    herdansScore = ((Math.min(herdansC, 1.0) - 0.6) / 0.4) * 8;
+  }
 
-  // 模拟“发现概率”和“百分位”
-  const base = 0.01; // 基准 1%
-  const multiplier = index > 85 ? 10 : index > 70 ? 4 : index > 55 ? 2 : 1;
-  const prob = base * multiplier;
-  const percentile = clamp(Math.round((index / 100) * 90 + 5), 1, 99); // 让绝大多数人落在 5~95 之间
+  let lexicalScore = clamp(Math.round(ttrScore + herdansScore), 0, 20);
 
-  const discoveryProbability = `模拟发现概率：${(prob * 100).toFixed(2)}%（信息密度与结构度超过约 ${percentile}% 的普通节点）`;
+  let structureScore = 0;
+
+  if (paragraphCount > 1) {
+    structureScore += Math.min(paragraphCount - 1, 4) * 2;
+  }
+
+  structureScore += Math.min(headingCount, 3) * 2;
+  structureScore += Math.min(listItemCount, 5) * 0.5;
+
+  if (sentenceCount >= 3) {
+    if (sentenceBurstiness >= 0.3 && sentenceBurstiness <= 1.2) {
+      structureScore += 2;
+    }
+  }
+
+  structureScore = clamp(Math.round(structureScore), 0, 15);
+
+  const stageScore = Math.min(timeStageHits, 5) * 2;
+  let spanScore = 0;
+  if (timeSpanYears > 0) {
+    const capped = Math.min(timeSpanYears, 40);
+    spanScore = (capped / 40) * 5;
+  }
+  let timeSpanScore = clamp(Math.round(stageScore + spanScore), 0, 15);
+
+  const decisionScore = Math.min(decisionHits, 5) * 2;
+  const connectorScore = Math.min(connectorHits, 8) * 0.6;
+
+  let logicScore = decisionScore + connectorScore;
+  if (decisionHits > 0 && connectorHits > 0) {
+    logicScore += 1;
+  }
+  logicScore = clamp(Math.round(logicScore), 0, 15);
+
+  let emotionScore = Math.min(emotionHits, 5) * 2;
+  emotionScore = clamp(Math.round(emotionScore), 0, 10);
+
+  const rawTotal =
+    lengthScore + lexicalScore + structureScore + timeSpanScore + logicScore + emotionScore;
+
+  let score = (rawTotal / 90) * 100;
+
+  if (wordCount < 120) {
+    score *= 0.6;
+  } else if (wordCount < 250) {
+    score *= 0.85;
+  }
+
+  score = clamp(Math.round(score), 0, 100);
 
   return {
-    index,
-    diagnostics: {
-      length,
-      wordCount,
-      uniqueWordCount,
-      entropyScore,
+    score,
+    detail: {
+      lengthScore,
+      lexicalScore,
       structureScore,
-      emotionScore,
       timeSpanScore,
-      decisionScore,
+      logicScore,
+      emotionScore,
+      raw,
     },
-    discoveryProbability,
   };
 }
