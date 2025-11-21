@@ -3,6 +3,8 @@ import {
   FireseedIndexResult,
 } from "./fireseedIndex";
 
+export type EncryptionMode = "none" | "aes-passphrase";
+
 export interface OneClickCapsuleInput {
   title: string;
   scenario: string;
@@ -15,7 +17,7 @@ export interface OneClickCapsuleOutput {
     schemaVersion: string; // "0.2.9"
     generatedAt: string; // ISO 时间
     fireseedIndex: FireseedIndexResult;
-    encryption: "none";
+    encryption: EncryptionMode;
   };
   humanReadable: string; // HUMAN_READABLE.md 内容（中英双语）
   readmeText: string; // README.txt 内容（中英双语）
@@ -27,6 +29,7 @@ export function buildOneClickCapsule(
   const schemaVersion = "0.2.9";
   const generatedAt = new Date().toISOString();
   const index = computeFireseedIndex(input.body);
+  const encryption: EncryptionMode = "none";
 
   const capsule = {
     schema: "FireseedCapsule",
@@ -43,7 +46,7 @@ export function buildOneClickCapsule(
         logicScore: index.detail.logicScore,
         emotionScore: index.detail.emotionScore,
       },
-      encryption: "none" as const,
+      encryption,
     },
     content: {
       title: input.title,
@@ -56,7 +59,7 @@ export function buildOneClickCapsule(
     schemaVersion,
     generatedAt,
     fireseedIndex: index,
-    encryption: "none" as const,
+    encryption,
   };
 
   const humanReadable = `# Fireseed Capsule · 人类可读视图 / Human-Readable View
@@ -128,6 +131,15 @@ What this is:
 - 生成时间 / Generated At: ${generatedAt}
 - Schema 版本 / Schema Version: FireseedCapsule v${schemaVersion}
 - 工具版本 / Tool Version: fireseed-lab (placeholder)
+
+存储与加密 / Storage & Encryption
+
+- 当前版本的胶囊内容以明文形式存储在本地文件中。
+  In the current version, capsule content is stored in plaintext files on your local machine.
+- 隐私保护主要依赖你的操作系统权限设置和备份策略。
+  Privacy protection mainly depends on your OS permissions and your own backup strategy.
+- 未来版本可能会加入基于密码的加密选项，一旦加密，忘记密码将无法恢复内容。
+  Future versions may add password-based encryption; once encrypted, forgetting the password will make the content unrecoverable.
 `;
 
   return {
