@@ -57,6 +57,49 @@ In the browser you can:
 
 ---
 
+## Fireseed Capsule（Phase 1：本地实验版）  
+## Fireseed Capsule (Phase 1: Local Experimental MVP)
+
+- 当前支持 / Currently supports:
+  - 在 `/capsule/create` 页面填写标题、场景和正文。  
+    Fill in title, scenario, and body on the `/capsule/create` page.
+  - 一键生成本地 Fireseed Capsule 压缩包（ZIP），包含：  
+    One-click generation of a local Fireseed Capsule ZIP, including:
+    - `capsule.json`：结构化胶囊。  
+      `capsule.json`: Structured capsule.
+    - `meta.json`：版本、时间戳、Fireseed Index 指标。  
+      `meta.json`: Schema version, timestamp, and Fireseed Index metrics.
+    - `HUMAN_READABLE.md`：人类可读视图。  
+      `HUMAN_READABLE.md`: Human-readable view.
+    - `README.txt`：使用说明。  
+      `README.txt`: Usage notes.
+
+- Fireseed Index 是什么？  
+  What is the Fireseed Index?
+
+  - 它是一个 0–100 的启发式评分，用来度量文本在以下维度上的“结构化描述质量”：  
+    It is a heuristic 0–100 score measuring the “structured description quality” of the text across:
+    - 篇幅与信息量 / Length & information
+    - 词汇丰富度 / Lexical richness
+    - 结构组织 / Structural organization
+    - 时间跨度 / Time span coverage
+    - 决策与逻辑 / Decisions & reasoning
+    - 情绪与价值词 / Emotion & value words
+
+  - 它不是对人生本身的评分，也不是任何形式的价值审判；  
+    It is not a score on your life itself, nor any kind of moral judgment.
+  - 它只是方便未来系统快速理解文本结构和信息密度的技术指标。  
+    It is only a technical indicator to help future systems quickly grasp structure and information density.
+
+- 当前阶段 / Current stage:
+
+  - Schema 仍处于 `v0.2.x`，未来可能演进到 `v1.0`。  
+    The schema is currently at `v0.2.x` and may evolve to `v1.0` in the future.
+  - 生成的胶囊主要用于实验与自测，不推荐视作最终归档格式。  
+    Generated capsules are mainly for experimentation and self-testing, not yet a final archival format.
+
+---
+
 ## 3. Capsule Format
 
 A capsule is a structured document that describes:
