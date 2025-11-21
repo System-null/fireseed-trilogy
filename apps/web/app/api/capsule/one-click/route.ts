@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import JSZip from "jszip";
 import { buildOneClickCapsule } from "@/lib/capsuleBuilder";
+import { localZipAdapter } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,21 +26,18 @@ export async function POST(req: NextRequest) {
       body: body.trim(),
     });
 
-    const zip = new JSZip();
-    const folderName = `fireseed-capsule-${Date.now()}`;
-    const folder = zip.folder(folderName)!;
-    folder.file("capsule.json", JSON.stringify(capsule, null, 2));
-    folder.file("meta.json", JSON.stringify(meta, null, 2));
-    folder.file("HUMAN_READABLE.md", humanReadable);
-    folder.file("README.txt", readmeText);
-    const zipData = await zip.generateAsync({ type: "uint8array" });
-    const fileName = `${folderName}.zip`;
+    const storageResult = await localZipAdapter.persist({
+      capsule,
+      meta,
+      humanReadable,
+      readmeText,
+    });
 
-    return new NextResponse(zipData, {
+    return new NextResponse(storageResult.zipData, {
       status: 200,
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Disposition": `attachment; filename="${storageResult.locator}"`,
       },
     });
   } catch (error) {
