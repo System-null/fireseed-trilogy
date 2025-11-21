@@ -96,10 +96,11 @@ export default function CapsuleVerifyPage() {
       }
 
       const schemaVersion = parsedMeta.schemaVersion ?? parsedCapsule?.version;
+      const schemaIsCurrent = isCurrentVersion(schemaVersion);
       const schemaLabel = schemaVersion
-        ? isCurrentVersion(schemaVersion)
-          ? `Schema 版本：${schemaVersion}（当前版本）/ Schema Version: ${schemaVersion} (current).`
-          : `Schema 版本：${schemaVersion}（旧版本，按兼容模式解析）/ Schema Version: ${schemaVersion} (legacy, parsed in compatibility mode).`
+        ? schemaIsCurrent
+          ? `Schema 版本：${schemaVersion}（当前版本 / current）`
+          : `Schema 版本：${schemaVersion}（旧版本 / legacy, parsed in compatibility mode）`
         : '未提供 Schema 版本 / Schema version not provided.';
       setSchemaMessage(schemaLabel);
 
