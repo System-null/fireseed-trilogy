@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { calculateFireseedIndex } from '@/lib/fireseedIndex';
+import { computeFireseedIndex, FireseedIndexResult } from '@/lib/fireseedIndex';
 import {
   registerPasskey,
   signWithPasskey,
@@ -62,12 +62,16 @@ const encoder = new TextEncoder();
 export default function CapsuleCreatePage() {
   const [form, setForm] = useState<CapsuleFormState>(defaultState);
   const [touched, setTouched] = useState(false);
-  const [hasGenerated, setHasGenerated] = useState(false);
   const [signLog, setSignLog] = useState<string>('尚未尝试签名。');
   const [isSigning, setIsSigning] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fireseedIndex, setFireseedIndex] = useState<FireseedIndexResult | null>(
+    null,
+  );
 
-  const indexResult = useMemo(() => {
-    return calculateFireseedIndex(form.body || '');
+  const liveIndex = useMemo(() => {
+    return computeFireseedIndex(form.body || '');
   }, [form.body]);
 
   const capsule: GeneratedCapsule | null = useMemo(() => {
@@ -87,7 +91,7 @@ export default function CapsuleCreatePage() {
         audience: form.audience.trim() || '未指定',
         scenario: form.scenario,
         language: form.language,
-        fireseedIndex: indexResult.index,
+        fireseedIndex: liveIndex.score,
       },
       content: {
         raw: form.body.trim(),
@@ -96,7 +100,7 @@ export default function CapsuleCreatePage() {
         messageToFuture: form.messageToFuture.trim(),
       },
     };
-  }, [form, indexResult.index]);
+  }, [form, liveIndex.score]);
 
   const capsuleJson = useMemo(() => {
     if (!capsule) return '';
@@ -111,11 +115,53 @@ export default function CapsuleCreatePage() {
     setForm(prev => ({ ...prev, [key]: value }));
   }
 
-  function handleGenerate(e: React.FormEvent) {
+  async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
     setTouched(true);
+    setError(null);
     if (!form.body.trim()) return;
-    setHasGenerated(true);
+
+    const computedIndex = computeFireseedIndex(form.body);
+    setFireseedIndex(computedIndex);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('/api/capsule/one-click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          scenario: form.scenario,
+          body: form.body,
+          aiAssist: false,
+        }),
+      });
+
+      if (!res.ok) {
+        await res.json();
+        setError(
+          '生成失败：服务器暂时不可用或输入不合法。你的文本不会被保存。/ Generation failed: server unavailable or input invalid. Your text is not stored.',
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `fireseed-capsule-${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(
+        '生成失败：服务器暂时不可用或输入不合法。你的文本不会被保存。/ Generation failed: server unavailable or input invalid. Your text is not stored.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function handleDownload() {
@@ -301,7 +347,7 @@ export default function CapsuleCreatePage() {
                 当前火种指数（实时预估）
               </label>
               <div className="text-lg font-semibold">
-                {indexResult.index}
+                {liveIndex.score}
                 <span className="text-xs text-gray-500 ml-2">/ 100</span>
               </div>
               <p className="text-[11px] text-gray-500 mt-1">
@@ -369,10 +415,15 @@ export default function CapsuleCreatePage() {
           <button
             type="submit"
             className="mt-2 inline-flex items-center px-4 py-1.5 rounded bg-black text-white text-sm hover:bg-gray-800 disabled:opacity-50"
-            disabled={!form.body.trim()}
+            disabled={!form.body.trim() || isLoading}
           >
-            一键生成火种胶囊
+            {isLoading ? '生成中 / Generating...' : '一键生成火种胶囊'}
           </button>
+          {error && (
+            <p className="text-xs text-red-500 mt-1">
+              {error}
+            </p>
+          )}
           {touched && !form.body.trim() && (
             <p className="text-xs text-red-500 mt-1">
               请至少在“你的故事主体”里写点内容，再点击生成。
@@ -380,6 +431,47 @@ export default function CapsuleCreatePage() {
           )}
         </form>
       </section>
+
+      {fireseedIndex && (
+        <section className="border rounded-lg p-4 mb-6 bg-white/90">
+          <h2 className="font-medium mb-2">Fireseed Index（火种指数）</h2>
+          <div className="text-sm text-gray-800 space-y-1">
+            <p>
+              Fireseed Index（火种指数）：{fireseedIndex.score} / 100
+            </p>
+            <p>
+              - 篇幅与信息量 / Length & Information: {
+                fireseedIndex.detail.lengthScore
+              }
+            </p>
+            <p>
+              - 词汇丰富度 / Lexical Richness: {
+                fireseedIndex.detail.lexicalScore
+              }
+            </p>
+            <p>
+              - 结构组织 / Structural Organization: {
+                fireseedIndex.detail.structureScore
+              }
+            </p>
+            <p>
+              - 时间跨度 / Time Span Coverage: {
+                fireseedIndex.detail.timeSpanScore
+              }
+            </p>
+            <p>
+              - 决策与逻辑 / Decisions & Reasoning: {
+                fireseedIndex.detail.logicScore
+              }
+            </p>
+            <p>
+              - 情绪与价值 / Emotion & Values: {
+                fireseedIndex.detail.emotionScore
+              }
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="border rounded-lg p-4 mb-6 bg-white/90">
         <h2 className="font-medium mb-2">步骤 2：封装与解释</h2>
@@ -408,12 +500,9 @@ export default function CapsuleCreatePage() {
               <p className="text-gray-700 mt-1">
                 当前 Fireseed 指数：
                 <span className="font-semibold ml-1">
-                  {indexResult.index}
+                  {liveIndex.score}
                 </span>
                 <span className="text-xs text-gray-500 ml-1">/ 100</span>
-              </p>
-              <p className="text-[11px] text-gray-500 mt-1">
-                {indexResult.discoveryProbability}
               </p>
             </div>
 
