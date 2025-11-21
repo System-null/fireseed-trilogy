@@ -55,6 +55,7 @@ function tokenize(s: string): string[] {
 
 export function computeFireseedIndex(text: string): FireseedIndexResult {
   const normalized = (text ?? "").trim();
+  const lower = normalized.toLowerCase();
   if (!normalized) {
     return {
       score: 0,
@@ -130,12 +131,15 @@ export function computeFireseedIndex(text: string): FireseedIndexResult {
   const listItemCount = listMatches.length;
 
   const timeStages = [
+    // 中文
     "小时候",
     "童年",
+    "小学",
     "初中",
     "高中",
     "大学",
     "工作",
+    "打工",
     "结婚",
     "生子",
     "现在",
@@ -144,10 +148,39 @@ export function computeFireseedIndex(text: string): FireseedIndexResult {
     "老年",
     "临终",
     "未来",
+    // 英文
+    "childhood",
+    "primary school",
+    "elementary school",
+    "middle school",
+    "high school",
+    "college",
+    "university",
+    "work",
+    "working",
+    "job",
+    "career",
+    "marriage",
+    "wedding",
+    "kids",
+    "children",
+    "now",
+    "right now",
+    "at this moment",
+    "midlife",
+    "old age",
+    "retirement",
+    "near death",
+    "before i die",
+    "in the future",
   ];
   let timeStageHits = 0;
   for (const w of timeStages) {
-    if (normalized.includes(w)) timeStageHits++;
+    if (/[a-z]/i.test(w)) {
+      if (lower.includes(w)) timeStageHits++;
+    } else {
+      if (normalized.includes(w)) timeStageHits++;
+    }
   }
 
   const yearMatches = normalized.match(/\b(19|20)\d{2}\b/g) || [];
@@ -162,6 +195,10 @@ export function computeFireseedIndex(text: string): FireseedIndexResult {
     /当[^。\n]{0,40}?时[^。\n]{0,20}?(我)?(选择|决定|必须)/g,
     /我(决定|选择|下定决心)/g,
     /(于是|所以)我[^。\n]{0,30}?(改|换|辞职|分手|搬走)/g,
+    /when[^\.\!\n]{0,60}?i[^\.\!\n]{0,20}?(decided|chose)/gi,
+    /\bi decided to\b/gi,
+    /\bi chose to\b/gi,
+    /\bso i (quit|left|moved|broke up)\b/gi,
   ];
   let decisionHits = 0;
   for (const re of decisionPatterns) {
@@ -169,20 +206,56 @@ export function computeFireseedIndex(text: string): FireseedIndexResult {
     if (m) decisionHits += m.length;
   }
 
-  const connectors = ["因为", "所以", "但是", "然而", "如果", "否则", "因此", "结果", "于是", "不过"];
+  const connectors = [
+    // 中文
+    "因为",
+    "所以",
+    "但是",
+    "然而",
+    "如果",
+    "否则",
+    "因此",
+    "结果",
+    "于是",
+    "不过",
+    // 英文
+    "because",
+    "so",
+    "but",
+    "however",
+    "though",
+    "although",
+    "if",
+    "otherwise",
+    "therefore",
+    "as a result",
+    "as a consequence",
+    "thus",
+    "hence",
+    "then",
+    "in the end",
+    "eventually",
+  ];
   let connectorHits = 0;
   for (const w of connectors) {
-    const parts = normalized.split(w);
-    if (parts.length > 1) connectorHits += parts.length - 1;
+    if (/[a-z]/i.test(w)) {
+      const parts = lower.split(w);
+      if (parts.length > 1) connectorHits += parts.length - 1;
+    } else {
+      const parts = normalized.split(w);
+      if (parts.length > 1) connectorHits += parts.length - 1;
+    }
   }
 
   const emotionLexicon = [
+    // 中文
     "恐惧",
     "害怕",
     "崩溃",
     "绝望",
     "愧疚",
     "悔恨",
+    "内疚",
     "震撼",
     "痛苦",
     "愤怒",
@@ -190,13 +263,53 @@ export function computeFireseedIndex(text: string): FireseedIndexResult {
     "释然",
     "感激",
     "欣慰",
+    "感动",
     "爱",
+    "恨",
     "自由",
     "意义",
+    "孤独",
+    "绝望",
+    // 英文
+    "afraid",
+    "scared",
+    "terrified",
+    "fear",
+    "panic",
+    "despair",
+    "hopeless",
+    "hopelessness",
+    "guilt",
+    "guilty",
+    "remorse",
+    "regret",
+    "pain",
+    "painful",
+    "suffer",
+    "suffering",
+    "anger",
+    "angry",
+    "furious",
+    "relief",
+    "grateful",
+    "gratitude",
+    "touched",
+    "moved",
+    "love",
+    "hate",
+    "freedom",
+    "meaning",
+    "meaningless",
+    "lonely",
+    "loneliness",
   ];
   let emotionHits = 0;
   for (const w of emotionLexicon) {
-    if (normalized.includes(w)) emotionHits++;
+    if (/[a-z]/i.test(w)) {
+      if (lower.includes(w)) emotionHits++;
+    } else {
+      if (normalized.includes(w)) emotionHits++;
+    }
   }
 
   const raw: FireseedRawMetrics = {
