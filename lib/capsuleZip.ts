@@ -8,10 +8,25 @@ export type ParsedCapsuleZip = {
   hasHumanReadable: boolean;
 };
 
+function findFirstFileBySuffix(zip: JSZip, suffix: string): JSZip.JSZipObject | null {
+  const normalizedSuffix = suffix.replace(/^\/+/, "");
+  const files = Object.values(zip.files);
+
+  for (const f of files) {
+    if (f.dir) continue;
+    const name = f.name;
+    if (name === normalizedSuffix || name.endsWith("/" + normalizedSuffix)) {
+      return f;
+    }
+  }
+
+  return null;
+}
+
 export async function parseCapsuleZip(file: File, password?: string): Promise<ParsedCapsuleZip> {
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
 
-  const metaEntry = zip.file("meta.json");
+  const metaEntry = findFirstFileBySuffix(zip, "meta.json");
   if (!metaEntry) {
     throw new Error("meta.json not found");
   }
@@ -24,11 +39,12 @@ export async function parseCapsuleZip(file: File, password?: string): Promise<Pa
     throw new Error("meta.json is not valid JSON");
   }
 
-  const hasHumanReadable = Boolean(zip.file("HUMAN_READABLE.md"));
+  const hrEntry = findFirstFileBySuffix(zip, "HUMAN_READABLE.md");
+  const hasHumanReadable = Boolean(hrEntry);
   const encryptionMode = meta?.encryption ?? "none";
 
   if (encryptionMode === "none") {
-    const capsuleEntry = zip.file("capsule.json");
+    const capsuleEntry = findFirstFileBySuffix(zip, "capsule.json");
     if (!capsuleEntry) {
       throw new Error("capsule.json missing for plaintext capsule");
     }
@@ -43,7 +59,7 @@ export async function parseCapsuleZip(file: File, password?: string): Promise<Pa
   }
 
   if (encryptionMode === "aes-256-gcm") {
-    const capsuleEntry = zip.file("capsule.enc");
+    const capsuleEntry = findFirstFileBySuffix(zip, "capsule.enc");
     if (!capsuleEntry) {
       throw new Error("capsule.enc missing for encrypted capsule");
     }
