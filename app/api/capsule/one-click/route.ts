@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildOneClickCapsule } from "@/lib/capsuleBuilder";
+import { buildOneClickCapsule } from "../../lib/capsuleBuilder";
 import { localZipAdapter } from "@/lib/storage";
 
 // 明确使用 Node 运行时（方便 JSZip 等依赖）
