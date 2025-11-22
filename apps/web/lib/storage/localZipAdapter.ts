@@ -1,4 +1,4 @@
-import { createCapsuleZip } from "../capsuleZip";
+import { createCapsuleZip, parseCapsuleZip } from "../capsuleZip";
 import type { StorageAdapter } from "../../../../packages/core/storage/storageAdapter";
 import type { CapsuleFiles, StorageResult } from "../../../../packages/core/storage/types";
 
@@ -25,7 +25,20 @@ export const localZipAdapter: StorageAdapter = {
       extra: { zipData },
     } satisfies StorageResult;
   },
-  async loadCapsule() {
-    return null;
+  async loadCapsule(
+    capsuleId: string,
+    context?: { file?: File | Blob | Uint8Array; password?: string }
+  ) {
+    const file = context?.file;
+    if (!file) {
+      throw new Error("A file must be provided to load a capsule from a ZIP");
+    }
+
+    const parsed = await parseCapsuleZip(file, context?.password);
+
+    return {
+      ...parsed,
+      capsuleId: parsed.capsuleId ?? capsuleId,
+    } satisfies CapsuleFiles;
   },
 };
