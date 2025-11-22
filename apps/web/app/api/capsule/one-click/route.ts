@@ -14,15 +14,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { title, scenario, body } = json as {
+    const {
+      title,
+      scenario,
+      mainBody,
+      keyEventsText,
+      principlesText,
+      messageToFuture,
+    } = json as {
       title?: string;
       scenario?: string;
-      body?: string;
+      mainBody?: string;
+      keyEventsText?: string;
+      principlesText?: string;
+      messageToFuture?: string;
     };
 
-    if (!title || !scenario || !body || !title.trim() || !scenario.trim() || !body.trim()) {
+    if (
+      !title ||
+      !scenario ||
+      !mainBody ||
+      !title.trim() ||
+      !scenario.trim() ||
+      !mainBody.trim()
+    ) {
       return NextResponse.json(
-        { error: "缺少必要字段：title/scenario/body / Missing required fields: title/scenario/body." },
+        { error: "缺少必要字段：title/scenario/mainBody" },
         { status: 400 }
       );
     }
@@ -30,7 +47,10 @@ export async function POST(req: NextRequest) {
     const capsuleResult = buildOneClickCapsule({
       title: title.trim(),
       scenario: scenario.trim(),
-      body,
+      mainBody: mainBody,
+      keyEventsText,
+      principlesText,
+      messageToFuture,
     });
 
     const { capsule, meta, humanReadable, readmeText } = capsuleResult;
