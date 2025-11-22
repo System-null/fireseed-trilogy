@@ -74,6 +74,18 @@ npm run dev
 
 ---
 
+## 火种实验室（Phase 2.0 预览）
+
+仓库现已提供 Phase 2.0 的核心能力：
+
+- `/capsule/create` 一键生成本地火种胶囊；
+- `/verify/local` 本地验证与解密；
+- 「火种实验室」视图（`/lab`）可查看本机 **FireseedManifest** 中的胶囊列表，并支持导出 / 导入 manifest.json。
+
+其中 **FireseedManifest** 作为本地索引，为未来的多副本存储、健康检查和远端适配器打基础。
+
+---
+
 ## 当前里程碑：v0.3.0（Phase 1.5）
 
 当前仓库对应的工具版本为 **Fireseed Lab v0.3.0**，内部称为 **Phase 1.5**，主要实现了：
