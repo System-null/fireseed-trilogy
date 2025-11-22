@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import JSZip from 'jszip';
 import { computeFireseedIndex } from '@/lib/fireseedIndex';
 import type { Scenario, OneClickPayload } from '@/lib/capsule/oneClick';
 
@@ -184,35 +185,40 @@ const stepConfig = [
 
 interface ApiSuccess {
   capsule: {
-    id: string;
-    meta: {
-      title: string;
-      audience: string;
-      scenario: Scenario;
-      language: 'zh' | 'en';
-      fireseedIndex: number;
-      aiAssist: boolean;
-      includeTechCapsule: boolean;
-      wordCount: number;
+    id?: string;
+    meta?: {
+      title?: string;
+      audience?: string;
+      scenario?: Scenario;
+      language?: 'zh' | 'en';
+      fireseedIndex?: number;
+      aiAssist?: boolean;
+      includeTechCapsule?: boolean;
+      wordCount?: number;
     };
-    createdAt: string;
-    content: {
-      raw: string;
-      keyMoments: string;
-      nonNegotiables: string;
-      messageToFuture: string;
-      outline: string[];
+    createdAt?: string;
+    content?: {
+      raw?: string;
+      keyMoments?: string;
+      nonNegotiables?: string;
+      messageToFuture?: string;
+      outline?: string[];
     };
   };
-  indexResult: ReturnType<typeof computeFireseedIndex>;
-  explain: {
-    summary: string;
-    steps: { key: string; label: string; detail: string }[];
-    recommendedActions: string[];
-    aiAssist: boolean;
+  indexResult?: ReturnType<typeof computeFireseedIndex> & {
+    index?: number;
+    discoveryProbability?: string;
+    diagnostics?: Record<string, string | number>;
   };
-  zipBase64: string;
-  zipFilename: string;
+  explain?: {
+    summary?: string;
+    steps?: { key: string; label: string; detail: string }[];
+    recommendedActions?: string[];
+    aiAssist?: boolean;
+  };
+  meta?: Record<string, any>;
+  humanReadable?: string;
+  readmeText?: string;
 }
 
 const defaultState: CapsuleFormState = {
@@ -286,6 +292,30 @@ export default function CapsuleCreatePage() {
     setProgress(prev => prev.map(step => (step.key === target ? { ...step, status } : step)));
   }
 
+  async function generateZipAndDownload(data: ApiSuccess) {
+    const zip = new JSZip();
+    const folderName =
+      data.meta?.capsuleId ||
+      data.capsule?.id ||
+      `fireseed-capsule-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+    const folder = zip.folder(folderName)!;
+
+    folder.file('capsule.json', JSON.stringify(data.capsule ?? {}, null, 2));
+    if (data.meta) folder.file('meta.json', JSON.stringify(data.meta, null, 2));
+    if (data.humanReadable) folder.file('HUMAN_READABLE.md', data.humanReadable);
+    if (data.readmeText) folder.file('README.txt', data.readmeText);
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${folderName}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setTouched(true);
@@ -324,7 +354,7 @@ export default function CapsuleCreatePage() {
       setStepStatus('prepare', 'done');
       setStepStatus('score', 'active');
 
-      let json: { ok: boolean; data?: ApiSuccess; message?: string } | null = null;
+      let json: ApiSuccess & { error?: string };
       try {
         json = await response.json();
       } catch (parseError) {
@@ -334,12 +364,13 @@ export default function CapsuleCreatePage() {
       setStepStatus('score', 'done');
       setStepStatus('package', 'active');
 
-      if (!response.ok || !json?.ok || !json.data) {
-        const msg = json?.message || t.errorGeneric;
+      if (!response.ok || !json || !json.capsule) {
+        const msg = json?.error || t.errorGeneric;
         throw new Error(msg);
       }
 
-      setResult(json.data);
+      setResult(json);
+      await generateZipAndDownload(json);
       setStepStatus('package', 'done');
     } catch (err) {
       const message = err instanceof Error ? err.message : t.errorGeneric;
@@ -350,24 +381,10 @@ export default function CapsuleCreatePage() {
     }
   }
 
-  function handleDownloadZip() {
-    if (!result?.zipBase64) return;
+  async function handleDownloadZip() {
+    if (!result) return;
     try {
-      const binary = atob(result.zipBase64);
-      const length = binary.length;
-      const bytes = new Uint8Array(length);
-      for (let i = 0; i < length; i += 1) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: 'application/zip' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = result.zipFilename || 'fireseed-capsule.zip';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      await generateZipAndDownload(result);
     } catch (err) {
       setError(t.errorDownload);
     }
@@ -382,7 +399,8 @@ export default function CapsuleCreatePage() {
     [t],
   );
 
-  function scenarioLabel(value: Scenario) {
+  function scenarioLabel(value?: Scenario) {
+    if (!value) return '-';
     return scenarioLabels[value] || value;
   }
 
@@ -534,10 +552,13 @@ export default function CapsuleCreatePage() {
           <div className="wizard-result">
             <div className="wizard-result-card">
               <h3>{t.resultScoreTitle}</h3>
-              <div className="wizard-score">{result.indexResult.index} / 100</div>
-              <p>{result.indexResult.discoveryProbability}</p>
+              <div className="wizard-score">
+                {(result.indexResult?.index ?? result.indexResult?.score ?? localIndex.score) || 0} /
+                100
+              </div>
+              <p>{result.indexResult?.discoveryProbability || '-'}</p>
               <ul>
-                {Object.entries(result.indexResult.diagnostics).map(([key, value]) => (
+                {Object.entries(result.indexResult?.diagnostics ?? {}).map(([key, value]) => (
                   <li key={key}>
                     <strong>{key}</strong>
                     <span>{typeof value === 'number' ? value.toString() : value}</span>
@@ -548,30 +569,33 @@ export default function CapsuleCreatePage() {
             <div className="wizard-result-card">
               <h3>{t.resultInfoTitle}</h3>
               <p>
-                ID：<code>{result.capsule.id}</code>
+                ID：<code>{result.capsule?.id || '—'}</code>
               </p>
               <p>
                 {t.resultScenario}
-                {scenarioLabel(result.capsule.meta.scenario)} ｜ {t.resultLanguage}
-                {result.capsule.meta.language === 'zh' ? t.langZh : t.langEn}
+                {scenarioLabel(result.capsule?.meta?.scenario)} ｜ {t.resultLanguage}
+                {result.capsule?.meta?.language === 'zh' ? t.langZh : t.langEn}
               </p>
               <p>
-                {t.resultWordCount} {result.capsule.meta.wordCount}{' '}
+                {t.resultWordCount}{' '}
+                {result.capsule?.meta?.wordCount ??
+                  result.indexResult?.detail?.raw?.wordCount ??
+                  localIndex.detail.raw.wordCount}{' '}
                 {lang === 'zh' ? '字' : 'words'}
               </p>
               <button type="button" onClick={handleDownloadZip} className="wizard-download">
                 {t.downloadZip}
               </button>
             </div>
-            <div className="wizard-result-card">
-              <h3>{t.resultExplainTitle}</h3>
-              <p>{result.explain.summary}</p>
+              <div className="wizard-result-card">
+                <h3>{t.resultExplainTitle}</h3>
+              <p>{result.explain?.summary || '-'}</p>
               <ul>
-                {result.explain.recommendedActions.map(action => (
+                {(result.explain?.recommendedActions ?? []).map(action => (
                   <li key={action}>{action}</li>
                 ))}
               </ul>
-            </div>
+              </div>
             <div className="wizard-json">
               <h3>{t.resultJsonTitle}</h3>
               <textarea readOnly value={capsuleJson} rows={14} />
