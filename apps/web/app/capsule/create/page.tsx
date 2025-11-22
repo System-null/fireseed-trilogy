@@ -222,8 +222,8 @@ interface ApiSuccess {
 }
 
 const defaultState: CapsuleFormState = {
-  title: '写给 30 年后的自己',
-  audience: '未来的自己 / 家人',
+  title: '',
+  audience: '',
   scenario: 'life-summary',
   language: 'zh',
   body: '',
@@ -279,27 +279,17 @@ export default function CapsuleCreatePage() {
     return JSON.stringify(capsuleResult.capsule, null, 2);
   }, [capsuleResult]);
 
-  const serverFireseedIndex = useMemo(() => {
+  const serverIndex = useMemo(() => {
     if (!capsuleResult) return null;
 
-    const metaIndex =
-      capsuleResult.meta?.fireseedIndexScore ?? capsuleResult.meta?.fireseedIndex?.score ?? null;
-
-    const capsuleMetaIndexRaw = capsuleResult.capsule?.meta?.fireseedIndex;
-    const capsuleMetaIndexScore =
-      typeof capsuleMetaIndexRaw === 'number'
-        ? capsuleMetaIndexRaw
-        : capsuleResult.capsule?.meta?.fireseedIndex?.score;
-
-    return metaIndex ?? capsuleMetaIndexScore ?? capsuleResult.capsule?.meta?.fireseedIndexScore ?? null;
-  }, [capsuleResult]);
-
-  const displayFireseedIndex = useMemo(() => {
-    if (serverFireseedIndex != null) return serverFireseedIndex;
     return (
-      capsuleResult?.indexResult?.index ?? capsuleResult?.indexResult?.score ?? localIndex.score ?? 0
+      capsuleResult.meta?.fireseedIndexScore ??
+      capsuleResult.meta?.fireseedIndex?.score ??
+      capsuleResult.capsule?.meta?.fireseedIndexScore ??
+      capsuleResult.capsule?.meta?.fireseedIndex?.score ??
+      null
     );
-  }, [capsuleResult, localIndex.score, serverFireseedIndex]);
+  }, [capsuleResult]);
 
   function update<K extends keyof CapsuleFormState>(key: K, value: CapsuleFormState[K]) {
     setTouched(true);
@@ -406,20 +396,52 @@ export default function CapsuleCreatePage() {
       setGenerateError(t.errorDownload);
     }
   }
-  const scenarioLabels = useMemo(
-    () => ({
-      'life-summary': t.fieldScenarioLifeLog,
-      'family-letter': t.fieldScenarioFamilyLetter,
-      'tech-archive': t.fieldScenarioTechArchive,
-      'value-manifesto': t.fieldScenarioValueManifesto,
-    }),
-    [t],
-  );
+  const titlePlaceholder =
+    lang === 'zh' ? '写给 30 年后的自己' : 'A letter to myself 30 years from now';
 
-  function scenarioLabel(value?: Scenario) {
-    if (!value) return '-';
-    return scenarioLabels[value] || value;
-  }
+  const audiencePlaceholder =
+    lang === 'zh' ? '未来的自己 / 家人' : 'Future self / family';
+
+  const meta = capsuleResult?.meta;
+  const capsule = capsuleResult?.capsule as any | undefined;
+
+  const capsuleId = meta?.capsuleId ?? capsule?.meta?.capsuleId ?? '-';
+
+  const primaryLang =
+    meta?.primaryLanguage ?? capsule?.content?.primaryLanguage ?? form.language ?? 'zh';
+
+  const primaryLangLabel =
+    primaryLang === 'zh'
+      ? lang === 'zh'
+        ? '中文'
+        : 'Chinese'
+      : lang === 'zh'
+        ? '英文'
+        : 'English';
+
+  const rawStats = meta?.fireseedIndex?.detail?.raw ?? {};
+  const charCount = rawStats.charCount ?? 0;
+  const wordCount = rawStats.wordCount ?? 0;
+
+  const lengthLabel =
+    lang === 'zh'
+      ? `字数：约 ${charCount} 字（约 ${wordCount} 个词）`
+      : `Length: ~${charCount} chars (~${wordCount} tokens)`;
+
+  const scenarioLabel = lang === 'zh' ? '人生总账 / 自我总结' : 'Life log / self-summary';
+
+  const nextStepsText =
+    lang === 'zh'
+      ? [
+          '1. 请把下载的 ZIP 备份到至少两个不同的地方（例如：本机 + 移动硬盘 / 网盘）。',
+          '2. 如果你有纸质遗嘱或重要文件，可以写上「Fireseed 胶囊所在位置」和生成日期。',
+          '3. 将来如果你想更新这份火种，不需要覆盖旧版本，可以新建一个版本，并把所有版本一起保留。',
+        ].join('\n')
+      : [
+          '1. Keep this ZIP in at least two different locations (e.g. local disk + external drive or cloud).',
+          '2. If you have a will or important document, note down where this capsule is stored and when it was generated.',
+          '3. In the future, you can create new capsules instead of overwriting this one, and keep all versions together.',
+        ].join('\n');
 
   return (
     <main className="wizard-container">
@@ -444,7 +466,7 @@ export default function CapsuleCreatePage() {
               <input
                 value={form.title}
                 onChange={e => update('title', e.target.value)}
-                placeholder={t.fieldTitlePlaceholder}
+                placeholder={titlePlaceholder}
               />
             </label>
             <label>
@@ -452,7 +474,7 @@ export default function CapsuleCreatePage() {
               <input
                 value={form.audience}
                 onChange={e => update('audience', e.target.value)}
-                placeholder={t.fieldAudiencePlaceholder}
+                placeholder={audiencePlaceholder}
               />
             </label>
             <label>
@@ -470,6 +492,11 @@ export default function CapsuleCreatePage() {
                 <option value="zh">{t.langZh}</option>
                 <option value="en">{t.langEn}</option>
               </select>
+              <p className="mt-1 text-xs text-zinc-500">
+                {lang === 'zh'
+                  ? '主要语言：用来标记这份火种的主要书写语言，方便未来做 AI 扩写、多语言版本或检索。'
+                  : 'Primary language: marks the main language of this capsule so future tools can expand, translate or search it correctly.'}
+              </p>
             </label>
             <div className="wizard-switch">
               <label>
@@ -570,9 +597,7 @@ export default function CapsuleCreatePage() {
             <div className="wizard-result-card">
               <h3>{t.resultScoreTitle}</h3>
               <div className="wizard-score">
-                {serverFireseedIndex != null
-                  ? `${serverFireseedIndex} / 100`
-                  : `${displayFireseedIndex} / 100`}
+                {serverIndex != null ? `${serverIndex} / 100` : '- / 100'}
               </div>
               <p>{capsuleResult.indexResult?.discoveryProbability || '-'}</p>
               <ul>
@@ -587,19 +612,15 @@ export default function CapsuleCreatePage() {
             <div className="wizard-result-card">
               <h3>{t.resultInfoTitle}</h3>
               <p>
-                ID：<code>{capsuleResult.capsule?.id || '—'}</code>
+                {lang === 'zh' ? 'ID：' : 'ID:'} <code>{capsuleId}</code>
               </p>
               <p>
-                {t.resultScenario}
-                {scenarioLabel(capsuleResult.capsule?.meta?.scenario)} ｜ {t.resultLanguage}
-                {capsuleResult.capsule?.meta?.language === 'zh' ? t.langZh : t.langEn}
+                {lang === 'zh'
+                  ? `场景：${scenarioLabel}｜语言：${primaryLangLabel}`
+                  : `Scenario: ${scenarioLabel} | Language: ${primaryLangLabel}`}
               </p>
               <p>
-                {t.resultWordCount}{' '}
-                {capsuleResult.capsule?.meta?.wordCount ??
-                  capsuleResult.indexResult?.detail?.raw?.wordCount ??
-                  localIndex.detail.raw.wordCount}{' '}
-                {lang === 'zh' ? '字' : 'words'}
+                {lengthLabel}
               </p>
               <button
                 type="button"
@@ -610,15 +631,10 @@ export default function CapsuleCreatePage() {
                 {t.downloadZip}
               </button>
             </div>
-              <div className="wizard-result-card">
-                <h3>{t.resultExplainTitle}</h3>
-              <p>{capsuleResult.explain?.summary || '-'}</p>
-              <ul>
-                {(capsuleResult.explain?.recommendedActions ?? []).map(action => (
-                  <li key={action}>{action}</li>
-                ))}
-              </ul>
-              </div>
+            <div className="wizard-result-card">
+              <h3>{t.resultExplainTitle}</h3>
+              <pre className="whitespace-pre-wrap text-sm leading-relaxed">{nextStepsText}</pre>
+            </div>
             <div className="wizard-json">
               <h3>{t.resultJsonTitle}</h3>
               <textarea readOnly value={capsuleJson} rows={14} />
