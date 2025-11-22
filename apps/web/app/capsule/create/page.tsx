@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import JSZip from 'jszip';
 import { computeFireseedIndex } from '@/lib/fireseedIndex';
 import type { Scenario } from '@/lib/capsule/oneClick';
+import type { FireseedManifestCapsuleEntry } from '@/packages/core/manifest/types';
+import { upsertCapsule } from '../../../lib/manifestStore';
+import type { OneClickApiResponse } from '../../../types/capsule';
 import { encryptJsonWithPassword } from '@/lib/encryption';
 
 const translations = {
@@ -204,44 +207,6 @@ const stepConfig = [
   },
 ];
 
-interface ApiSuccess {
-  capsule: {
-    id?: string;
-    meta?: {
-      title?: string;
-      audience?: string;
-      scenario?: Scenario;
-      language?: 'zh' | 'en';
-      fireseedIndex?: number;
-      aiAssist?: boolean;
-      includeTechCapsule?: boolean;
-      wordCount?: number;
-    };
-    createdAt?: string;
-    content?: {
-      raw?: string;
-      keyMoments?: string;
-      nonNegotiables?: string;
-      messageToFuture?: string;
-      outline?: string[];
-    };
-  };
-  indexResult?: ReturnType<typeof computeFireseedIndex> & {
-    index?: number;
-    discoveryProbability?: string;
-    diagnostics?: Record<string, string | number>;
-  };
-  explain?: {
-    summary?: string;
-    steps?: { key: string; label: string; detail: string }[];
-    recommendedActions?: string[];
-    aiAssist?: boolean;
-  };
-  meta?: Record<string, any>;
-  humanReadable?: string;
-  readmeText?: string;
-}
-
 const defaultState: CapsuleFormState = {
   title: '',
   audience: '',
@@ -275,7 +240,7 @@ export default function CapsuleCreatePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<ProgressStep[]>(baseSteps);
   const [generateError, setGenerateError] = useState<string | null>(null);
-  const [capsuleResult, setCapsuleResult] = useState<ApiSuccess | null>(null);
+  const [capsuleResult, setCapsuleResult] = useState<OneClickApiResponse | null>(null);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [encryptionPassword, setEncryptionPassword] = useState('');
   const [encryptionError, setEncryptionError] = useState<string | null>(null);
@@ -314,6 +279,63 @@ export default function CapsuleCreatePage() {
       null
     );
   }, [capsuleResult]);
+
+  const isEncryptionPasswordValid = encryptionPassword.trim().length >= 8;
+
+  function buildManifestEntry(
+    result: OneClickApiResponse,
+    encryptionMode: FireseedManifestCapsuleEntry['encryption'],
+  ): FireseedManifestCapsuleEntry | null {
+    const capsuleId =
+      result.meta?.capsuleId ??
+      result.capsule?.meta?.capsuleId ??
+      result.capsule?.id;
+
+    if (!capsuleId) {
+      console.warn('[manifest] Skip manifest write: capsuleId missing');
+      return null;
+    }
+
+    const createdAt =
+      result.meta?.generatedAt ??
+      result.meta?.createdAt ??
+      result.capsule?.meta?.createdAt ??
+      result.capsule?.createdAt ??
+      new Date().toISOString();
+
+    const fireseedIndex =
+      result.meta?.fireseedIndex?.score ??
+      result.meta?.fireseedIndexScore ??
+      result.capsule?.meta?.fireseedIndexScore ??
+      result.indexResult?.index ??
+      undefined;
+
+    const scenarioFromResult =
+      (result.meta?.scenario as Scenario | undefined) ?? result.capsule?.meta?.scenario;
+
+    const primaryLanguage =
+      (result.meta?.primaryLanguage as 'zh' | 'en' | undefined) ??
+      result.capsule?.content?.primaryLanguage ??
+      result.capsule?.meta?.primaryLanguage ??
+      form.language;
+
+    return {
+      capsuleId,
+      title: form.title,
+      createdAt,
+      scenario: scenarioFromResult ?? form.scenario,
+      primaryLanguage,
+      encryption: encryptionMode,
+      fireseedIndex,
+      replicas: [
+        {
+          adapterId: 'local-zip',
+          location: `download://fireseed-capsule-${capsuleId}.zip`,
+          lastUpdatedAt: createdAt,
+        },
+      ],
+    };
+  }
 
   function update<K extends keyof CapsuleFormState>(key: K, value: CapsuleFormState[K]) {
     setTouched(true);
@@ -364,7 +386,7 @@ export default function CapsuleCreatePage() {
         body: JSON.stringify(payload),
       });
 
-      let json: ApiSuccess & { error?: string };
+      let json: OneClickApiResponse & { error?: string };
       try {
         json = await response.json();
       } catch (parseError) {
@@ -379,6 +401,15 @@ export default function CapsuleCreatePage() {
       setStepStatus('prepare', 'done');
       setStepStatus('score', 'active');
       setCapsuleResult(json);
+      const manifestEntry = buildManifestEntry(
+        json,
+        encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none',
+      );
+      if (manifestEntry) {
+        void upsertCapsule(manifestEntry).catch(err =>
+          console.warn('[manifest] Failed to upsert capsule entry', err),
+        );
+      }
       setStepStatus('score', 'done');
       setStepStatus('package', 'active');
       setStepStatus('package', 'done');
@@ -450,7 +481,6 @@ export default function CapsuleCreatePage() {
 
   const meta = capsuleResult?.meta;
   const capsule = capsuleResult?.capsule as any | undefined;
-  const isEncryptionPasswordValid = encryptionPassword.trim().length >= 8;
 
   const capsuleId = meta?.capsuleId ?? capsule?.meta?.capsuleId ?? '-';
 
