@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import JSZip from 'jszip';
 import { computeFireseedIndex } from '@/lib/fireseedIndex';
 import type { Scenario } from '@/lib/capsule/oneClick';
+import { encryptJsonWithPassword } from '@/lib/encryption';
 
 const translations = {
   zh: {
@@ -71,6 +72,14 @@ const translations = {
     advancedWorkspaceNote: '(面向高级用户)',
     advancedVerify: 'Verify CID · 体验用 CID 检查 CAR / 胶囊结构',
     advancedVerifyNote: '(当前使用 demo CID，未来可替换为真实 CID)',
+    encryptionToggle: '启用密码加密（实验功能）',
+    encryptionPasswordPlaceholder: '请输入本地保存用的密码',
+    encryptionWarning:
+      '注意：密码只保存在你自己脑子里，我们无法帮你找回。忘记密码意味着这份火种胶囊永远无法解密。',
+    encryptionPasswordTooShort: '请使用至少 8 个字符的密码再启用加密。',
+    encryptionLabel: '加密模式：',
+    encryptionNone: '未加密（明文本地保存）',
+    encryptionAes: 'AES-256-GCM（需要密码解密）',
   },
   en: {
     title: 'Fireseed Capsule – One-Click Wizard',
@@ -142,6 +151,14 @@ const translations = {
     advancedWorkspaceNote: '(for advanced users)',
     advancedVerify: 'Verify CID · Inspect capsule structure from a CID',
     advancedVerifyNote: '(uses a demo CID for now; replace with a real one later)',
+    encryptionToggle: 'Enable password encryption (experimental)',
+    encryptionPasswordPlaceholder: 'Enter a password for local encryption',
+    encryptionWarning:
+      'Warning: The password is never sent to the server. If you forget it, this capsule cannot be recovered.',
+    encryptionPasswordTooShort: 'Password must be at least 8 characters to enable encryption.',
+    encryptionLabel: 'Encryption:',
+    encryptionNone: 'none (plaintext on local disk)',
+    encryptionAes: 'AES-256-GCM (password required to decrypt)',
   },
 } as const;
 
@@ -255,6 +272,9 @@ export default function CapsuleCreatePage() {
   const [progress, setProgress] = useState<ProgressStep[]>(baseSteps);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [capsuleResult, setCapsuleResult] = useState<ApiSuccess | null>(null);
+  const [encryptionEnabled, setEncryptionEnabled] = useState(false);
+  const [encryptionPassword, setEncryptionPassword] = useState('');
+  const [encryptionError, setEncryptionError] = useState<string | null>(null);
 
   useEffect(() => {
     setProgress(prev =>
@@ -309,6 +329,7 @@ export default function CapsuleCreatePage() {
     setTouched(true);
     setGenerateError(null);
     setCapsuleResult(null);
+    setEncryptionError(null);
 
     if (!form.body.trim()) {
       setGenerateError(t.errorBodyRequired);
@@ -368,8 +389,14 @@ export default function CapsuleCreatePage() {
 
   async function handleDownloadZip() {
     if (!capsuleResult) return;
+    if (encryptionEnabled && !isEncryptionPasswordValid) {
+      setEncryptionError(t.encryptionPasswordTooShort);
+      return;
+    }
     try {
       const { capsule, meta, humanReadable, readmeText } = capsuleResult;
+      setEncryptionError(null);
+      const metaToWrite = { ...(meta ?? {}) } as Record<string, any>;
 
       const zip = new JSZip();
       const folderName =
@@ -378,8 +405,23 @@ export default function CapsuleCreatePage() {
         `fireseed-capsule-${new Date().toISOString().replace(/[:.]/g, '-')}`;
       const folder = zip.folder(folderName)!;
 
-      folder.file('capsule.json', JSON.stringify(capsule ?? {}, null, 2));
-      if (meta) folder.file('meta.json', JSON.stringify(meta, null, 2));
+      if (encryptionEnabled && isEncryptionPasswordValid) {
+        const { cipher, salt, iv, iterations, kdf } = await encryptJsonWithPassword(
+          capsule ?? {},
+          encryptionPassword.trim(),
+        );
+
+        metaToWrite.encryption = 'aes-256-gcm';
+        metaToWrite.encryptionParams = { salt, iv, iterations, kdf };
+
+        folder.file('capsule.enc', cipher);
+        folder.file('meta.json', JSON.stringify(metaToWrite, null, 2));
+      } else {
+        metaToWrite.encryption = 'none';
+        folder.file('capsule.json', JSON.stringify(capsule ?? {}, null, 2));
+        folder.file('meta.json', JSON.stringify(metaToWrite, null, 2));
+      }
+
       if (humanReadable) folder.file('HUMAN_READABLE.md', humanReadable);
       if (readmeText) folder.file('README.txt', readmeText);
 
@@ -404,6 +446,7 @@ export default function CapsuleCreatePage() {
 
   const meta = capsuleResult?.meta;
   const capsule = capsuleResult?.capsule as any | undefined;
+  const isEncryptionPasswordValid = encryptionPassword.trim().length >= 8;
 
   const capsuleId = meta?.capsuleId ?? capsule?.meta?.capsuleId ?? '-';
 
@@ -429,6 +472,12 @@ export default function CapsuleCreatePage() {
       : `Length: ~${charCount} chars (~${wordCount} tokens)`;
 
   const scenarioLabel = lang === 'zh' ? '人生总账 / 自我总结' : 'Life log / self-summary';
+
+  const encryptionStatus = meta?.encryption ?? (encryptionEnabled ? 'aes-256-gcm' : 'none');
+  const encryptionLabel =
+    encryptionStatus === 'aes-256-gcm'
+      ? `${t.encryptionLabel}${lang === 'zh' ? '' : ' '}${t.encryptionAes}`
+      : `${t.encryptionLabel}${lang === 'zh' ? '' : ' '}${t.encryptionNone}`;
 
   const nextStepsText =
     lang === 'zh'
@@ -589,8 +638,8 @@ export default function CapsuleCreatePage() {
         </ol>
       </section>
 
-      <section className="wizard-card">
-        <h2>{t.step3}</h2>
+        <section className="wizard-card">
+          <h2>{t.step3}</h2>
         {!capsuleResult && <p className="wizard-placeholder">{t.resultDesc}</p>}
         {capsuleResult && (
           <div className="wizard-result">
@@ -622,11 +671,42 @@ export default function CapsuleCreatePage() {
               <p>
                 {lengthLabel}
               </p>
+              <div className="mt-2 space-y-2 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
+                <label className="flex items-center gap-2 text-sm text-zinc-100">
+                  <input
+                    type="checkbox"
+                    checked={encryptionEnabled}
+                    onChange={e => {
+                      setEncryptionEnabled(e.target.checked);
+                      setEncryptionError(null);
+                    }}
+                  />
+                  <span>{t.encryptionToggle}</span>
+                </label>
+                <div className="space-y-1">
+                  <input
+                    type="password"
+                    value={encryptionPassword}
+                    onChange={e => setEncryptionPassword(e.target.value)}
+                    placeholder={t.encryptionPasswordPlaceholder}
+                    disabled={!encryptionEnabled}
+                    className="w-full rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                  <p className="text-xs text-zinc-500">
+                    {t.encryptionWarning}
+                  </p>
+                  {encryptionEnabled && !isEncryptionPasswordValid && (
+                    <p className="text-xs text-amber-400">{t.encryptionPasswordTooShort}</p>
+                  )}
+                  {encryptionError && <p className="text-xs text-red-400">{encryptionError}</p>}
+                </div>
+                <p className="text-sm text-zinc-200">{encryptionLabel}</p>
+              </div>
               <button
                 type="button"
                 onClick={handleDownloadZip}
                 className="wizard-download"
-                disabled={!capsuleResult}
+                disabled={!capsuleResult || (encryptionEnabled && !isEncryptionPasswordValid)}
               >
                 {t.downloadZip}
               </button>
