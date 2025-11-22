@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { calculateFireseedIndex } from '@/lib/fireseedIndex';
+import { computeFireseedIndex } from '@/lib/fireseedIndex';
 import type { Scenario, OneClickPayload } from '@/lib/capsule/oneClick';
 
 const translations = {
@@ -204,7 +204,7 @@ interface ApiSuccess {
       outline: string[];
     };
   };
-  indexResult: ReturnType<typeof calculateFireseedIndex>;
+  indexResult: ReturnType<typeof computeFireseedIndex>;
   explain: {
     summary: string;
     steps: { key: string; label: string; detail: string }[];
@@ -265,7 +265,7 @@ export default function CapsuleCreatePage() {
   }, [baseSteps]);
 
   const localIndex = useMemo(() => {
-    return calculateFireseedIndex(form.body || '');
+    return computeFireseedIndex(form.body || '');
   }, [form.body]);
 
   const capsuleJson = useMemo(() => {
