@@ -16,16 +16,17 @@ export interface CapsuleArtifact {
 export interface StorageResult {
   kind: "local-zip";
   locator: string;
+  zipData: Uint8Array;
 }
 
 export interface StorageAdapter {
   id: StorageResult["kind"];
-  persist(artifact: CapsuleArtifact): Promise<StorageResult & { zipData: Uint8Array }>;
+  persist(artifact: CapsuleArtifact): Promise<StorageResult>;
 }
 
 export const localZipAdapter: StorageAdapter = {
   id: "local-zip",
-  async persist(artifact) {
+  async persist(artifact: CapsuleArtifact): Promise<StorageResult> {
     const zip = new JSZip();
     const folderName = `fireseed-capsule-${Date.now()}`;
     const folder = zip.folder(folderName)!;
@@ -36,6 +37,7 @@ export const localZipAdapter: StorageAdapter = {
     folder.file("README.txt", artifact.readmeText);
 
     const zipData = await zip.generateAsync({ type: "uint8array" });
+
     return {
       kind: "local-zip",
       locator: `${folderName}.zip`,
