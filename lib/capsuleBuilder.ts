@@ -8,7 +8,10 @@ export type EncryptionMode = "none" | "aes-passphrase";
 export interface OneClickCapsuleInput {
   title: string;
   scenario: string;
-  body: string;
+  mainBody: string;
+  keyEventsText?: string;
+  principlesText?: string;
+  messageToFuture?: string;
 }
 
 export interface OneClickCapsuleOutput {
@@ -28,8 +31,34 @@ export function buildOneClickCapsule(
 ): OneClickCapsuleOutput {
   const schemaVersion = "0.2.9";
   const generatedAt = new Date().toISOString();
-  const index = computeFireseedIndex(input.body);
   const encryption: EncryptionMode = "none";
+
+  const normalizeLines = (text?: string): string[] =>
+    (text ?? "")
+      .split("\n")
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0);
+
+  const keyEvents = normalizeLines(input.keyEventsText);
+  const principles = normalizeLines(input.principlesText);
+
+  const sections: string[] = [];
+  if (input.mainBody.trim()) sections.push(input.mainBody.trim());
+  if (keyEvents.length)
+    sections.push(
+      "关键回忆事件小结：\n" +
+        keyEvents.map((v, i) => `${i + 1}. ${v}`).join("\n")
+    );
+  if (principles.length)
+    sections.push(
+      "不可违背的信条 / 原则：\n" +
+        principles.map((v) => `- ${v}`).join("\n")
+    );
+  if (input.messageToFuture?.trim())
+    sections.push("留给未来某人的一句话：\n" + input.messageToFuture.trim());
+
+  const fullTextForScoring = sections.join("\n\n");
+  const index = computeFireseedIndex(fullTextForScoring);
 
   const capsule = {
     schema: "FireseedCapsule",
@@ -50,8 +79,12 @@ export function buildOneClickCapsule(
     },
     content: {
       title: input.title,
-      raw: input.body,
-      structured: input.body,
+      raw: fullTextForScoring,
+      structured: fullTextForScoring,
+      mainBody: input.mainBody.trim(),
+      keyEvents,
+      principles,
+      messageToFuture: input.messageToFuture?.trim() ?? "",
     },
   };
 
@@ -84,9 +117,31 @@ Schema 版本 / Schema Version: FireseedCapsule v${schemaVersion}
 
 ---
 
-## 原文 / Original Text
+## 你的故事主体 / Main Story
 
-${input.body}
+${input.mainBody.trim()}
+
+${
+  keyEvents.length
+    ? `## 关键回忆事件小结 / Key Memories\n\n${keyEvents
+        .map((v, i) => `${i + 1}. ${v}`)
+        .join("\n")}`
+    : ""
+}
+
+${
+  principles.length
+    ? `## 不可违背的信条 / Non-negotiable Principles\n\n${principles
+        .map((v) => `- ${v}`)
+        .join("\n")}`
+    : ""
+}
+
+${
+  input.messageToFuture?.trim()
+    ? `## 留给未来某人的一句话 / Message to a Future Reader\n\n${input.messageToFuture.trim()}`
+    : ""
+}
 
 （注意：中英都写在同一个 Markdown 文本里，方便任何语言的阅读者理解。）
 `;
