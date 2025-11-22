@@ -27,6 +27,51 @@ export async function saveManifest(manifest: FireseedManifest): Promise<void> {
   await idbSet(MANIFEST_IDB_KEY, manifest);
 }
 
+export async function exportManifest(): Promise<string> {
+  const manifest = await getManifest();
+  return JSON.stringify(manifest, null, 2);
+}
+
+export async function importManifest(
+  json: string
+): Promise<{ merged: FireseedManifest; added: number; updated: number }> {
+  let importedManifest: FireseedManifest;
+  try {
+    importedManifest = JSON.parse(json);
+  } catch (error) {
+    throw new Error("Invalid FireseedManifest JSON");
+  }
+
+  const currentManifest = await getManifest();
+  const capsulesById = new Map(
+    currentManifest.capsules.map((capsule) => [capsule.capsuleId, capsule])
+  );
+
+  let added = 0;
+  let updated = 0;
+
+  for (const capsule of importedManifest.capsules) {
+    if (capsulesById.has(capsule.capsuleId)) {
+      // Use a "last-write-wins" strategy where imported data overwrites local entries.
+      capsulesById.set(capsule.capsuleId, capsule);
+      updated += 1;
+    } else {
+      capsulesById.set(capsule.capsuleId, capsule);
+      added += 1;
+    }
+  }
+
+  const merged: FireseedManifest = {
+    ...currentManifest,
+    ...importedManifest,
+    capsules: Array.from(capsulesById.values()),
+  };
+
+  await saveManifest(merged);
+
+  return { merged, added, updated };
+}
+
 export async function upsertCapsule(
   entry: FireseedManifestCapsuleEntry
 ): Promise<void> {
