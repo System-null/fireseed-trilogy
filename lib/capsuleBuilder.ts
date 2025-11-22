@@ -8,6 +8,7 @@ export type EncryptionMode = "none" | "aes-passphrase";
 export interface OneClickCapsuleInput {
   title: string;
   scenario: string;
+  primaryLanguage: "zh" | "en" | string;
   mainBody: string;
   keyEventsText?: string;
   principlesText?: string;
@@ -19,6 +20,8 @@ export interface OneClickCapsuleOutput {
   meta: {
     schemaVersion: string; // "0.2.9"
     generatedAt: string; // ISO 时间
+    capsuleId: string;
+    primaryLanguage: string;
     fireseedIndex: FireseedIndexResult;
     encryption: EncryptionMode;
   };
@@ -30,8 +33,25 @@ export function buildOneClickCapsule(
   input: OneClickCapsuleInput
 ): OneClickCapsuleOutput {
   const schemaVersion = "0.2.9";
-  const generatedAt = new Date().toISOString();
+  const createdAt = new Date().toISOString();
+  const generatedAt = createdAt;
   const encryption: EncryptionMode = "none";
+
+  const {
+    title,
+    scenario,
+    primaryLanguage,
+    mainBody,
+    keyEventsText,
+    principlesText,
+    messageToFuture,
+  } = input;
+
+  const capsuleId =
+    "fs-" +
+    createdAt.slice(0, 10).replace(/-/g, "") +
+    "-" +
+    Math.random().toString(36).slice(2, 8);
 
   const normalizeLines = (text?: string): string[] =>
     (text ?? "")
@@ -39,11 +59,11 @@ export function buildOneClickCapsule(
       .map((v) => v.trim())
       .filter((v) => v.length > 0);
 
-  const keyEvents = normalizeLines(input.keyEventsText);
-  const principles = normalizeLines(input.principlesText);
+  const keyEvents = normalizeLines(keyEventsText);
+  const principles = normalizeLines(principlesText);
 
   const sections: string[] = [];
-  if (input.mainBody.trim()) sections.push(input.mainBody.trim());
+  if (mainBody.trim()) sections.push(mainBody.trim());
   if (keyEvents.length)
     sections.push(
       "关键回忆事件小结：\n" +
@@ -54,51 +74,56 @@ export function buildOneClickCapsule(
       "不可违背的信条 / 原则：\n" +
         principles.map((v) => `- ${v}`).join("\n")
     );
-  if (input.messageToFuture?.trim())
-    sections.push("留给未来某人的一句话：\n" + input.messageToFuture.trim());
+  if (messageToFuture?.trim())
+    sections.push("留给未来某人的一句话：\n" + messageToFuture.trim());
 
   const fullTextForScoring = sections.join("\n\n");
-  const index = computeFireseedIndex(fullTextForScoring);
+  const { score, detail } = computeFireseedIndex(fullTextForScoring);
 
   const capsule = {
     schema: "FireseedCapsule",
     version: schemaVersion,
     meta: {
-      createdAt: generatedAt,
-      scenario: input.scenario,
-      fireseedIndexScore: index.score,
+      createdAt,
+      scenario,
+      capsuleId,
+      fireseedIndexScore: score,
       fireseedIndexDetail: {
-        lengthScore: index.detail.lengthScore,
-        lexicalScore: index.detail.lexicalScore,
-        structureScore: index.detail.structureScore,
-        timeSpanScore: index.detail.timeSpanScore,
-        logicScore: index.detail.logicScore,
-        emotionScore: index.detail.emotionScore,
+        lengthScore: detail.lengthScore,
+        lexicalScore: detail.lexicalScore,
+        structureScore: detail.structureScore,
+        timeSpanScore: detail.timeSpanScore,
+        logicScore: detail.logicScore,
+        emotionScore: detail.emotionScore,
       },
       encryption,
+      primaryLanguage,
     },
     content: {
-      title: input.title,
+      title,
+      primaryLanguage,
       raw: fullTextForScoring,
       structured: fullTextForScoring,
-      mainBody: input.mainBody.trim(),
+      mainBody: mainBody.trim(),
       keyEvents,
       principles,
-      messageToFuture: input.messageToFuture?.trim() ?? "",
+      messageToFuture: messageToFuture?.trim() ?? "",
     },
   };
 
   const meta = {
     schemaVersion,
     generatedAt,
-    fireseedIndex: index,
+    capsuleId,
+    primaryLanguage,
+    fireseedIndex: { score, detail },
     encryption,
   };
 
   const humanReadable = `# Fireseed Capsule · 人类可读视图 / Human-Readable View
 
-标题 / Title: ${input.title}
-场景 / Scenario: ${input.scenario}
+标题 / Title: ${title}
+场景 / Scenario: ${scenario}
 生成时间 / Generated At: ${generatedAt}
 Schema 版本 / Schema Version: FireseedCapsule v${schemaVersion}
 
@@ -106,20 +131,20 @@ Schema 版本 / Schema Version: FireseedCapsule v${schemaVersion}
 
 ## Fireseed Index · 火种指数
 
-总分 / Overall Score: ${index.score} / 100
+总分 / Overall Score: ${score} / 100
 
-- 篇幅与信息量 / Length & Information: ${index.detail.lengthScore}
-- 词汇丰富度 / Lexical Richness: ${index.detail.lexicalScore}
-- 结构组织 / Structural Organization: ${index.detail.structureScore}
-- 时间跨度 / Time Span Coverage: ${index.detail.timeSpanScore}
-- 决策与逻辑 / Decisions & Reasoning: ${index.detail.logicScore}
-- 情绪与价值 / Emotion & Values: ${index.detail.emotionScore}
+- 篇幅与信息量 / Length & Information: ${detail.lengthScore}
+- 词汇丰富度 / Lexical Richness: ${detail.lexicalScore}
+- 结构组织 / Structural Organization: ${detail.structureScore}
+- 时间跨度 / Time Span Coverage: ${detail.timeSpanScore}
+- 决策与逻辑 / Decisions & Reasoning: ${detail.logicScore}
+- 情绪与价值 / Emotion & Values: ${detail.emotionScore}
 
 ---
 
 ## 你的故事主体 / Main Story
 
-${input.mainBody.trim()}
+${mainBody.trim()}
 
 ${
   keyEvents.length
@@ -138,8 +163,8 @@ ${
 }
 
 ${
-  input.messageToFuture?.trim()
-    ? `## 留给未来某人的一句话 / Message to a Future Reader\n\n${input.messageToFuture.trim()}`
+  messageToFuture?.trim()
+    ? `## 留给未来某人的一句话 / Message to a Future Reader\n\n${messageToFuture.trim()}`
     : ""
 }
 
