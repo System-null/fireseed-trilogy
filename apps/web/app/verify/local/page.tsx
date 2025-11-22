@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
+import JSZip from 'jszip';
+
 import { parseCapsuleZip, type ParsedCapsuleZip } from '@/lib/capsuleZip';
 
 export default function VerifyLocalPage() {
@@ -10,11 +12,16 @@ export default function VerifyLocalPage() {
   const [result, setResult] = useState<ParsedCapsuleZip | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [decryptedCapsule, setDecryptedCapsule] = useState<any | null>(null);
+  const [decryptedMeta, setDecryptedMeta] = useState<any | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleFileSelected = useCallback(async (file: File) => {
     setSelectedFile(file);
     setIsParsing(true);
     setError(null);
+    setDecryptedCapsule(null);
+    setDecryptedMeta(null);
 
     try {
       const parsed = await parseCapsuleZip(file);
@@ -23,6 +30,8 @@ export default function VerifyLocalPage() {
       console.error(e);
       setError(e instanceof Error ? e.message : '解析失败 / Failed to parse ZIP');
       setResult(null);
+      setDecryptedCapsule(null);
+      setDecryptedMeta(null);
     } finally {
       setIsParsing(false);
     }
@@ -43,12 +52,55 @@ export default function VerifyLocalPage() {
     try {
       const parsed = await parseCapsuleZip(selectedFile, password.trim());
       setResult(parsed);
+      setDecryptedCapsule(parsed.capsule ?? null);
+      setDecryptedMeta(parsed.meta ?? null);
     } catch (e) {
       setError('解密失败：密码不正确或数据已损坏 / Decryption failed: wrong password or corrupted data.');
+      setDecryptedCapsule(null);
+      setDecryptedMeta(null);
     } finally {
       setIsParsing(false);
     }
   }, [password, result, selectedFile]);
+
+  const handleExportDecrypted = useCallback(async () => {
+    if (!decryptedCapsule || !decryptedMeta) return;
+    try {
+      setIsExporting(true);
+
+      const zip = new JSZip();
+
+      const capsuleId =
+        decryptedMeta.capsuleId ||
+        decryptedMeta.capsuleID ||
+        decryptedMeta.id ||
+        'fireseed-capsule';
+
+      const folderName = `fireseed-capsule-decrypted-${capsuleId}`;
+      const folder = zip.folder(folderName) ?? zip;
+
+      const metaToWrite = {
+        ...decryptedMeta,
+        exportedFromEncrypted: true,
+        exportedAsPlaintextAt: new Date().toISOString(),
+      };
+
+      folder.file('capsule.json', JSON.stringify(decryptedCapsule, null, 2));
+      folder.file('meta.json', JSON.stringify(metaToWrite, null, 2));
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${folderName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [decryptedCapsule, decryptedMeta]);
 
   const onDrop = useCallback(
     async (event: DragEvent<HTMLDivElement>) => {
@@ -153,6 +205,27 @@ export default function VerifyLocalPage() {
             {capsule.content?.title && <p>title: {capsule.content.title}</p>}
             {capsule.content?.primaryLanguage && <p>primaryLanguage: {capsule.content.primaryLanguage}</p>}
             {capsule.meta?.scenario && <p>scenario: {capsule.meta.scenario}</p>}
+            {result?.encryptionMode === 'aes-256-gcm' && decryptedCapsule && decryptedMeta && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleExportDecrypted}
+                  disabled={isExporting}
+                  className="inline-flex items-center rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-emerald-50 transition hover:border-emerald-200/70 hover:text-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                  style={{
+                    background: 'transparent',
+                  }}
+                >
+                  {isExporting
+                    ? '正在导出明文版本… / Exporting decrypted ZIP…'
+                    : '导出明文版本 / Export decrypted ZIP'}
+                </button>
+                <p className="mt-2 text-xs text-emerald-200/70">
+                  导出明文版本会在本地生成一份未加密的 ZIP，请只在你信任的环境中保存和打开。
+                  Exporting a decrypted ZIP will create an unencrypted copy locally. Only save it in environments you fully trust.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
