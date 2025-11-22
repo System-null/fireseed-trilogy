@@ -72,6 +72,8 @@ const translations = {
     advancedWorkspaceNote: '(面向高级用户)',
     advancedVerify: 'Verify CID · 体验用 CID 检查 CAR / 胶囊结构',
     advancedVerifyNote: '(当前使用 demo CID，未来可替换为真实 CID)',
+    advancedLocalVerify: '本地验证工具：上传你刚才生成的 ZIP，检查结构与加密状态',
+    advancedLocalVerifyNote: '(浏览器本地解析，不上传 ZIP)',
     encryptionToggle: '启用密码加密（实验功能）',
     encryptionPasswordPlaceholder: '请输入本地保存用的密码',
     encryptionWarning:
@@ -151,6 +153,8 @@ const translations = {
     advancedWorkspaceNote: '(for advanced users)',
     advancedVerify: 'Verify CID · Inspect capsule structure from a CID',
     advancedVerifyNote: '(uses a demo CID for now; replace with a real one later)',
+    advancedLocalVerify: 'Local verification: upload your ZIP to check structure and encryption status',
+    advancedLocalVerifyNote: '(runs entirely in your browser)',
     encryptionToggle: 'Enable password encryption (experimental)',
     encryptionPasswordPlaceholder: 'Enter a password for local encryption',
     encryptionWarning:
@@ -738,6 +742,12 @@ export default function CapsuleCreatePage() {
             <a href="/verify/cid/demo" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300">
               <span>{t.advancedVerify}</span>
               <span className="text-xs text-zinc-500">{t.advancedVerifyNote}</span>
+            </a>
+          </li>
+          <li>
+            <a href="/verify/local" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300">
+              <span>{t.advancedLocalVerify}</span>
+              <span className="text-xs text-zinc-500">{t.advancedLocalVerifyNote}</span>
             </a>
           </li>
         </ul>
