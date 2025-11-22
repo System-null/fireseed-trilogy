@@ -1,48 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildOneClickCapsule } from "@/lib/capsuleBuilder";
-import { localZipAdapter } from "@/lib/storage";
+import { buildOneClickCapsule } from "../../../../../lib/capsuleBuilder";
+
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, scenario, body } = (await req.json()) ?? {};
+    const json = await req.json().catch(() => null);
 
-    if (
-      typeof title !== "string" ||
-      !title.trim() ||
-      typeof scenario !== "string" ||
-      !scenario.trim() ||
-      typeof body !== "string" ||
-      !body.trim()
-    ) {
+    if (!json || typeof json !== "object") {
       return NextResponse.json(
-        { error: "无效输入 / Invalid input" },
+        { error: "Invalid JSON body / 请求体不是合法 JSON" },
         { status: 400 }
       );
     }
 
-    const { capsule, meta, humanReadable, readmeText } = buildOneClickCapsule({
+    const { title, scenario, body } = json as {
+      title?: string;
+      scenario?: string;
+      body?: string;
+    };
+
+    if (!title || !scenario || !body || !title.trim() || !scenario.trim() || !body.trim()) {
+      return NextResponse.json(
+        { error: "缺少必要字段：title/scenario/body / Missing required fields: title/scenario/body." },
+        { status: 400 }
+      );
+    }
+
+    const capsuleResult = buildOneClickCapsule({
       title: title.trim(),
       scenario: scenario.trim(),
-      body: body.trim(),
+      body,
     });
 
-    const storageResult = await localZipAdapter.persist({
-      capsule,
-      meta,
-      humanReadable,
-      readmeText,
-    });
+    const { capsule, meta, humanReadable, readmeText } = capsuleResult;
 
-    return new NextResponse(storageResult.zipData, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="${storageResult.locator}"`,
-      },
-    });
-  } catch (error) {
     return NextResponse.json(
-      { error: "生成火种胶囊失败 / Failed to generate capsule" },
+      {
+        capsule,
+        meta,
+        humanReadable,
+        readmeText,
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("[apps/web api one-click] internal error:", err);
+    return NextResponse.json(
+      {
+        error:
+          "生成火种胶囊时服务器内部错误，请稍后重试 / Internal error while generating capsule.",
+      },
       { status: 500 }
     );
   }
