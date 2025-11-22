@@ -37,6 +37,9 @@
     "build": "npm run build --workspace @fireseed/web",
     "start": "npm run start --workspace @fireseed/web"
   },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
   "devDependencies": {
     "@ipld/car": "^5.2.4",
     "@ipld/dag-cbor": "8.0.1",
