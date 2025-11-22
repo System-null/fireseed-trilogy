@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     const {
       title,
       scenario,
+      primaryLanguage,
       mainBody,
       keyEventsText,
       principlesText,
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
     } = json as {
       title?: string;
       scenario?: string;
+      primaryLanguage?: string;
       mainBody?: string;
       keyEventsText?: string;
       principlesText?: string;
@@ -44,9 +46,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const lang = (primaryLanguage || "zh").toLowerCase();
+
     const capsuleResult = buildOneClickCapsule({
       title: title.trim(),
       scenario: scenario.trim(),
+      primaryLanguage: lang,
       mainBody: mainBody,
       keyEventsText,
       principlesText,
