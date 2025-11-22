@@ -28,7 +28,16 @@ export default function VerifyLocalPage() {
       setResult(parsed);
     } catch (e) {
       console.error(e);
-      setError(e instanceof Error ? e.message : '解析失败 / Failed to parse ZIP');
+      let message = e instanceof Error ? e.message : '';
+      if (message === 'meta.json not found') {
+        message = '未找到 meta.json / meta.json not found';
+      }
+      if (!message) {
+        message = '解析失败 / Failed to parse ZIP';
+      } else if (!message.includes('/')) {
+        message = `${message} / ${message}`;
+      }
+      setError(message);
       setResult(null);
       setDecryptedCapsule(null);
       setDecryptedMeta(null);
@@ -168,7 +177,7 @@ export default function VerifyLocalPage() {
 
     return (
       <div className="mt-6 space-y-3 rounded-xl border border-emerald-700/50 bg-emerald-950/20 p-4">
-        <h3 className="text-base font-semibold text-emerald-200">加密胶囊 · Encrypted capsule</h3>
+        <h3 className="text-base font-semibold text-emerald-200">加密胶囊 / Encrypted capsule</h3>
         <div className="space-y-2">
           <label className="block text-sm text-zinc-200" htmlFor="password">
             密码（可选）/ Password (optional)
@@ -195,7 +204,8 @@ export default function VerifyLocalPage() {
 
         {!capsule && (
           <p className="text-sm text-amber-300">
-            已识别为加密胶囊，但尚未解密。输入密码后可尝试解锁内容。
+            已识别为加密胶囊，但尚未解密。输入密码后可尝试解锁内容。 / Detected an encrypted capsule but it has not been
+            decrypted. Enter the password to unlock the content.
           </p>
         )}
 
@@ -211,18 +221,15 @@ export default function VerifyLocalPage() {
                   type="button"
                   onClick={handleExportDecrypted}
                   disabled={isExporting}
-                  className="inline-flex items-center rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-emerald-50 transition hover:border-emerald-200/70 hover:text-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
-                  style={{
-                    background: 'transparent',
-                  }}
+                  className="inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isExporting
                     ? '正在导出明文版本… / Exporting decrypted ZIP…'
                     : '导出明文版本 / Export decrypted ZIP'}
                 </button>
                 <p className="mt-2 text-xs text-emerald-200/70">
-                  导出明文版本会在本地生成一份未加密的 ZIP，请只在你信任的环境中保存和打开。
-                  Exporting a decrypted ZIP will create an unencrypted copy locally. Only save it in environments you fully trust.
+                  导出明文版本会在本地生成一份未加密的 ZIP，请只在你信任的环境中保存和打开。 / Exporting a decrypted ZIP will
+                  create an unencrypted copy locally. Only save it in environments you fully trust.
                 </p>
               </div>
             )}
@@ -261,7 +268,7 @@ export default function VerifyLocalPage() {
             onChange={onInputChange}
           />
           {selectedFile && (
-            <p className="text-xs text-emerald-300">已选择：{selectedFile.name}</p>
+            <p className="text-xs text-emerald-300">已选择 / Selected: {selectedFile.name}</p>
           )}
           {isParsing && <p className="text-xs text-amber-300">解析中… / Parsing…</p>}
           {error && <p className="text-xs text-red-400">{error}</p>}
