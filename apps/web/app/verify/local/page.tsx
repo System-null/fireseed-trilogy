@@ -4,7 +4,10 @@ import { useCallback, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import JSZip from 'jszip';
 
-import { parseCapsuleZip, type ParsedCapsuleZip } from '@/lib/capsuleZip';
+import {
+  parseCapsuleZip,
+  type ParsedCapsuleZip,
+} from '../../../lib/capsuleZip';
 
 export default function VerifyLocalPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
