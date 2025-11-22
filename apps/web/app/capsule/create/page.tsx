@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import JSZip from 'jszip';
 import { computeFireseedIndex } from '@/lib/fireseedIndex';
-import type { Scenario, OneClickPayload } from '@/lib/capsule/oneClick';
+import type { Scenario } from '@/lib/capsule/oneClick';
 
 const translations = {
   zh: {
@@ -327,14 +327,14 @@ export default function CapsuleCreatePage() {
       return;
     }
 
-    const payload: OneClickPayload = {
+    const payload = {
       title: form.title,
       audience: form.audience,
       scenario: form.scenario,
       language: form.language,
-      body: form.body,
-      keyMoments: form.keyMoments,
-      nonNegotiables: form.nonNegotiables,
+      mainBody: form.body,
+      keyEventsText: form.keyMoments,
+      principlesText: form.nonNegotiables,
       messageToFuture: form.messageToFuture,
       aiAssist: form.aiAssist,
       includeTechCapsule: form.includeTechCapsule,
