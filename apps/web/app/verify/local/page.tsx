@@ -1,11 +1,16 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import JSZip from 'jszip';
 
 import { localZipAdapter } from '../../../lib/storage/localZipAdapter';
 import { type ParsedCapsuleZip } from '../../../lib/capsuleZip';
+import {
+  getManifest,
+  upsertCapsule,
+} from '../../../lib/manifestStore';
+import { type FireseedManifestCapsuleEntry } from '../../../../packages/core/manifest/types';
 
 export default function VerifyLocalPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -16,6 +21,10 @@ export default function VerifyLocalPage() {
   const [decryptedCapsule, setDecryptedCapsule] = useState<any | null>(null);
   const [decryptedMeta, setDecryptedMeta] = useState<any | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCheckingManifest, setIsCheckingManifest] = useState(false);
+  const [isInManifest, setIsInManifest] = useState<boolean | null>(null);
+  const [manifestError, setManifestError] = useState<string | null>(null);
+  const [isSavingToManifest, setIsSavingToManifest] = useState(false);
 
   const loadCapsuleFromFile = useCallback(
     async (file: File, password?: string): Promise<ParsedCapsuleZip> => {
@@ -148,6 +157,118 @@ export default function VerifyLocalPage() {
     [handleFileSelected]
   );
 
+  const resolvedCapsuleId = useMemo(() => {
+    const meta = (result?.meta ?? decryptedMeta) as Record<string, unknown> | undefined;
+    if (!meta) return undefined;
+
+    return (
+      (meta.capsuleId as string | undefined) ??
+      (meta.capsuleID as string | undefined) ??
+      (meta.id as string | undefined) ??
+      result?.capsuleId
+    );
+  }, [decryptedMeta, result]);
+
+  useEffect(() => {
+    setManifestError(null);
+    if (!resolvedCapsuleId) {
+      setIsInManifest(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsCheckingManifest(true);
+
+    getManifest()
+      .then((manifest) => {
+        if (cancelled) return;
+        setIsInManifest(manifest.capsules.some((capsule) => capsule.capsuleId === resolvedCapsuleId));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setManifestError('读取实验室清单失败 / Failed to read manifest');
+        setIsInManifest(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsCheckingManifest(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedCapsuleId]);
+
+  const handleAddToManifest = useCallback(async () => {
+    const meta = (result?.meta ?? decryptedMeta ?? {}) as Record<string, unknown>;
+    const capsule = (result?.capsule ?? decryptedCapsule ?? {}) as Record<string, unknown>;
+
+    const capsuleId =
+      resolvedCapsuleId ??
+      (meta.capsuleId as string | undefined) ??
+      (meta.capsuleID as string | undefined) ??
+      (meta.id as string | undefined);
+
+    if (!capsuleId) {
+      setManifestError('缺少 capsuleId，无法加入清单 / Missing capsuleId, cannot add to manifest');
+      return;
+    }
+
+    const capsuleContent = (capsule?.content ?? {}) as Record<string, unknown>;
+    const capsuleMeta = (capsule?.meta ?? {}) as Record<string, unknown>;
+
+    const metaFireseedIndex = (meta as Record<string, unknown>).fireseedIndex as
+      | number
+      | { score?: number }
+      | undefined;
+    const fireseedIndex =
+      typeof metaFireseedIndex === 'number'
+        ? metaFireseedIndex
+        : typeof metaFireseedIndex === 'object'
+          ? metaFireseedIndex?.score
+          : undefined;
+
+    const entry: FireseedManifestCapsuleEntry = {
+      capsuleId,
+      title:
+        (meta.title as string | undefined) ??
+        (meta.humanReadableTitle as string | undefined) ??
+        (capsuleContent.title as string | undefined) ??
+        '未命名胶囊 / Untitled capsule',
+      createdAt:
+        (meta.createdAt as string | undefined) ??
+        (capsuleMeta.createdAt as string | undefined) ??
+        new Date().toISOString(),
+      scenario: (meta.scenario as string | undefined) ?? (capsuleMeta.scenario as string | undefined),
+      primaryLanguage:
+        (meta.primaryLanguage as string | undefined) ??
+        (capsule.primaryLanguage as string | undefined) ??
+        (capsuleContent.primaryLanguage as string | undefined),
+      encryption: result?.encryptionMode ?? 'none',
+      fireseedIndex,
+      replicas: [
+        {
+          adapterId: 'local-zip-import',
+          location: 'uploaded-zip://manual-import',
+          lastUpdatedAt: new Date().toISOString(),
+          notes: 'Added from /verify/local',
+        },
+      ],
+    };
+
+    setManifestError(null);
+    setIsSavingToManifest(true);
+    try {
+      await upsertCapsule(entry);
+      setIsInManifest(true);
+    } catch (err) {
+      console.error(err);
+      setManifestError('加入实验室清单失败 / Failed to add to manifest');
+    } finally {
+      setIsSavingToManifest(false);
+    }
+  }, [decryptedCapsule, decryptedMeta, resolvedCapsuleId, result]);
+
   const renderBasicInfo = () => {
     if (!result) return null;
 
@@ -255,6 +376,48 @@ export default function VerifyLocalPage() {
     );
   };
 
+  const renderManifestActions = () => {
+    if (!result) return null;
+
+    if (!resolvedCapsuleId) {
+      return (
+        <div className="mt-6 rounded-xl border border-amber-700/60 bg-amber-950/20 p-4 text-sm text-amber-100">
+          无法识别 capsuleId，暂时无法加入实验室清单。 / CapsuleId missing, cannot add to manifest for now.
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-6 space-y-3 rounded-xl border border-emerald-800/60 bg-emerald-950/20 p-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-base font-semibold text-emerald-200">实验室清单 / Lab manifest</h3>
+          <p className="text-xs text-emerald-200/80">capsuleId: {resolvedCapsuleId}</p>
+        </div>
+
+        {manifestError && <p className="text-xs text-red-400">{manifestError}</p>}
+
+        {isInManifest ? (
+          <p className="text-sm text-emerald-100">已在实验室清单中 / Already present in Lab manifest</p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAddToManifest}
+            disabled={isSavingToManifest || isCheckingManifest}
+            className="inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isSavingToManifest
+              ? '加入中… / Adding to manifest…'
+              : '加入实验室清单 / Add to Lab manifest'}
+          </button>
+        )}
+
+        {isCheckingManifest && (
+          <p className="text-xs text-emerald-200/70">检查清单中… / Checking manifest…</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-2xl font-bold text-white">本地 Fireseed 胶囊验证 / Local Fireseed Capsule Verification</h1>
@@ -295,6 +458,7 @@ export default function VerifyLocalPage() {
             <h2 className="text-lg font-semibold text-zinc-100">解析结果 / Parsed result</h2>
             {renderBasicInfo()}
             {renderDecryptionSection()}
+            {renderManifestActions()}
           </div>
         )}
       </div>
