@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import JSZip from "jszip";
 import { computeFireseedIndex, FireseedIndexResult } from '@/lib/fireseedIndex';
 import {
   registerPasskey,
@@ -64,8 +65,8 @@ export default function CapsuleCreatePage() {
   const [touched, setTouched] = useState(false);
   const [signLog, setSignLog] = useState<string>('尚未尝试签名。');
   const [isSigning, setIsSigning] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [fireseedIndex, setFireseedIndex] = useState<FireseedIndexResult | null>(
     null,
   );
@@ -115,54 +116,76 @@ export default function CapsuleCreatePage() {
     setForm(prev => ({ ...prev, [key]: value }));
   }
 
-  async function handleGenerate(e: React.FormEvent) {
-    e.preventDefault();
+  const handleGenerateCapsule = async () => {
     setTouched(true);
-    setError(null);
+    setGenerateError(null);
     if (!form.body.trim()) return;
 
     const computedIndex = computeFireseedIndex(form.body);
     setFireseedIndex(computedIndex);
-    setIsLoading(true);
+    setIsGenerating(true);
 
     try {
+      const payload = {
+        title: form.title,
+        scenario: form.scenario,
+        body: form.body,
+      };
+
       const res = await fetch('/api/capsule/one-click', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title,
-          scenario: form.scenario,
-          body: form.body,
-          aiAssist: false,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        await res.json();
-        setError(
-          '生成失败：服务器暂时不可用或输入不合法。你的文本不会被保存。/ Generation failed: server unavailable or input invalid. Your text is not stored.',
-        );
-        setIsLoading(false);
+        let message = '生成失败：服务器返回错误。';
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === 'string') {
+            message = `生成失败：${data.error}`;
+          }
+        } catch (_) {
+          // ignore json parse error
+        }
+        setGenerateError(message);
         return;
       }
 
-      const blob = await res.blob();
+      const data = (await res.json()) as {
+        capsule: any;
+        meta: any;
+        humanReadable: string;
+        readmeText: string;
+      };
+
+      const zip = new JSZip();
+      const folderName =
+        data.meta?.capsuleId ||
+        `fireseed-capsule-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      const folder = zip.folder(folderName)!;
+
+      folder.file('capsule.json', JSON.stringify(data.capsule, null, 2));
+      folder.file('meta.json', JSON.stringify(data.meta, null, 2));
+      folder.file('HUMAN_READABLE.md', data.humanReadable);
+      folder.file('README.txt', data.readmeText);
+
+      const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `fireseed-capsule-${Date.now()}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${folderName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(
-        '生成失败：服务器暂时不可用或输入不合法。你的文本不会被保存。/ Generation failed: server unavailable or input invalid. Your text is not stored.',
-      );
+    } catch (e) {
+      console.error('生成火种胶囊失败：', e);
+      setGenerateError('生成失败：网络或环境异常，请稍后重试。');
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
-  }
+  };
 
   function handleDownload() {
     if (!capsule || !capsuleJson) return;
@@ -283,7 +306,12 @@ export default function CapsuleCreatePage() {
 
       <section className="border rounded-lg p-4 mb-6 bg-white/80">
         <h2 className="font-medium mb-3">步骤 1：填写你的火种信息</h2>
-        <form onSubmit={handleGenerate} className="space-y-4">
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+          }}
+          className="space-y-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">
@@ -413,15 +441,16 @@ export default function CapsuleCreatePage() {
           </div>
 
           <button
-            type="submit"
+            type="button"
             className="mt-2 inline-flex items-center px-4 py-1.5 rounded bg-black text-white text-sm hover:bg-gray-800 disabled:opacity-50"
-            disabled={!form.body.trim() || isLoading}
+            disabled={!form.body.trim() || isGenerating}
+            onClick={handleGenerateCapsule}
           >
-            {isLoading ? '生成中 / Generating...' : '一键生成火种胶囊'}
+            {isGenerating ? '生成中...' : '一键生成火种胶囊'}
           </button>
-          {error && (
-            <p className="text-xs text-red-500 mt-1">
-              {error}
+          {generateError && (
+            <p className="text-sm text-red-400 mt-2">
+              {generateError}
             </p>
           )}
           {touched && !form.body.trim() && (
