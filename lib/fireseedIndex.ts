@@ -420,3 +420,7 @@ export function computeFireseedIndex(text: string): FireseedIndexResult {
     },
   };
 }
+
+export function calculateFireseedIndex(body: string): FireseedIndexResult {
+  return computeFireseedIndex(body);
+}
