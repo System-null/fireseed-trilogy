@@ -53,6 +53,25 @@ npm run dev
 - 在 `/keystore` 体验 WebAuthn + IndexedDB 的密钥管理 Demo；
 - 理解“签名前的数据长什么样，签名后得到什么 CID / 证明”。
 
+### 2.3 旧版静态生成器的 i18n 覆盖层
+
+`public/generator.html` 是旧版的纯静态生成器。如果你需要在 GitHub Pages 或其他静态托管环境保持语言切换功能，请按以下步骤处理：
+
+1. 确保 `public/lang/*.json` 和 `public/scripts/fireseed-i18n-overlay.v3.0.js` 位于仓库的 `public/` 目录下。
+2. 在页面 `</body>` 之前加入覆盖层脚本：
+
+   ```html
+   <script src="./scripts/fireseed-i18n-overlay.v3.0.js"></script>
+   ```
+
+3. 运行初始化补丁，插入非侵入式的 i18n 启动片段：
+
+   ```bash
+   bash patch_i18n_init.sh
+   ```
+
+4. 提交更新后的 `public/generator.html`（以及相关资源），推送后访问静态站点的 `/public/generator.html`，若遇到缓存请强制刷新。
+
 ---
 
 ## 3. Capsule 是什么？
