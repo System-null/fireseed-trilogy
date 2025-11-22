@@ -74,6 +74,28 @@ npm run dev
 
 ---
 
+## 当前里程碑：v0.3.0（Phase 1.5）
+
+当前仓库对应的工具版本为 **Fireseed Lab v0.3.0**，内部称为 **Phase 1.5**，主要实现了：
+
+- 本地优先的一键火种胶囊生成（`/capsule/create`）：
+  - 生成结构化的 `capsule.json`
+  - 附带 `meta.json`（包含 schema 版本、Fireseed 指数、toolVersion 等）
+  - 生成面向人的 `HUMAN_READABLE.md`（“罗塞塔石碑”层）
+  - 生成使用说明 `README.txt`（如何备份 / 风险提示）
+- 可选的密码加密：
+  - 使用 PBKDF2-SHA256 推导密钥
+  - 使用 AES-256-GCM 加密正文，密文保存为 `capsule.enc`
+  - 加密参数（盐值、IV、迭代次数、KDF 类型）写入 `meta.json`
+- 本地验证与解密工具（`/verify/local`）：
+  - 在浏览器本地检查 ZIP 结构、schema 版本、胶囊 ID、加密模式
+  - 在本地完成密码解密，不上传任何内容
+  - 支持导出“解密版”胶囊 ZIP（包含明文 `capsule.json`）
+
+当前 **FireseedCapsule 的 schema 仍处于 0.2.x 系列**，本次改动只是在兼容前提下新增字段和能力，尚未进行破坏性结构调整。Phase 2+（远程存储、多副本同步等）尚未实现。
+
+---
+
 ## 3. Capsule 是什么？
 
 简单理解：

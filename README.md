@@ -76,6 +76,19 @@ The legacy static generator lives at `public/generator.html`. To keep its langua
 
 ---
 
+## Current milestone — v0.3.0 (Phase 1.5)
+
+The current tagged state of this repo corresponds to **Fireseed Lab v0.3.0**, also referred to as **Phase 1.5**:
+
+- Local-first, one-click Fireseed capsule generation
+- Optional password-based encryption (PBKDF2 + AES-256-GCM)
+- Local verification and decryption via `/verify/local`
+- Ability to export a decrypted capsule ZIP (plaintext `capsule.json`)
+
+The underlying **FireseedCapsule schema** remains in the `0.2.x` line: evolution in this release is additive and backwards-compatible. Phase 2+ (remote storage, multi-replica syncing, etc.) is planned but not yet implemented.
+
+---
+
 ## Fireseed Capsule（Phase 1：本地实验版）
 ## Fireseed Capsule (Phase 1: Local Experimental MVP)
 
