@@ -4,10 +4,8 @@ import { useCallback, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import JSZip from 'jszip';
 
-import {
-  parseCapsuleZip,
-  type ParsedCapsuleZip,
-} from '../../../lib/capsuleZip';
+import { localZipAdapter } from '../../../lib/storage/localZipAdapter';
+import { type ParsedCapsuleZip } from '../../../lib/capsuleZip';
 
 export default function VerifyLocalPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -19,6 +17,21 @@ export default function VerifyLocalPage() {
   const [decryptedMeta, setDecryptedMeta] = useState<any | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  const loadCapsuleFromFile = useCallback(
+    async (file: File, password?: string): Promise<ParsedCapsuleZip> => {
+      if (!localZipAdapter.loadCapsule) {
+        throw new Error('Local ZIP adapter does not support loading capsules');
+      }
+
+      const loaded = await localZipAdapter.loadCapsule('local', { file, password });
+      if (!loaded) {
+        throw new Error('解析失败 / Failed to parse ZIP');
+      }
+      return loaded as ParsedCapsuleZip;
+    },
+    []
+  );
+
   const handleFileSelected = useCallback(async (file: File) => {
     setSelectedFile(file);
     setIsParsing(true);
@@ -27,7 +40,7 @@ export default function VerifyLocalPage() {
     setDecryptedMeta(null);
 
     try {
-      const parsed = await parseCapsuleZip(file);
+      const parsed = await loadCapsuleFromFile(file);
       setResult(parsed);
     } catch (e) {
       console.error(e);
@@ -62,7 +75,7 @@ export default function VerifyLocalPage() {
     setError(null);
 
     try {
-      const parsed = await parseCapsuleZip(selectedFile, password.trim());
+      const parsed = await loadCapsuleFromFile(selectedFile, password.trim());
       setResult(parsed);
       setDecryptedCapsule(parsed.capsule ?? null);
       setDecryptedMeta(parsed.meta ?? null);

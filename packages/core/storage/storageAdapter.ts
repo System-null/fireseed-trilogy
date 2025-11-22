@@ -5,5 +5,5 @@ export interface StorageAdapter {
   label: string;
   kind: "browser" | "node" | "hybrid";
   saveCapsule(capsuleId: string, files: CapsuleFiles): Promise<StorageResult>;
-  loadCapsule?(capsuleId: string): Promise<CapsuleFiles | null>;
+  loadCapsule?(capsuleId: string, context?: unknown): Promise<CapsuleFiles | null>;
 }
