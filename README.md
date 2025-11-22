@@ -76,6 +76,18 @@ The legacy static generator lives at `public/generator.html`. To keep its langua
 
 ---
 
+## Fireseed Lab (Phase 2.0 preview)
+
+The repository now exposes Phase 2.0 building blocks:
+
+- One-click local capsule generation via `/capsule/create`.
+- Local verification and decryption via `/verify/local`.
+- A Fireseed Lab view at `/lab` that lists capsules known to your local **FireseedManifest**, with export/import for the manifest itself.
+
+The **FireseedManifest** acts as a local index for capsules and the basis for managing multiple replicas in future adapters.
+
+---
+
 ## Current milestone — v0.3.0 (Phase 1.5)
 
 The current tagged state of this repo corresponds to **Fireseed Lab v0.3.0**, also referred to as **Phase 1.5**:
