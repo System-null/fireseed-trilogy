@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildOneClickCapsule } from "../../../../../lib/capsuleBuilder";
+import { buildOneClickCapsule } from "../../../../../../lib/capsuleBuilder";
 
 export const runtime = "nodejs";
 
