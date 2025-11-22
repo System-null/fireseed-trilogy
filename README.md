@@ -55,9 +55,28 @@ In the browser you can:
 - Use the keystore demo to test WebAuthn + IndexedDB fallback.
 - Inspect how a capsule is structured before signing.
 
+### 2.3 Legacy static generator i18n overlay
+
+The legacy static generator lives at `public/generator.html`. To keep its language switch working when served from GitHub Pages or another static host:
+
+1. Make sure `public/lang/*.json` and `public/scripts/fireseed-i18n-overlay.v3.0.js` are present in your `public/` directory.
+2. Before `</body>`, include the overlay script tag:
+
+   ```html
+   <script src="./scripts/fireseed-i18n-overlay.v3.0.js"></script>
+   ```
+
+3. Run the init patch to insert the non-intrusive i18n bootstrap snippet:
+
+   ```bash
+   bash patch_i18n_init.sh
+   ```
+
+4. Commit the resulting `public/generator.html` (and any updated assets), push, and open `/public/generator.html` on your static host. If the page was cached, force refresh.
+
 ---
 
-## Fireseed Capsule（Phase 1：本地实验版）  
+## Fireseed Capsule（Phase 1：本地实验版）
 ## Fireseed Capsule (Phase 1: Local Experimental MVP)
 
 - 当前支持 / Currently supports:
