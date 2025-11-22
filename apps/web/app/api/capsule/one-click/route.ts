@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       title: title.trim(),
       scenario: scenario.trim(),
       primaryLanguage: lang,
-      mainBody: mainBody,
+      mainBody,
       keyEventsText,
       principlesText,
       messageToFuture,
