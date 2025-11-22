@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildOneClickCapsule } from "../../../../../../lib/capsuleBuilder";
+import type { CapsuleFiles } from "../../../../../packages/core/storage/types";
+import { localZipAdapter } from "../../../../lib/storage/localZipAdapter";
 
 export const runtime = "nodejs";
 
@@ -60,15 +62,37 @@ export async function POST(req: NextRequest) {
 
     const { capsule, meta, humanReadable, readmeText } = capsuleResult;
 
-    return NextResponse.json(
-      {
-        capsule,
-        meta,
-        humanReadable,
-        readmeText,
+    const capsuleId = meta?.capsuleId ?? "fireseed-capsule";
+    const files: CapsuleFiles = {
+      capsuleJson: JSON.stringify(capsule, null, 2),
+      metaJson: JSON.stringify(meta, null, 2),
+      humanReadable,
+      readme: readmeText,
+    };
+
+    const storageResult = await localZipAdapter.saveCapsule(capsuleId, files);
+    const zipData = storageResult.extra?.zipData as
+      | Uint8Array
+      | ArrayBuffer
+      | Blob
+      | undefined;
+
+    if (!zipData) {
+      throw new Error("ZIP data missing from storage adapter result");
+    }
+
+    const responseBody =
+      zipData instanceof Blob
+        ? await zipData.arrayBuffer()
+        : zipData;
+
+    return new NextResponse(responseBody, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="fireseed-capsule-${capsuleId}.zip"`,
       },
-      { status: 200 }
-    );
+    });
   } catch (err) {
     console.error("[apps/web api one-click] internal error:", err);
     return NextResponse.json(

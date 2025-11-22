@@ -1,6 +1,6 @@
 import JSZip from "jszip";
-import type { CapsuleFiles } from "../packages/core/storage/types";
-import { decryptJsonWithPassword } from "./encryption";
+import { decryptJsonWithPassword } from "../../../lib/encryption";
+import type { CapsuleFiles } from "../../../packages/core/storage/types";
 
 export type ParsedCapsuleZip = {
   meta: Record<string, unknown>;
@@ -23,6 +23,59 @@ function findFirstFileBySuffix(zip: JSZip, suffix: string): JSZip.JSZipObject | 
   }
 
   return null;
+}
+
+function decodeMeta(metaJson: CapsuleFiles["metaJson"]): string | undefined {
+  if (typeof metaJson === "string") return metaJson;
+  if (metaJson instanceof Uint8Array) return new TextDecoder().decode(metaJson);
+  return undefined;
+}
+
+export async function createCapsuleZip(
+  files: CapsuleFiles,
+  options?: { capsuleId?: string }
+): Promise<Uint8Array | Blob> {
+  const zip = new JSZip();
+
+  const metaText = decodeMeta(files.metaJson);
+  let folderId = options?.capsuleId;
+
+  if (!folderId && metaText) {
+    try {
+      const parsed = JSON.parse(metaText) as { capsuleId?: string; capsuleID?: string };
+      folderId = parsed.capsuleId ?? parsed.capsuleID;
+    } catch (error) {
+      // ignore parse errors, fallback to default folder name
+    }
+  }
+
+  const folderName = folderId ? `fireseed-capsule-${folderId}` : "fireseed-capsule";
+  const folder = zip.folder(folderName) ?? zip;
+
+  const addFile = (name: string, content?: CapsuleFiles[keyof CapsuleFiles]) => {
+    if (content === undefined) return;
+    folder.file(name, content as string | Uint8Array);
+  };
+
+  addFile("capsule.json", files.capsuleJson);
+  addFile("meta.json", files.metaJson);
+  addFile("HUMAN_READABLE.md", files.humanReadable);
+  addFile("README.txt", files.readme);
+
+  if (files.encryptedBlob) {
+    addFile("capsule.enc", files.encryptedBlob);
+  }
+
+  if (files.files) {
+    for (const [path, content] of Object.entries(files.files)) {
+      addFile(path, content);
+    }
+  }
+
+  const isBrowser = typeof window !== "undefined";
+  const zipType = isBrowser && typeof Blob !== "undefined" ? "blob" : "uint8array";
+
+  return zip.generateAsync({ type: zipType as "blob" | "uint8array" });
 }
 
 export async function parseCapsuleZip(file: File, password?: string): Promise<ParsedCapsuleZip> {
