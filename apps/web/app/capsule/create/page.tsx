@@ -251,10 +251,10 @@ export default function CapsuleCreatePage() {
 
   const [form, setForm] = useState<CapsuleFormState>(defaultState);
   const [touched, setTouched] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<ProgressStep[]>(baseSteps);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ApiSuccess | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [capsuleResult, setCapsuleResult] = useState<ApiSuccess | null>(null);
 
   useEffect(() => {
     setProgress(prev =>
@@ -275,9 +275,31 @@ export default function CapsuleCreatePage() {
   }, [form.body]);
 
   const capsuleJson = useMemo(() => {
-    if (!result) return '';
-    return JSON.stringify(result.capsule, null, 2);
-  }, [result]);
+    if (!capsuleResult) return '';
+    return JSON.stringify(capsuleResult.capsule, null, 2);
+  }, [capsuleResult]);
+
+  const serverFireseedIndex = useMemo(() => {
+    if (!capsuleResult) return null;
+
+    const metaIndex =
+      capsuleResult.meta?.fireseedIndexScore ?? capsuleResult.meta?.fireseedIndex?.score ?? null;
+
+    const capsuleMetaIndexRaw = capsuleResult.capsule?.meta?.fireseedIndex;
+    const capsuleMetaIndexScore =
+      typeof capsuleMetaIndexRaw === 'number'
+        ? capsuleMetaIndexRaw
+        : capsuleResult.capsule?.meta?.fireseedIndex?.score;
+
+    return metaIndex ?? capsuleMetaIndexScore ?? capsuleResult.capsule?.meta?.fireseedIndexScore ?? null;
+  }, [capsuleResult]);
+
+  const displayFireseedIndex = useMemo(() => {
+    if (serverFireseedIndex != null) return serverFireseedIndex;
+    return (
+      capsuleResult?.indexResult?.index ?? capsuleResult?.indexResult?.score ?? localIndex.score ?? 0
+    );
+  }, [capsuleResult, localIndex.score, serverFireseedIndex]);
 
   function update<K extends keyof CapsuleFormState>(key: K, value: CapsuleFormState[K]) {
     setTouched(true);
@@ -292,38 +314,14 @@ export default function CapsuleCreatePage() {
     setProgress(prev => prev.map(step => (step.key === target ? { ...step, status } : step)));
   }
 
-  async function generateZipAndDownload(data: ApiSuccess) {
-    const zip = new JSZip();
-    const folderName =
-      data.meta?.capsuleId ||
-      data.capsule?.id ||
-      `fireseed-capsule-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-    const folder = zip.folder(folderName)!;
-
-    folder.file('capsule.json', JSON.stringify(data.capsule ?? {}, null, 2));
-    if (data.meta) folder.file('meta.json', JSON.stringify(data.meta, null, 2));
-    if (data.humanReadable) folder.file('HUMAN_READABLE.md', data.humanReadable);
-    if (data.readmeText) folder.file('README.txt', data.readmeText);
-
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${folderName}.zip`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setTouched(true);
-    setError(null);
-    setResult(null);
+    setGenerateError(null);
+    setCapsuleResult(null);
 
     if (!form.body.trim()) {
-      setError(t.errorBodyRequired);
+      setGenerateError(t.errorBodyRequired);
       return;
     }
 
@@ -341,7 +339,7 @@ export default function CapsuleCreatePage() {
     };
 
     try {
-      setIsSubmitting(true);
+      setIsGenerating(true);
       resetProgress();
       setStepStatus('prepare', 'active');
 
@@ -351,9 +349,6 @@ export default function CapsuleCreatePage() {
         body: JSON.stringify(payload),
       });
 
-      setStepStatus('prepare', 'done');
-      setStepStatus('score', 'active');
-
       let json: ApiSuccess & { error?: string };
       try {
         json = await response.json();
@@ -361,32 +356,54 @@ export default function CapsuleCreatePage() {
         throw new Error(t.errorGeneric);
       }
 
-      setStepStatus('score', 'done');
-      setStepStatus('package', 'active');
-
       if (!response.ok || !json || !json.capsule) {
         const msg = json?.error || t.errorGeneric;
         throw new Error(msg);
       }
 
-      setResult(json);
-      await generateZipAndDownload(json);
+      setStepStatus('prepare', 'done');
+      setStepStatus('score', 'active');
+      setCapsuleResult(json);
+      setStepStatus('score', 'done');
+      setStepStatus('package', 'active');
       setStepStatus('package', 'done');
     } catch (err) {
       const message = err instanceof Error ? err.message : t.errorGeneric;
-      setError(message);
+      setGenerateError(message);
       resetProgress();
     } finally {
-      setIsSubmitting(false);
+      setIsGenerating(false);
     }
   }
 
   async function handleDownloadZip() {
-    if (!result) return;
+    if (!capsuleResult) return;
     try {
-      await generateZipAndDownload(result);
+      const { capsule, meta, humanReadable, readmeText } = capsuleResult;
+
+      const zip = new JSZip();
+      const folderName =
+        meta?.capsuleId ||
+        capsule?.id ||
+        `fireseed-capsule-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      const folder = zip.folder(folderName)!;
+
+      folder.file('capsule.json', JSON.stringify(capsule ?? {}, null, 2));
+      if (meta) folder.file('meta.json', JSON.stringify(meta, null, 2));
+      if (humanReadable) folder.file('HUMAN_READABLE.md', humanReadable);
+      if (readmeText) folder.file('README.txt', readmeText);
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${folderName}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
-      setError(t.errorDownload);
+      setGenerateError(t.errorDownload);
     }
   }
   const scenarioLabels = useMemo(
@@ -523,11 +540,11 @@ export default function CapsuleCreatePage() {
             </label>
           </div>
 
-          <button type="submit" className="wizard-submit" disabled={isSubmitting}>
-            {isSubmitting ? t.buttonGenerating : t.buttonGenerate}
+          <button type="submit" className="wizard-submit" disabled={isGenerating || !form.body.trim()}>
+            {isGenerating ? t.buttonGenerating : t.buttonGenerate}
           </button>
           {touched && !form.body.trim() && <p className="wizard-error">{t.errorFormHint}</p>}
-          {error && <p className="wizard-error">{error}</p>}
+          {generateError && <p className="wizard-error">{generateError}</p>}
         </form>
       </section>
 
@@ -547,18 +564,19 @@ export default function CapsuleCreatePage() {
 
       <section className="wizard-card">
         <h2>{t.step3}</h2>
-        {!result && <p className="wizard-placeholder">{t.resultDesc}</p>}
-        {result && (
+        {!capsuleResult && <p className="wizard-placeholder">{t.resultDesc}</p>}
+        {capsuleResult && (
           <div className="wizard-result">
             <div className="wizard-result-card">
               <h3>{t.resultScoreTitle}</h3>
               <div className="wizard-score">
-                {(result.indexResult?.index ?? result.indexResult?.score ?? localIndex.score) || 0} /
-                100
+                {serverFireseedIndex != null
+                  ? `${serverFireseedIndex} / 100`
+                  : `${displayFireseedIndex} / 100`}
               </div>
-              <p>{result.indexResult?.discoveryProbability || '-'}</p>
+              <p>{capsuleResult.indexResult?.discoveryProbability || '-'}</p>
               <ul>
-                {Object.entries(result.indexResult?.diagnostics ?? {}).map(([key, value]) => (
+                {Object.entries(capsuleResult.indexResult?.diagnostics ?? {}).map(([key, value]) => (
                   <li key={key}>
                     <strong>{key}</strong>
                     <span>{typeof value === 'number' ? value.toString() : value}</span>
@@ -569,29 +587,34 @@ export default function CapsuleCreatePage() {
             <div className="wizard-result-card">
               <h3>{t.resultInfoTitle}</h3>
               <p>
-                ID：<code>{result.capsule?.id || '—'}</code>
+                ID：<code>{capsuleResult.capsule?.id || '—'}</code>
               </p>
               <p>
                 {t.resultScenario}
-                {scenarioLabel(result.capsule?.meta?.scenario)} ｜ {t.resultLanguage}
-                {result.capsule?.meta?.language === 'zh' ? t.langZh : t.langEn}
+                {scenarioLabel(capsuleResult.capsule?.meta?.scenario)} ｜ {t.resultLanguage}
+                {capsuleResult.capsule?.meta?.language === 'zh' ? t.langZh : t.langEn}
               </p>
               <p>
                 {t.resultWordCount}{' '}
-                {result.capsule?.meta?.wordCount ??
-                  result.indexResult?.detail?.raw?.wordCount ??
+                {capsuleResult.capsule?.meta?.wordCount ??
+                  capsuleResult.indexResult?.detail?.raw?.wordCount ??
                   localIndex.detail.raw.wordCount}{' '}
                 {lang === 'zh' ? '字' : 'words'}
               </p>
-              <button type="button" onClick={handleDownloadZip} className="wizard-download">
+              <button
+                type="button"
+                onClick={handleDownloadZip}
+                className="wizard-download"
+                disabled={!capsuleResult}
+              >
                 {t.downloadZip}
               </button>
             </div>
               <div className="wizard-result-card">
                 <h3>{t.resultExplainTitle}</h3>
-              <p>{result.explain?.summary || '-'}</p>
+              <p>{capsuleResult.explain?.summary || '-'}</p>
               <ul>
-                {(result.explain?.recommendedActions ?? []).map(action => (
+                {(capsuleResult.explain?.recommendedActions ?? []).map(action => (
                   <li key={action}>{action}</li>
                 ))}
               </ul>
