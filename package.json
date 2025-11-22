@@ -1,6 +1,6 @@
 {
   "name": "fireseed-trilogy",
-  "version": "0.2.7c",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Machine-readable civilization interface schemas, generators, and docs.",

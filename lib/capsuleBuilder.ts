@@ -24,6 +24,7 @@ export interface OneClickCapsuleOutput {
     primaryLanguage: string;
     fireseedIndex: FireseedIndexResult;
     encryption: EncryptionMode;
+    toolVersion: string;
   };
   humanReadable: string; // HUMAN_READABLE.md 内容（中英双语）
   readmeText: string; // README.txt 内容（中英双语）
@@ -33,6 +34,9 @@ export function buildOneClickCapsule(
   input: OneClickCapsuleInput
 ): OneClickCapsuleOutput {
   const schemaVersion = "0.2.9";
+  const toolVersion = "Fireseed Lab v0.3.0";
+  const toolVersionNote =
+    "(Phase 1.5：本地加密 + 本地验证 + 导出明文 ZIP / Phase 1.5 – local encryption, local verification, decrypted export)";
   const createdAt = new Date().toISOString();
   const generatedAt = createdAt;
   const encryption: EncryptionMode = "none";
@@ -118,6 +122,7 @@ export function buildOneClickCapsule(
     primaryLanguage,
     fireseedIndex: { score, detail },
     encryption,
+    toolVersion,
   };
 
   const humanReadable = `# Fireseed Capsule · 人类可读视图 / Human-Readable View
@@ -126,6 +131,7 @@ export function buildOneClickCapsule(
 场景 / Scenario: ${scenario}
 生成时间 / Generated At: ${generatedAt}
 Schema 版本 / Schema Version: FireseedCapsule v${schemaVersion}
+工具版本 / Tool Version: ${toolVersion} ${toolVersionNote}
 
 ---
 
@@ -210,7 +216,7 @@ What this is:
 
 - 生成时间 / Generated At: ${generatedAt}
 - Schema 版本 / Schema Version: FireseedCapsule v${schemaVersion}
-- 工具版本 / Tool Version: fireseed-lab (placeholder)
+- 工具版本 / Tool Version: ${toolVersion} ${toolVersionNote}
 
 存储与加密 / Storage & Encryption
 
