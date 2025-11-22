@@ -1,11 +1,13 @@
 import JSZip from "jszip";
+import type { CapsuleFiles } from "../packages/core/storage/types";
 import { decryptJsonWithPassword } from "./encryption";
 
 export type ParsedCapsuleZip = {
-  meta: any;
-  capsule?: any;
+  meta: Record<string, unknown>;
+  capsule?: Record<string, unknown>;
   encryptionMode: "none" | "aes-256-gcm";
   hasHumanReadable: boolean;
+  encryptedBlob?: CapsuleFiles["encryptedBlob"];
 };
 
 function findFirstFileBySuffix(zip: JSZip, suffix: string): JSZip.JSZipObject | null {
@@ -31,10 +33,10 @@ export async function parseCapsuleZip(file: File, password?: string): Promise<Pa
     throw new Error("meta.json not found");
   }
 
-  let meta: any;
+  let meta: Record<string, unknown>;
   try {
     const metaText = await metaEntry.async("string");
-    meta = JSON.parse(metaText);
+    meta = JSON.parse(metaText) as Record<string, unknown>;
   } catch (error) {
     throw new Error("meta.json is not valid JSON");
   }
@@ -51,7 +53,7 @@ export async function parseCapsuleZip(file: File, password?: string): Promise<Pa
 
     try {
       const capsuleText = await capsuleEntry.async("string");
-      const capsule = JSON.parse(capsuleText);
+      const capsule = JSON.parse(capsuleText) as Record<string, unknown>;
       return { meta, capsule, encryptionMode: "none", hasHumanReadable };
     } catch (error) {
       throw new Error("capsule.json is not valid JSON");
@@ -76,11 +78,15 @@ export async function parseCapsuleZip(file: File, password?: string): Promise<Pa
     }
 
     const cipherBytes = new Uint8Array(await capsuleEntry.async("uint8array"));
-    let capsule: any | undefined;
+    let capsule: Record<string, unknown> | undefined;
 
     if (password) {
       try {
-        capsule = await decryptJsonWithPassword(cipherBytes, password, encryptionParams);
+        capsule = (await decryptJsonWithPassword(
+          cipherBytes,
+          password,
+          encryptionParams
+        )) as Record<string, unknown>;
       } catch (error) {
         throw new Error("decryption failed");
       }
