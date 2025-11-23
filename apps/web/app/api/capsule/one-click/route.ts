@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildOneClickCapsule } from "../../../../../../lib/capsuleBuilder";
 import { computeFireseedIndex } from "../../../../../../lib/fireseedIndex";
+import { encryptJsonWithPassword } from "../../../../../../lib/encryption";
 import { buildFireseedIndexText } from "@/apps/web/lib/buildIndexText";
 import type { CapsuleFiles } from "../../../../../packages/core/storage/types";
 import { localZipAdapter } from "../../../../lib/storage/localZipAdapter";
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
       keyEventsText,
       principlesText,
       messageToFuture,
+      password,
     } = json as {
       title?: string;
       scenario?: string;
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest) {
       keyEventsText?: string;
       principlesText?: string;
       messageToFuture?: string;
+      password?: string;
     };
 
     if (
@@ -70,21 +73,45 @@ export async function POST(req: NextRequest) {
       messageToFuture,
     });
 
-    const { capsule, meta, humanReadable, readmeText, encryptedCapsule } =
-      capsuleResult;
+    const { capsule, meta, humanReadable, readmeText } = capsuleResult;
+    const trimmedPassword = typeof password === "string" ? password.trim() : "";
+    const encryption = trimmedPassword ? "aes-256-gcm" : "none";
 
-    const capsuleId = meta?.capsuleId ?? "fireseed-capsule";
+    const updatedMeta = { ...meta, encryption } as Record<string, any>;
+    const updatedCapsule = {
+      ...capsule,
+      meta: {
+        ...(capsule?.meta ?? {}),
+        encryption,
+      },
+    } as Record<string, any>;
+
+    const capsuleJsonString = JSON.stringify(updatedCapsule, null, 2);
+
     const files: CapsuleFiles = {
-      metaJson: JSON.stringify(meta, null, 2),
+      metaJson: JSON.stringify(updatedMeta, null, 2),
       humanReadable,
       readme: readmeText,
     };
 
-    if (encryptedCapsule) {
-      files.encryptedCapsule = encryptedCapsule;
+    if (encryption === "aes-256-gcm") {
+      const encrypted = await encryptJsonWithPassword(updatedCapsule, trimmedPassword);
+      const encryptionParams = {
+        salt: encrypted.salt,
+        iv: encrypted.iv,
+        iterations: encrypted.iterations,
+        kdf: encrypted.kdf,
+      };
+
+      updatedMeta.encryptionParams = encryptionParams;
+      updatedCapsule.meta.encryptionParams = encryptionParams;
+      files.metaJson = JSON.stringify(updatedMeta, null, 2);
+      files.encryptedBlob = encrypted.cipher;
     } else {
-      files.capsuleJson = JSON.stringify(capsule, null, 2);
+      files.capsuleJson = capsuleJsonString;
     }
+
+    const capsuleId = updatedMeta?.capsuleId ?? meta?.capsuleId ?? "fireseed-capsule";
 
     const storageResult = await localZipAdapter.saveCapsule(capsuleId, files);
     const zipBytes = (storageResult.extra as any)?.zipData as
@@ -102,12 +129,12 @@ export async function POST(req: NextRequest) {
       {
         ok: true,
         capsuleId,
-        capsuleMeta: meta,
+        capsuleMeta: updatedMeta,
         fireseedIndex: fireseedIndex ?? null,
         fireseedIndexDetail: fireseedIndex?.detail ?? null,
         zipBase64,
-        capsule,
-        meta: { ...meta, fireseedIndex },
+        capsule: updatedCapsule,
+        meta: { ...updatedMeta, fireseedIndex },
         humanReadable,
         readmeText,
       },
