@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildOneClickCapsule } from "../../../../../../lib/capsuleBuilder";
+import type { FireseedIndexResult } from "../../../../../../lib/fireseedIndex";
 import type { CapsuleFiles } from "../../../../../packages/core/storage/types";
 import { localZipAdapter } from "../../../../lib/storage/localZipAdapter";
 
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     if (!json || typeof json !== "object") {
       return NextResponse.json(
-        { error: "Invalid JSON body / 请求体不是合法 JSON" },
+        { ok: false, error: "Invalid JSON body / 请求体不是合法 JSON" },
         { status: 400 }
       );
     }
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
       !mainBody.trim()
     ) {
       return NextResponse.json(
-        { error: "缺少必要字段：title/scenario/mainBody" },
+        { ok: false, error: "缺少必要字段：title/scenario/mainBody" },
         { status: 400 }
       );
     }
@@ -71,33 +72,39 @@ export async function POST(req: NextRequest) {
     };
 
     const storageResult = await localZipAdapter.saveCapsule(capsuleId, files);
-    const zipData = storageResult.extra?.zipData as
-      | Uint8Array
-      | ArrayBuffer
-      | Blob
-      | undefined;
 
-    if (!zipData) {
-      throw new Error("ZIP data missing from storage adapter result");
-    }
+    const fireseedIndex: FireseedIndexResult | undefined = meta?.fireseedIndex;
+    const downloadPath =
+      storageResult.downloadUrl ??
+      storageResult.location ??
+      (typeof storageResult.extra?.downloadPath === "string"
+        ? storageResult.extra.downloadPath
+        : null);
 
-    const responseBody =
-      zipData instanceof Blob
-        ? await zipData.arrayBuffer()
-        : zipData;
-
-    return new NextResponse(responseBody, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="fireseed-capsule-${capsuleId}.zip"`,
-      },
-    });
-  } catch (err) {
-    console.error("[apps/web api one-click] internal error:", err);
     return NextResponse.json(
       {
+        ok: true,
+        capsuleId,
+        fireseedIndex: fireseedIndex ?? null,
+        downloadPath: downloadPath ?? null,
+        capsule,
+        meta,
+        humanReadable,
+        readmeText,
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("[apps/web api one-click] internal error:", err);
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Unknown error during capsule generation.";
+    return NextResponse.json(
+      {
+        ok: false,
         error:
+          message ||
           "生成火种胶囊时服务器内部错误，请稍后重试 / Internal error while generating capsule.",
       },
       { status: 500 }

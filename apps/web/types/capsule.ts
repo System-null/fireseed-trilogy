@@ -13,6 +13,11 @@ export interface CapsuleExplainStep {
 }
 
 export interface OneClickApiResponse {
+  ok?: boolean;
+  capsuleId?: string;
+  fireseedIndex?: { score: number; detail: Record<string, any> };
+  downloadPath?: string | null;
+  error?: string;
   capsule: {
     id?: string;
     meta?: {
