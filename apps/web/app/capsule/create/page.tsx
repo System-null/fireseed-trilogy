@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import JSZip from 'jszip';
 import { computeFireseedIndex } from '@/lib/fireseedIndex';
+import type { FireseedIndexResult } from '@/lib/fireseedIndex';
 import type { Scenario } from '@/lib/capsule/oneClick';
 import type { FireseedManifestCapsuleEntry } from '@/packages/core/manifest/types';
 import { upsertCapsule } from '../../../lib/manifestStore';
@@ -241,6 +242,9 @@ export default function CapsuleCreatePage() {
   const [progress, setProgress] = useState<ProgressStep[]>(baseSteps);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [capsuleResult, setCapsuleResult] = useState<OneClickApiResponse | null>(null);
+  const [serverIndex, setServerIndex] = useState<FireseedIndexResult | null>(null);
+  const [capsuleId, setCapsuleId] = useState<string | null>(null);
+  const [downloadPath, setDownloadPath] = useState<string | null>(null);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [encryptionPassword, setEncryptionPassword] = useState('');
   const [encryptionError, setEncryptionError] = useState<string | null>(null);
@@ -266,18 +270,6 @@ export default function CapsuleCreatePage() {
   const capsuleJson = useMemo(() => {
     if (!capsuleResult) return '';
     return JSON.stringify(capsuleResult.capsule, null, 2);
-  }, [capsuleResult]);
-
-  const serverIndex = useMemo(() => {
-    if (!capsuleResult) return null;
-
-    return (
-      capsuleResult.meta?.fireseedIndexScore ??
-      capsuleResult.meta?.fireseedIndex?.score ??
-      capsuleResult.capsule?.meta?.fireseedIndexScore ??
-      capsuleResult.capsule?.meta?.fireseedIndex?.score ??
-      null
-    );
   }, [capsuleResult]);
 
   const isEncryptionPasswordValid = encryptionPassword.trim().length >= 8;
@@ -355,6 +347,9 @@ export default function CapsuleCreatePage() {
     setTouched(true);
     setGenerateError(null);
     setCapsuleResult(null);
+    setServerIndex(null);
+    setCapsuleId(null);
+    setDownloadPath(null);
     setEncryptionError(null);
 
     if (!form.body.trim()) {
@@ -386,21 +381,33 @@ export default function CapsuleCreatePage() {
         body: JSON.stringify(payload),
       });
 
-      let json: OneClickApiResponse & { error?: string };
-      try {
-        json = await response.json();
-      } catch (parseError) {
-        throw new Error(t.errorGeneric);
-      }
+      const json = await response
+        .json()
+        .catch(err => {
+          console.error('[one-click] failed to parse JSON:', err);
+          throw new Error('服务器返回了无法解析的响应。');
+        });
 
-      if (!response.ok || !json || !json.capsule) {
+      if (!response.ok || !json?.ok) {
         const msg = json?.error || t.errorGeneric;
-        throw new Error(msg);
+        setGenerateError(msg);
+        console.error('[one-click] server error payload:', json);
+        resetProgress();
+        return;
       }
 
       setStepStatus('prepare', 'done');
       setStepStatus('score', 'active');
       setCapsuleResult(json);
+      setServerIndex(json.fireseedIndex ?? json.meta?.fireseedIndex ?? null);
+      setCapsuleId(
+        json.capsuleId ??
+          json.meta?.capsuleId ??
+          json.capsule?.meta?.capsuleId ??
+          json.capsule?.id ??
+          null,
+      );
+      setDownloadPath(json.downloadPath ?? json.meta?.downloadPath ?? null);
       const manifestEntry = buildManifestEntry(
         json,
         encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none',
@@ -415,6 +422,7 @@ export default function CapsuleCreatePage() {
       setStepStatus('package', 'done');
     } catch (err) {
       const message = err instanceof Error ? err.message : t.errorGeneric;
+      console.error('[one-click] client error:', err);
       setGenerateError(message);
       resetProgress();
     } finally {
@@ -423,6 +431,11 @@ export default function CapsuleCreatePage() {
   }
 
   async function handleDownloadZip() {
+    if (downloadPath) {
+      window.location.href = downloadPath;
+      return;
+    }
+
     if (!capsuleResult) return;
     if (encryptionEnabled && !isEncryptionPasswordValid) {
       setEncryptionError(t.encryptionPasswordTooShort);
@@ -481,8 +494,8 @@ export default function CapsuleCreatePage() {
 
   const meta = capsuleResult?.meta;
   const capsule = capsuleResult?.capsule as any | undefined;
-
-  const capsuleId = meta?.capsuleId ?? capsule?.meta?.capsuleId ?? '-';
+  const capsuleIdDisplay =
+    capsuleId ?? meta?.capsuleId ?? capsule?.meta?.capsuleId ?? capsule?.id ?? '-';
 
   const primaryLang =
     meta?.primaryLanguage ?? capsule?.content?.primaryLanguage ?? form.language ?? 'zh';
@@ -496,7 +509,7 @@ export default function CapsuleCreatePage() {
         ? '英文'
         : 'English';
 
-  const rawStats = meta?.fireseedIndex?.detail?.raw ?? {};
+  const rawStats = serverIndex?.detail?.raw ?? meta?.fireseedIndex?.detail?.raw ?? {};
   const charCount = rawStats.charCount ?? 0;
   const wordCount = rawStats.wordCount ?? 0;
 
@@ -599,13 +612,12 @@ export default function CapsuleCreatePage() {
                 <span>{t.optTechCapsule}</span>
               </label>
             </div>
-            <div className="wizard-index">
-              <span>{t.scoreLabel}</span>
-              <strong>{localIndex.index}</strong>
-              <small>{localIndex.discoveryProbability}</small>
-              <small>{t.scoreHint}</small>
-            </div>
+          <div className="wizard-index">
+            <span>{t.scoreLabel}</span>
+            <strong>{localIndex.score}</strong>
+            <small>{t.scoreHint}</small>
           </div>
+        </div>
 
           <label className="wizard-textarea">
             <span>{t.fieldBodyLabel}</span>
@@ -680,7 +692,7 @@ export default function CapsuleCreatePage() {
             <div className="wizard-result-card">
               <h3>{t.resultScoreTitle}</h3>
               <div className="wizard-score">
-                {serverIndex != null ? `${serverIndex} / 100` : '- / 100'}
+                {serverIndex != null ? `${serverIndex.score} / 100` : '- / 100'}
               </div>
               <p>{capsuleResult.indexResult?.discoveryProbability || '-'}</p>
               <ul>
@@ -695,7 +707,7 @@ export default function CapsuleCreatePage() {
             <div className="wizard-result-card">
               <h3>{t.resultInfoTitle}</h3>
               <p>
-                {lang === 'zh' ? 'ID：' : 'ID:'} <code>{capsuleId}</code>
+                {lang === 'zh' ? 'ID：' : 'ID:'} <code>{capsuleIdDisplay}</code>
               </p>
               <p>
                 {lang === 'zh'
