@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildOneClickCapsule } from "../../../../../../lib/capsuleBuilder";
-import type { FireseedIndexResult } from "../../../../../../lib/fireseedIndex";
+import { computeFireseedIndex } from "../../../../../../lib/fireseedIndex";
+import { buildFireseedIndexText } from "@/apps/web/lib/buildIndexText";
 import type { CapsuleFiles } from "../../../../../packages/core/storage/types";
 import { localZipAdapter } from "../../../../lib/storage/localZipAdapter";
 
@@ -51,6 +52,14 @@ export async function POST(req: NextRequest) {
 
     const lang = (primaryLanguage || "zh").toLowerCase();
 
+    const fullTextForIndex = buildFireseedIndexText({
+      mainBody,
+      keyEventsText,
+      principlesText,
+      messageToFuture,
+    });
+    const fireseedIndex = computeFireseedIndex(fullTextForIndex);
+
     const capsuleResult = buildOneClickCapsule({
       title: title.trim(),
       scenario: scenario.trim(),
@@ -72,8 +81,6 @@ export async function POST(req: NextRequest) {
     };
 
     const storageResult = await localZipAdapter.saveCapsule(capsuleId, files);
-
-    const fireseedIndex: FireseedIndexResult | undefined = meta?.fireseedIndex;
     const downloadPath =
       storageResult.downloadUrl ??
       storageResult.location ??
@@ -88,7 +95,7 @@ export async function POST(req: NextRequest) {
         fireseedIndex: fireseedIndex ?? null,
         downloadPath: downloadPath ?? null,
         capsule,
-        meta,
+        meta: { ...meta, fireseedIndex },
         humanReadable,
         readmeText,
       },
