@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import JSZip from 'jszip';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { computeFireseedIndex } from '@/lib/fireseedIndex';
 import type { FireseedIndexResult } from '@/lib/fireseedIndex';
 import type { Scenario } from '@/lib/capsule/oneClick';
 import type { FireseedManifestCapsuleEntry } from '@/packages/core/manifest/types';
 import { upsertCapsule } from '../../../lib/manifestStore';
 import type { OneClickApiResponse } from '../../../types/capsule';
-import { encryptJsonWithPassword } from '@/lib/encryption';
 
 const translations = {
   zh: {
@@ -59,7 +57,7 @@ const translations = {
     resultInfoTitle: '胶囊信息',
     resultExplainTitle: '说明与下一步',
     resultJsonTitle: '机器可读版本（JSON）',
-    downloadZip: '下载一键胶囊 ZIP',
+    downloadZip: '一键下载胶囊 ZIP',
     errorBodyRequired: '正文不能为空，请至少写一点内容再尝试生成。',
     errorFormHint: '请先写一点内容，我们才能计算 Fireseed Index。',
     errorDownload: '下载 ZIP 时发生错误，请稍后再试。',
@@ -245,6 +243,7 @@ export default function CapsuleCreatePage() {
   const [serverIndex, setServerIndex] = useState<FireseedIndexResult | null>(null);
   const [capsuleId, setCapsuleId] = useState<string | null>(null);
   const [downloadPath, setDownloadPath] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [encryptionPassword, setEncryptionPassword] = useState('');
   const [encryptionError, setEncryptionError] = useState<string | null>(null);
@@ -346,6 +345,7 @@ export default function CapsuleCreatePage() {
     e.preventDefault();
     setTouched(true);
     setGenerateError(null);
+    setError(null);
     setCapsuleResult(null);
     setServerIndex(null);
     setCapsuleId(null);
@@ -400,13 +400,7 @@ export default function CapsuleCreatePage() {
       setStepStatus('score', 'active');
       setCapsuleResult(json);
       setServerIndex(json.fireseedIndex ?? json.meta?.fireseedIndex ?? null);
-      setCapsuleId(
-        json.capsuleId ??
-          json.meta?.capsuleId ??
-          json.capsule?.meta?.capsuleId ??
-          json.capsule?.id ??
-          null,
-      );
+      setCapsuleId(json.capsuleId ?? json.meta?.capsuleId ?? json.capsule?.meta?.capsuleId ?? json.capsule?.id ?? null);
       setDownloadPath(json.downloadPath ?? json.meta?.downloadPath ?? null);
       const manifestEntry = buildManifestEntry(
         json,
@@ -430,62 +424,40 @@ export default function CapsuleCreatePage() {
     }
   }
 
-  async function handleDownloadZip() {
-    if (downloadPath) {
-      window.location.href = downloadPath;
+  const handleDownloadZip = useCallback(() => {
+    setError(null);
+
+    if (!capsuleId) {
+      setError(
+        lang === 'zh'
+          ? '请先在上方完成“生成火种胶囊”，再下载 ZIP。'
+          : 'Please generate a capsule first before downloading the ZIP.',
+      );
       return;
     }
 
-    if (!capsuleResult) return;
-    if (encryptionEnabled && !isEncryptionPasswordValid) {
-      setEncryptionError(t.encryptionPasswordTooShort);
-      return;
-    }
+    const url =
+      downloadPath && typeof downloadPath === 'string'
+        ? downloadPath
+        : `/api/capsule/download?id=${encodeURIComponent(capsuleId)}`;
+
     try {
-      const { capsule, meta, humanReadable, readmeText } = capsuleResult;
-      setEncryptionError(null);
-      const metaToWrite = { ...(meta ?? {}) } as Record<string, any>;
-
-      const zip = new JSZip();
-      const folderName =
-        meta?.capsuleId ||
-        capsule?.id ||
-        `fireseed-capsule-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-      const folder = zip.folder(folderName)!;
-
-      if (encryptionEnabled && isEncryptionPasswordValid) {
-        const { cipher, salt, iv, iterations, kdf } = await encryptJsonWithPassword(
-          capsule ?? {},
-          encryptionPassword.trim(),
-        );
-
-        metaToWrite.encryption = 'aes-256-gcm';
-        metaToWrite.encryptionParams = { salt, iv, iterations, kdf };
-
-        folder.file('capsule.enc', cipher);
-        folder.file('meta.json', JSON.stringify(metaToWrite, null, 2));
-      } else {
-        metaToWrite.encryption = 'none';
-        folder.file('capsule.json', JSON.stringify(capsule ?? {}, null, 2));
-        folder.file('meta.json', JSON.stringify(metaToWrite, null, 2));
-      }
-
-      if (humanReadable) folder.file('HUMAN_READABLE.md', humanReadable);
-      if (readmeText) folder.file('README.txt', readmeText);
-
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${folderName}.zip`;
+      link.download = '';
+      link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
     } catch (err) {
-      setGenerateError(t.errorDownload);
+      console.error('[capsule/create] download zip failed:', err);
+      setError(
+        lang === 'zh'
+          ? '下载火种胶囊 ZIP 失败，请稍后重试。'
+          : 'Failed to download capsule ZIP. Please try again.',
+      );
     }
-  }
+  }, [capsuleId, downloadPath, lang]);
   const titlePlaceholder =
     lang === 'zh' ? '写给 30 年后的自己' : 'A letter to myself 30 years from now';
 
@@ -689,77 +661,84 @@ export default function CapsuleCreatePage() {
         {!capsuleResult && <p className="wizard-placeholder">{t.resultDesc}</p>}
         {capsuleResult && (
           <div className="wizard-result">
-            <div className="wizard-result-card">
-              <h3>{t.resultScoreTitle}</h3>
-              <div className="wizard-score">
-                {serverIndex != null ? `${serverIndex.score} / 100` : '- / 100'}
-              </div>
-              <p>{capsuleResult.indexResult?.discoveryProbability || '-'}</p>
-              <ul>
-                {Object.entries(capsuleResult.indexResult?.diagnostics ?? {}).map(([key, value]) => (
-                  <li key={key}>
-                    <strong>{key}</strong>
-                    <span>{typeof value === 'number' ? value.toString() : value}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="wizard-result-card">
-              <h3>{t.resultInfoTitle}</h3>
-              <p>
-                {lang === 'zh' ? 'ID：' : 'ID:'} <code>{capsuleIdDisplay}</code>
-              </p>
-              <p>
-                {lang === 'zh'
-                  ? `场景：${scenarioLabel}｜语言：${primaryLangLabel}`
-                  : `Scenario: ${scenarioLabel} | Language: ${primaryLangLabel}`}
-              </p>
-              <p>
-                {lengthLabel}
-              </p>
-              <div className="mt-2 space-y-2 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
-                <label className="flex items-center gap-2 text-sm text-zinc-100">
-                  <input
-                    type="checkbox"
-                    checked={encryptionEnabled}
-                    onChange={e => {
-                      setEncryptionEnabled(e.target.checked);
-                      setEncryptionError(null);
-                    }}
-                  />
-                  <span>{t.encryptionToggle}</span>
-                </label>
-                <div className="space-y-1">
-                  <input
-                    type="password"
-                    value={encryptionPassword}
-                    onChange={e => setEncryptionPassword(e.target.value)}
-                    placeholder={t.encryptionPasswordPlaceholder}
-                    disabled={!encryptionEnabled}
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-60"
-                  />
-                  <p className="text-xs text-zinc-500">
-                    {t.encryptionWarning}
-                  </p>
-                  {encryptionEnabled && !isEncryptionPasswordValid && (
-                    <p className="text-xs text-amber-400">{t.encryptionPasswordTooShort}</p>
-                  )}
-                  {encryptionError && <p className="text-xs text-red-400">{encryptionError}</p>}
+            <div className="h-full">
+              <div className="wizard-result-card h-full">
+                <h3>{t.resultScoreTitle}</h3>
+                <div className="wizard-score">
+                  {serverIndex != null ? `${serverIndex.score} / 100` : '- / 100'}
                 </div>
-                <p className="text-sm text-zinc-200">{encryptionLabel}</p>
+                <p>{capsuleResult.indexResult?.discoveryProbability || '-'}</p>
+                <ul>
+                  {Object.entries(capsuleResult.indexResult?.diagnostics ?? {}).map(([key, value]) => (
+                    <li key={key}>
+                      <strong>{key}</strong>
+                      <span>{typeof value === 'number' ? value.toString() : value}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <button
-                type="button"
-                onClick={handleDownloadZip}
-                className="wizard-download"
-                disabled={!capsuleResult || (encryptionEnabled && !isEncryptionPasswordValid)}
-              >
-                {t.downloadZip}
-              </button>
             </div>
-            <div className="wizard-result-card">
-              <h3>{t.resultExplainTitle}</h3>
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed">{nextStepsText}</pre>
+            <div className="h-full">
+              <div className="wizard-result-card h-full flex flex-col">
+                <h3>{t.resultInfoTitle}</h3>
+                <p>
+                  {lang === 'zh' ? 'ID：' : 'ID:'} <code>{capsuleIdDisplay}</code>
+                </p>
+                <p>
+                  {lang === 'zh'
+                    ? `场景：${scenarioLabel}｜语言：${primaryLangLabel}`
+                    : `Scenario: ${scenarioLabel} | Language: ${primaryLangLabel}`}
+                </p>
+                <p>
+                  {lengthLabel}
+                </p>
+                <div className="mt-2 space-y-2 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
+                  <label className="flex items-center gap-2 text-sm text-zinc-100">
+                    <input
+                      type="checkbox"
+                      checked={encryptionEnabled}
+                      onChange={e => {
+                        setEncryptionEnabled(e.target.checked);
+                        setEncryptionError(null);
+                      }}
+                    />
+                    <span>{t.encryptionToggle}</span>
+                  </label>
+                  <div className="space-y-1">
+                    <input
+                      type="password"
+                      value={encryptionPassword}
+                      onChange={e => setEncryptionPassword(e.target.value)}
+                      placeholder={t.encryptionPasswordPlaceholder}
+                      disabled={!encryptionEnabled}
+                      className="w-full rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                    <p className="text-xs text-zinc-500">
+                      {t.encryptionWarning}
+                    </p>
+                    {encryptionEnabled && !isEncryptionPasswordValid && (
+                      <p className="text-xs text-amber-400">{t.encryptionPasswordTooShort}</p>
+                    )}
+                    {encryptionError && <p className="text-xs text-red-400">{encryptionError}</p>}
+                  </div>
+                  <p className="text-sm text-zinc-200">{encryptionLabel}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadZip}
+                  className="wizard-download"
+                  disabled={!capsuleId || isGenerating}
+                >
+                  {lang === 'zh' ? '一键下载胶囊 ZIP' : 'Download capsule ZIP'}
+                </button>
+                {error && <p className="wizard-error mt-2">{error}</p>}
+              </div>
+            </div>
+            <div className="h-full">
+              <div className="wizard-result-card h-full flex flex-col">
+                <h3>{t.resultExplainTitle}</h3>
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed">{nextStepsText}</pre>
+              </div>
             </div>
             <div className="wizard-json">
               <h3>{t.resultJsonTitle}</h3>
