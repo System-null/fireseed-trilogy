@@ -226,6 +226,9 @@ main {
   border-radius: 0.9rem;
   padding: 1rem 1.25rem;
   border: 1px solid rgba(148, 163, 184, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .wizard-score {
@@ -285,10 +288,10 @@ main {
 
 @media (min-width: 768px) {
   .wizard-result {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .wizard-json {
-    grid-column: span 2;
+    grid-column: span 3;
   }
 }
