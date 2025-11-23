@@ -7,6 +7,7 @@ import type { Scenario } from '@/lib/capsule/oneClick';
 import type { FireseedManifestCapsuleEntry } from '@/packages/core/manifest/types';
 import { upsertCapsule } from '../../../lib/manifestStore';
 import type { OneClickApiResponse } from '../../../types/capsule';
+import { buildFireseedIndexText } from '@/apps/web/lib/buildIndexText';
 
 const translations = {
   zh: {
@@ -263,8 +264,15 @@ export default function CapsuleCreatePage() {
   }, [baseSteps]);
 
   const localIndex = useMemo(() => {
-    return computeFireseedIndex(form.body || '');
-  }, [form.body]);
+    const fullText = buildFireseedIndexText({
+      mainBody: form.body,
+      keyEventsText: form.keyMoments,
+      principlesText: form.nonNegotiables,
+      messageToFuture: form.messageToFuture,
+    });
+    const { score } = computeFireseedIndex(fullText);
+    return score;
+  }, [form]);
 
   const capsuleJson = useMemo(() => {
     if (!capsuleResult) return '';
@@ -586,7 +594,7 @@ export default function CapsuleCreatePage() {
             </div>
           <div className="wizard-index">
             <span>{t.scoreLabel}</span>
-            <strong>{localIndex.score}</strong>
+            <strong>{localIndex}</strong>
             <small>{t.scoreHint}</small>
           </div>
         </div>
@@ -662,7 +670,7 @@ export default function CapsuleCreatePage() {
         {capsuleResult && (
           <div className="wizard-result">
             <div className="h-full">
-              <div className="wizard-result-card h-full">
+              <div className="wizard-result-card h-full flex flex-col">
                 <h3>{t.resultScoreTitle}</h3>
                 <div className="wizard-score">
                   {serverIndex != null ? `${serverIndex.score} / 100` : '- / 100'}
@@ -737,7 +745,7 @@ export default function CapsuleCreatePage() {
             <div className="h-full">
               <div className="wizard-result-card h-full flex flex-col">
                 <h3>{t.resultExplainTitle}</h3>
-                <pre className="whitespace-pre-wrap text-sm leading-relaxed">{nextStepsText}</pre>
+                <div className="flex-1 whitespace-pre-line text-sm leading-relaxed">{nextStepsText}</div>
               </div>
             </div>
             <div className="wizard-json">
