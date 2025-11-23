@@ -43,6 +43,19 @@ export interface FireseedIndexResult {
   detail: FireseedIndexDetail;
 }
 
+export interface FireseedIndexExplanation {
+  summary: string;
+  breakdown: {
+    key: string;
+    labelZh: string;
+    labelEn: string;
+    score: number;
+    maxScore: number;
+  }[];
+  recommendationsZh: string[];
+  recommendationsEn: string[];
+}
+
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 function tokenize(s: string): string[] {
@@ -423,4 +436,100 @@ export function computeFireseedIndex(text: string): FireseedIndexResult {
 
 export function calculateFireseedIndex(body: string): FireseedIndexResult {
   return computeFireseedIndex(body);
+}
+
+export function explainFireseedIndex(result: FireseedIndexResult): FireseedIndexExplanation {
+  const { detail, score } = result;
+
+  const breakdown = [
+    {
+      key: 'length',
+      labelZh: '信息量',
+      labelEn: 'Information density',
+      score: detail.lengthScore,
+      maxScore: 15,
+    },
+    {
+      key: 'structure',
+      labelZh: '段落结构',
+      labelEn: 'Structure',
+      score: detail.structureScore,
+      maxScore: 15,
+    },
+    {
+      key: 'timeline',
+      labelZh: '时间线',
+      labelEn: 'Timeline',
+      score: detail.timeSpanScore,
+      maxScore: 15,
+    },
+    {
+      key: 'decision',
+      labelZh: '决策痕迹',
+      labelEn: 'Decision traces',
+      score: detail.logicScore,
+      maxScore: 15,
+    },
+    {
+      key: 'lexical',
+      labelZh: '词汇多样性',
+      labelEn: 'Lexical richness',
+      score: detail.lexicalScore,
+      maxScore: 20,
+    },
+    {
+      key: 'emotion',
+      labelZh: '情绪温度',
+      labelEn: 'Emotional resonance',
+      score: detail.emotionScore,
+      maxScore: 10,
+    },
+  ];
+
+  const recommendationsZh: string[] = [];
+  const recommendationsEn: string[] = [];
+
+  if (detail.timeSpanScore < 8) {
+    recommendationsZh.push('补充不同人生阶段的片段，比如童年、求学、工作、亲密关系或未来想象。');
+    recommendationsEn.push('Add moments from different life stages—childhood, school, work, relationships, and future hopes.');
+  }
+
+  if (detail.logicScore < 8) {
+    recommendationsZh.push('写清楚关键选择：当时有哪些选项？你做了什么决定？产生了什么影响？');
+    recommendationsEn.push('Spell out the choices you faced, what you decided, and how those decisions changed the path.');
+  }
+
+  if (detail.structureScore < 8) {
+    recommendationsZh.push('用小标题或分段组织，让每个片段聚焦一个主题或时间点。');
+    recommendationsEn.push('Use headings or short paragraphs so each section focuses on one theme or moment.');
+  }
+
+  if (detail.lengthScore < 6) {
+    recommendationsZh.push('再多写一些细节，例如人物、地点、对话或当时的感受。');
+    recommendationsEn.push('Add more detail—people, places, snippets of dialogue, and what you felt in the moment.');
+  }
+
+  if (detail.emotionScore < 5) {
+    recommendationsZh.push('加入当时真实的情绪波动：害怕、释然、愤怒或感激，让故事更有温度。');
+    recommendationsEn.push('Include the real emotions you felt—fear, relief, anger, gratitude—to give the story warmth.');
+  }
+
+  if (detail.lexicalScore < 10) {
+    recommendationsZh.push('尝试换一些描述词或比喻，避免重复，让语言更有层次。');
+    recommendationsEn.push('Vary your wording with fresh descriptions or metaphors to avoid repetition.');
+  }
+
+  const summary =
+    score >= 80
+      ? '故事信息量丰富、结构完整，情绪与决策线索也较充分 / Strong content, solid structure, with emotions and decisions captured.'
+      : score >= 60
+        ? '基础信息和结构已具备，可再补充时间线细节、关键决策与情绪 / Good base; add more timeline details, key decisions, and emotions.'
+        : '目前信息量和结构还较初步，可以从时间线、决策和情绪细节入手补充 / Early draft; enrich timeline, decisions, and emotional details.';
+
+  return {
+    summary,
+    breakdown,
+    recommendationsZh,
+    recommendationsEn,
+  };
 }
