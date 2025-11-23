@@ -27,15 +27,12 @@ function findFirstFileBySuffix(zip: JSZip, suffix: string): JSZip.JSZipObject | 
 
 const textDecoder = new TextDecoder();
 
-function decodeMeta(metaJson: CapsuleFiles["metaJson"]): string | undefined {
-  if (typeof metaJson === "string") return metaJson;
-  if (metaJson instanceof Uint8Array)
-    return textDecoder.decode(
-      metaJson.byteOffset === 0 && metaJson.byteLength === metaJson.buffer.byteLength
-        ? metaJson
-        : metaJson.slice()
-    );
-  return undefined;
+function toString(v: string | Uint8Array | undefined): string | undefined {
+  if (v === undefined) return undefined;
+  if (typeof v === "string") return v;
+  return textDecoder.decode(
+    v.byteOffset === 0 && v.byteLength === v.buffer.byteLength ? v : v.slice()
+  );
 }
 
 async function toArrayBuffer(input: File | Blob | Uint8Array): Promise<ArrayBuffer> {
@@ -51,51 +48,40 @@ async function toArrayBuffer(input: File | Blob | Uint8Array): Promise<ArrayBuff
   throw new Error("Unsupported input type for ZIP parsing");
 }
 
-export async function createCapsuleZip(
-  files: CapsuleFiles,
-  options?: { capsuleId?: string }
-): Promise<Uint8Array | Blob> {
+export async function createCapsuleZip(files: CapsuleFiles): Promise<Uint8Array | Blob> {
   const zip = new JSZip();
 
-  const metaText = decodeMeta(files.metaJson);
-  let folderId = options?.capsuleId;
+  const meta = toString(files.metaJson);
+  if (!meta) throw new Error("metaJson is required for capsule zip");
+  zip.file("meta.json", meta);
 
-  if (!folderId && metaText) {
-    try {
-      const parsed = JSON.parse(metaText) as { capsuleId?: string; capsuleID?: string };
-      folderId = parsed.capsuleId ?? parsed.capsuleID;
-    } catch (error) {
-      // ignore parse errors, fallback to default folder name
+  const hr = toString(files.humanReadable);
+  if (hr) zip.file("HUMAN_READABLE.md", hr);
+
+  const readme = toString(files.readme);
+  if (readme) zip.file("README.txt", readme);
+
+  const encrypted =
+    files.encryptedCapsule ?? files.encryptedBlob ?? files.encrypted ?? undefined;
+
+  if (encrypted && encrypted.byteLength > 0) {
+    zip.file("capsule.enc", encrypted);
+  } else {
+    const capsuleJson = toString(files.capsuleJson);
+    if (capsuleJson) {
+      zip.file("capsule.json", capsuleJson);
     }
   }
 
-  const folderName = folderId ? `fireseed-capsule-${folderId}` : "fireseed-capsule";
-  const folder = zip.folder(folderName) ?? zip;
-
-  const addFile = (name: string, content?: CapsuleFiles[keyof CapsuleFiles]) => {
-    if (content === undefined) return;
-    folder.file(name, content as string | Uint8Array);
-  };
-
-  addFile("capsule.json", files.capsuleJson);
-  addFile("meta.json", files.metaJson);
-  addFile("HUMAN_READABLE.md", files.humanReadable);
-  addFile("README.txt", files.readme);
-
-  if (files.encryptedBlob) {
-    addFile("capsule.enc", files.encryptedBlob);
-  }
-
-  if (files.files) {
-    for (const [path, content] of Object.entries(files.files)) {
-      addFile(path, content);
+  const extraFiles = files.extraFiles ?? files.files;
+  if (extraFiles) {
+    for (const [name, content] of Object.entries(extraFiles)) {
+      const v = typeof content === "string" ? content : toString(content) ?? "";
+      zip.file(name, v);
     }
   }
 
-  const isBrowser = typeof window !== "undefined";
-  const zipType = isBrowser && typeof Blob !== "undefined" ? "blob" : "uint8array";
-
-  return zip.generateAsync({ type: zipType as "blob" | "uint8array" });
+  return zip.generateAsync({ type: "uint8array" });
 }
 
 export async function parseCapsuleZip(
@@ -197,7 +183,9 @@ export async function parseCapsuleZip(
       readme: readmeEntry ? await readmeEntry.async("string") : undefined,
       encryptionMode: "aes-256-gcm",
       hasHumanReadable,
+      encryptedCapsule: cipherBytes,
       encryptedBlob: cipherBytes,
+      encrypted: cipherBytes,
       capsuleId,
     } satisfies ParsedCapsuleZip;
   }
