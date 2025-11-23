@@ -81,19 +81,25 @@ export async function POST(req: NextRequest) {
     };
 
     const storageResult = await localZipAdapter.saveCapsule(capsuleId, files);
-    const downloadPath =
-      storageResult.downloadUrl ??
-      storageResult.location ??
-      (typeof storageResult.extra?.downloadPath === "string"
-        ? storageResult.extra.downloadPath
-        : null);
+    const zipBytes = (storageResult.extra as any)?.zipBytes as
+      | Uint8Array
+      | Buffer
+      | undefined;
+
+    let zipBase64: string | null = null;
+    if (zipBytes) {
+      const buf = Buffer.isBuffer(zipBytes) ? zipBytes : Buffer.from(zipBytes);
+      zipBase64 = buf.toString("base64");
+    }
 
     return NextResponse.json(
       {
         ok: true,
         capsuleId,
+        capsuleMeta: meta,
         fireseedIndex: fireseedIndex ?? null,
-        downloadPath: downloadPath ?? null,
+        fireseedIndexDetail: fireseedIndex?.detail ?? null,
+        zipBase64,
         capsule,
         meta: { ...meta, fireseedIndex },
         humanReadable,
