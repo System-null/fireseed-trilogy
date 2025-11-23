@@ -2,6 +2,8 @@ import { idbGet, idbSet } from "../../../lib/idb";
 import type {
   FireseedManifest,
   FireseedManifestCapsuleEntry,
+  FireseedManifestReplica,
+  FireseedManifestReplicaInput,
 } from "../../../packages/core/manifest/types";
 import { version as currentToolVersion } from "../package.json";
 
@@ -87,4 +89,28 @@ export async function upsertCapsule(
   }
 
   await saveManifest(manifest);
+}
+
+export async function addReplicaToCapsule(
+  capsuleId: string,
+  replica: FireseedManifestReplicaInput
+): Promise<FireseedManifest | null> {
+  const manifest = await getManifest();
+  const entry = manifest.capsules.find(
+    (capsule) => capsule.capsuleId === capsuleId
+  );
+
+  if (!entry) {
+    return null;
+  }
+
+  const nextReplica: FireseedManifestReplica = {
+    ...replica,
+    lastUpdatedAt: replica.lastUpdatedAt ?? new Date().toISOString(),
+  };
+
+  entry.replicas = [...(entry.replicas ?? []), nextReplica];
+
+  await saveManifest(manifest);
+  return manifest;
 }
