@@ -3,7 +3,7 @@ import {
   FireseedIndexResult,
 } from "./fireseedIndex";
 
-export type EncryptionMode = "none" | "aes-passphrase";
+export type EncryptionMode = "none" | "aes-256-gcm";
 
 export interface OneClickCapsuleInput {
   title: string;

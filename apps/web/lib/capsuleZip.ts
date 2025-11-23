@@ -61,16 +61,16 @@ export async function createCapsuleZip(files: CapsuleFiles): Promise<Uint8Array 
   const readme = toString(files.readme);
   if (readme) zip.file("README.txt", readme);
 
+  const capsuleJson = toString(files.capsuleJson);
+  if (capsuleJson) {
+    zip.file("capsule.json", capsuleJson);
+  }
+
   const encrypted =
     files.encryptedCapsule ?? files.encryptedBlob ?? files.encrypted ?? undefined;
 
   if (encrypted && encrypted.byteLength > 0) {
     zip.file("capsule.enc", encrypted);
-  } else {
-    const capsuleJson = toString(files.capsuleJson);
-    if (capsuleJson) {
-      zip.file("capsule.json", capsuleJson);
-    }
   }
 
   const extraFiles = files.extraFiles ?? files.files;

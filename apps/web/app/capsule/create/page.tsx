@@ -180,6 +180,7 @@ interface CapsuleFormState {
   messageToFuture: string;
   aiAssist: boolean;
   includeTechCapsule: boolean;
+  encryptionPassword: string;
 }
 
 interface ProgressStep {
@@ -218,6 +219,7 @@ const defaultState: CapsuleFormState = {
   messageToFuture: '',
   aiAssist: false,
   includeTechCapsule: false,
+  encryptionPassword: '',
 };
 
 export default function CapsuleCreatePage() {
@@ -244,7 +246,6 @@ export default function CapsuleCreatePage() {
   const [serverIndex, setServerIndex] = useState<FireseedIndexResult | null>(null);
   const [capsuleId, setCapsuleId] = useState<string | null>(null);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
-  const [encryptionPassword, setEncryptionPassword] = useState('');
   const [encryptionError, setEncryptionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -277,7 +278,7 @@ export default function CapsuleCreatePage() {
     return JSON.stringify(oneClickResult.capsule, null, 2);
   }, [oneClickResult]);
 
-  const isEncryptionPasswordValid = encryptionPassword.trim().length >= 8;
+  const isEncryptionPasswordValid = form.encryptionPassword.trim().length >= 8;
 
   function buildManifestEntry(
     result: OneClickApiResponse,
@@ -372,6 +373,7 @@ export default function CapsuleCreatePage() {
       messageToFuture: form.messageToFuture,
       aiAssist: form.aiAssist,
       includeTechCapsule: form.includeTechCapsule,
+      password: form.encryptionPassword?.trim() || '',
     };
 
     try {
@@ -405,10 +407,9 @@ export default function CapsuleCreatePage() {
       setOneClickResult(json);
       setServerIndex(json.fireseedIndex ?? json.meta?.fireseedIndex ?? null);
       setCapsuleId(json.capsuleId ?? json.meta?.capsuleId ?? json.capsule?.meta?.capsuleId ?? json.capsule?.id ?? null);
-      const manifestEntry = buildManifestEntry(
-        json,
-        encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none',
-      );
+      const encryptionMode =
+        json?.meta?.encryption ?? (encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none');
+      const manifestEntry = buildManifestEntry(json, encryptionMode);
       if (manifestEntry) {
         void upsertCapsule(manifestEntry).catch(err =>
           console.warn('[manifest] Failed to upsert capsule entry', err),
@@ -707,8 +708,11 @@ export default function CapsuleCreatePage() {
                   <div className="space-y-1">
                     <input
                       type="password"
-                      value={encryptionPassword}
-                      onChange={e => setEncryptionPassword(e.target.value)}
+                      value={form.encryptionPassword}
+                      onChange={e => {
+                        update('encryptionPassword', e.target.value);
+                        setEncryptionError(null);
+                      }}
                       placeholder={t.encryptionPasswordPlaceholder}
                       disabled={!encryptionEnabled}
                       className="w-full rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-60"
