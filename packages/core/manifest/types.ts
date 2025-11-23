@@ -21,3 +21,9 @@ export interface FireseedManifestReplica {
   lastUpdatedAt: string;
   notes?: string;
 }
+
+export type FireseedManifestReplicaInput =
+  | FireseedManifestReplica
+  | (Omit<FireseedManifestReplica, "lastUpdatedAt"> & {
+      lastUpdatedAt?: string;
+    });
