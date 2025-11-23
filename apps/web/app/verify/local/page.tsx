@@ -7,7 +7,7 @@ import JSZip from 'jszip';
 import { localZipAdapter } from '../../../lib/storage/localZipAdapter';
 import { type ParsedCapsuleZip } from '../../../lib/capsuleZip';
 import {
-  getManifest,
+  findCapsuleById,
   upsertCapsule,
 } from '../../../lib/manifestStore';
 import { type FireseedManifestCapsuleEntry } from '../../../../packages/core/manifest/types';
@@ -25,6 +25,23 @@ export default function VerifyLocalPage() {
   const [isInManifest, setIsInManifest] = useState<boolean | null>(null);
   const [manifestError, setManifestError] = useState<string | null>(null);
   const [isSavingToManifest, setIsSavingToManifest] = useState(false);
+
+  const extractFireseedIndex = useCallback((raw: unknown): number | undefined => {
+    if (typeof raw === 'number') return raw;
+    if (raw && typeof raw === 'object') {
+      const maybeObject = raw as { score?: unknown; value?: unknown };
+      if (typeof maybeObject.score === 'number') return maybeObject.score;
+      if (typeof maybeObject.value === 'number') return maybeObject.value;
+    }
+    return undefined;
+  }, []);
+
+  const formatDate = useCallback((value: unknown) => {
+    if (!value) return '未知 / Unknown';
+    const date = new Date(value as string);
+    if (Number.isNaN(date.getTime())) return '未知 / Unknown';
+    return date.toLocaleString();
+  }, []);
 
   const loadCapsuleFromFile = useCallback(
     async (file: File, password?: string): Promise<ParsedCapsuleZip> => {
@@ -171,7 +188,8 @@ export default function VerifyLocalPage() {
 
   useEffect(() => {
     setManifestError(null);
-    if (!resolvedCapsuleId) {
+    const meta = (decryptedMeta ?? result?.meta) as Record<string, unknown> | undefined;
+    if (!resolvedCapsuleId || !meta) {
       setIsInManifest(null);
       return;
     }
@@ -179,10 +197,10 @@ export default function VerifyLocalPage() {
     let cancelled = false;
     setIsCheckingManifest(true);
 
-    getManifest()
-      .then((manifest) => {
+    findCapsuleById(resolvedCapsuleId)
+      .then((existing) => {
         if (cancelled) return;
-        setIsInManifest(manifest.capsules.some((capsule) => capsule.capsuleId === resolvedCapsuleId));
+        setIsInManifest(Boolean(existing));
       })
       .catch(() => {
         if (cancelled) return;
@@ -197,7 +215,7 @@ export default function VerifyLocalPage() {
     return () => {
       cancelled = true;
     };
-  }, [resolvedCapsuleId]);
+  }, [decryptedMeta, resolvedCapsuleId, result]);
 
   const handleAddToManifest = useCallback(async () => {
     const meta = (result?.meta ?? decryptedMeta ?? {}) as Record<string, unknown>;
@@ -217,16 +235,14 @@ export default function VerifyLocalPage() {
     const capsuleContent = (capsule?.content ?? {}) as Record<string, unknown>;
     const capsuleMeta = (capsule?.meta ?? {}) as Record<string, unknown>;
 
-    const metaFireseedIndex = (meta as Record<string, unknown>).fireseedIndex as
-      | number
-      | { score?: number }
+    const metaMetrics = (meta as Record<string, unknown>).metrics as
+      | Record<string, unknown>
       | undefined;
-    const fireseedIndex =
-      typeof metaFireseedIndex === 'number'
-        ? metaFireseedIndex
-        : typeof metaFireseedIndex === 'object'
-          ? metaFireseedIndex?.score
-          : undefined;
+    const rawFireseedIndex =
+      (meta as Record<string, unknown>).fireseedIndex ??
+      metaMetrics?.fireseedIndex ??
+      metaMetrics?.fireseed_index;
+    const fireseedIndex = extractFireseedIndex(rawFireseedIndex);
 
     const entry: FireseedManifestCapsuleEntry = {
       capsuleId,
@@ -246,10 +262,12 @@ export default function VerifyLocalPage() {
         (capsuleContent.primaryLanguage as string | undefined),
       encryption: result?.encryptionMode ?? 'none',
       fireseedIndex,
+      status: (meta as Record<string, unknown>).status as string | undefined,
+      backedUp: (meta as Record<string, unknown>).backedUp as boolean | undefined,
       replicas: [
         {
-          adapterId: 'local-zip-import',
-          location: 'uploaded-zip://manual-import',
+          adapterId: 'local-zip',
+          location: 'unknown://user-upload',
           lastUpdatedAt: new Date().toISOString(),
           notes: 'Added from /verify/local',
         },
@@ -267,14 +285,17 @@ export default function VerifyLocalPage() {
     } finally {
       setIsSavingToManifest(false);
     }
-  }, [decryptedCapsule, decryptedMeta, resolvedCapsuleId, result]);
+  }, [decryptedCapsule, decryptedMeta, extractFireseedIndex, resolvedCapsuleId, result]);
 
   const renderBasicInfo = () => {
     if (!result) return null;
 
-    const meta = result.meta ?? {};
-    const capsule = result.capsule ?? {};
-    const fireseedIndex = meta.fireseedIndex ?? {};
+    const meta = (decryptedMeta ?? result.meta ?? {}) as Record<string, unknown>;
+    const capsule = (decryptedCapsule ?? result.capsule ?? {}) as Record<string, unknown>;
+    const metrics = meta.metrics as Record<string, unknown> | undefined;
+    const fireseedIndex = extractFireseedIndex(
+      meta.fireseedIndex ?? metrics?.fireseedIndex ?? metrics?.fireseed_index
+    );
 
     return (
       <div className="mt-4 space-y-2 text-sm text-zinc-200">
@@ -292,7 +313,7 @@ export default function VerifyLocalPage() {
         </p>
         <p>
           <span className="font-medium text-zinc-100">Fireseed Index：</span>
-          <span className="text-emerald-300">{fireseedIndex.score ?? 'N/A'}</span>
+          <span className="text-emerald-300">{fireseedIndex ?? 'N/A'}</span>
         </p>
         <p>
           <span className="font-medium text-zinc-100">encryption：</span>
@@ -372,6 +393,63 @@ export default function VerifyLocalPage() {
             )}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderHealthReport = () => {
+    const meta = (decryptedMeta ?? result?.meta) as Record<string, unknown> | undefined;
+    if (!result || !meta) return null;
+
+    const metrics = meta.metrics as Record<string, unknown> | undefined;
+    const schemaVersion =
+      (meta.schemaVersion as string | undefined) ??
+      (meta.schema as string | undefined) ??
+      (meta.version as string | undefined) ??
+      '未知 / Unknown';
+    const encryption =
+      (meta.encryption as string | undefined) ?? result.encryptionMode ?? '未知 / Unknown';
+    const fireseedIndex =
+      extractFireseedIndex(
+        (meta.fireseedIndex as unknown) ?? metrics?.fireseedIndex ?? metrics?.fireseed_index
+      ) ?? '未知 / Unknown';
+    const createdAt = (meta.createdAt as string | undefined) ?? (meta.generatedAt as string | undefined);
+    const toolVersion = (meta.toolVersion as string | undefined) ?? (meta.generatorVersion as string | undefined);
+
+    return (
+      <div className="mt-6 rounded-xl border border-emerald-800/60 bg-emerald-950/30 p-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-lg font-semibold text-emerald-200">火种体检报告 / Capsule Health Report</h3>
+          <p className="text-xs text-emerald-200/80">快速查看 meta 关键字段 / Quick glance of meta fields</p>
+        </div>
+
+        <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg bg-emerald-900/30 p-3">
+            <dt className="text-xs uppercase tracking-wide text-emerald-300/80">Schema 版本 / Schema Version</dt>
+            <dd className="text-sm font-semibold text-emerald-100">{schemaVersion}</dd>
+          </div>
+          <div className="rounded-lg bg-emerald-900/30 p-3">
+            <dt className="text-xs uppercase tracking-wide text-emerald-300/80">加密模式 / Encryption</dt>
+            <dd className="text-sm font-semibold text-emerald-100">{encryption}</dd>
+          </div>
+          <div className="rounded-lg bg-emerald-900/30 p-3">
+            <dt className="text-xs uppercase tracking-wide text-emerald-300/80">Fireseed Index</dt>
+            <dd className="text-sm font-semibold text-emerald-100">{fireseedIndex}</dd>
+          </div>
+          <div className="rounded-lg bg-emerald-900/30 p-3">
+            <dt className="text-xs uppercase tracking-wide text-emerald-300/80">生成时间 / Created at</dt>
+            <dd className="text-sm font-semibold text-emerald-100">{formatDate(createdAt)}</dd>
+          </div>
+          <div className="rounded-lg bg-emerald-900/30 p-3 sm:col-span-2">
+            <dt className="text-xs uppercase tracking-wide text-emerald-300/80">工具版本 / Tool Version</dt>
+            <dd className="text-sm font-semibold text-emerald-100">{toolVersion ?? '未知 / Unknown'}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-3 space-y-1 rounded-lg bg-emerald-900/20 p-3 text-xs text-emerald-100/90">
+          <p>所有解析与验证步骤均在浏览器本地完成，ZIP 内容不会上传到服务器。</p>
+          <p>All parsing and verification steps run locally in your browser. The ZIP contents are not uploaded to any server.</p>
+        </div>
       </div>
     );
   };
@@ -457,6 +535,7 @@ export default function VerifyLocalPage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-5">
             <h2 className="text-lg font-semibold text-zinc-100">解析结果 / Parsed result</h2>
             {renderBasicInfo()}
+            {renderHealthReport()}
             {renderDecryptionSection()}
             {renderManifestActions()}
           </div>

@@ -124,3 +124,10 @@ export async function addReplicaToCapsule(
   await saveManifest(manifest);
   return manifest;
 }
+
+export async function findCapsuleById(
+  capsuleId: string
+): Promise<FireseedManifestCapsuleEntry | undefined> {
+  const manifest = await getManifest();
+  return manifest.capsules.find((capsule) => capsule.capsuleId === capsuleId);
+}
