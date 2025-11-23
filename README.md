@@ -96,6 +96,29 @@ The **FireseedManifest** acts as a local index for capsules and the basis for ma
 
 ---
 
+## Fireseed Lab – Phase 2.1
+
+Phase 2.1 turns the project from a "one-off capsule generator" into a minimal **personal Fireseed workstation**:
+
+- **Capsule Lab (/lab):**
+  - Lists all locally known capsules from the Fireseed Manifest.
+  - Supports filtering by encryption mode (plain/encrypted), status (draft/final/archived), and primary language.
+  - Allows updating per-capsule status (e.g. mark as "final" or "archived") and marking whether it has been backed up on multiple media.
+
+- **Creation wizard (/capsule/create):**
+  - Still provides one-click capsule generation with optional AES-256-GCM encryption (password-based, local-only).
+  - Fireseed Index is now explained as a breakdown (information density, structure, timeline, decision traces) with lightweight suggestions to improve the narrative.
+  - Placeholders and helper texts adapt to the selected primary language (Chinese / English) to reduce friction.
+
+- **Local verification (/verify/local):**
+  - Verifies Fireseed capsule ZIPs entirely in the browser (no upload).
+  - Shows a "Capsule Health Report" (schema version, encryption mode, Fireseed Index, timestamps, tool version).
+  - For unknown capsules, offers a one-click "Add to Lab manifest" action to register it in the local Fireseed Manifest.
+
+The Phase 2.1 additions stay aligned with the local-first, no-accounts, no-server-storage philosophy.
+
+---
+
 ## Current milestone — v0.3.0 (Phase 1.5)
 
 The current tagged state of this repo corresponds to **Fireseed Lab v0.3.0**, also referred to as **Phase 1.5**:
