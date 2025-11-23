@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import JSZip from "jszip";
-import { computeFireseedIndex } from '@/lib/fireseedIndex';
+import { computeFireseedIndex, explainFireseedIndex } from '@/lib/fireseedIndex';
 import type { FireseedIndexResult } from '@/lib/fireseedIndex';
 import type { Scenario } from '@/lib/capsule/oneClick';
 import { encryptJsonWithPassword } from "@/lib/encryption";
@@ -59,6 +59,8 @@ const translations = {
     resultScoreTitle: 'Fireseed 指数',
     resultInfoTitle: '胶囊信息',
     resultExplainTitle: '说明与下一步',
+    resultExplainIndexTitle: 'Fireseed Index 拆解',
+    resultExplainAdviceTitle: '写作建议',
     resultJsonTitle: '机器可读版本（JSON）',
     downloadZip: '一键下载胶囊 ZIP',
     errorBodyRequired: '正文不能为空，请至少写一点内容再尝试生成。',
@@ -139,6 +141,8 @@ const translations = {
     resultScoreTitle: 'Fireseed score',
     resultInfoTitle: 'Capsule details',
     resultExplainTitle: 'Notes & next steps',
+    resultExplainIndexTitle: 'Fireseed Index breakdown',
+    resultExplainAdviceTitle: 'Writing tips',
     resultJsonTitle: 'Machine-readable version (JSON)',
     downloadZip: '一键下载胶囊 ZIP',
     errorBodyRequired: 'Body text is required. Please add some content before generating.',
@@ -487,10 +491,30 @@ export default function CapsuleCreatePage() {
     URL.revokeObjectURL(url);
   }, [encryptionEnabled, encryptionPassword, oneClickResult]);
   const titlePlaceholder =
-    lang === 'zh' ? '写给 30 年后的自己' : 'A letter to myself 30 years from now';
+    form.language === 'zh' ? '写给 30 年后的自己' : 'A letter to myself 30 years from now';
+
+  const bodyPlaceholder =
+    form.language === 'zh'
+      ? '可以从一个重要场景写起，至少写满几个关键阶段：童年 / 转折 / 崩溃 / 重建 / 现在 / 未来期待……'
+      : 'Start from a vivid scene, and cover key stages: childhood, turning points, breakdowns, rebuilding, now, and the future you hope for…';
 
   const audiencePlaceholder =
-    lang === 'zh' ? '未来的自己 / 家人' : 'Future self / family';
+    form.language === 'zh' ? '未来的自己 / 家人' : 'Future self / family';
+
+  const keyMomentsPlaceholder =
+    form.language === 'zh'
+      ? '用几个关键节点概括：某次选择 / 分手 / 决策 / 离开一个地方……'
+      : 'Summarise a few core nodes: a decision, a breakup, leaving a city, changing careers…';
+
+  const rulesPlaceholder =
+    form.language === 'zh'
+      ? '那些你在任何情况下都不想放弃的底线，比如：不要伤害家人、不要违背某个承诺……'
+      : 'Principles you never want to break, e.g. “never hurt my family” or “never break this specific promise”.';
+
+  const lastWordsPlaceholder =
+    form.language === 'zh'
+      ? '如果你在这段路终点，希望被谁记住？想说什么？'
+      : 'At the end of this road, who do you hope will remember you, and what would you like to say?';
 
   const meta = oneClickResult?.meta;
   const capsule = oneClickResult?.capsule as any | undefined;
@@ -519,6 +543,14 @@ export default function CapsuleCreatePage() {
       : `Length: ~${charCount} chars (~${wordCount} tokens)`;
 
   const scenarioLabel = lang === 'zh' ? '人生总账 / 自我总结' : 'Life log / self-summary';
+
+  const indexExplanation = useMemo(() => {
+    const indexResult: FireseedIndexResult | undefined =
+      serverIndex ?? (meta?.fireseedIndex as FireseedIndexResult | undefined);
+
+    if (!indexResult) return null;
+    return explainFireseedIndex(indexResult);
+  }, [meta?.fireseedIndex, serverIndex]);
 
   const encryptionStatus =
     meta?.encryption ?? (encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none');
@@ -626,7 +658,7 @@ export default function CapsuleCreatePage() {
               rows={8}
               value={form.body}
               onChange={e => update('body', e.target.value)}
-              placeholder={t.fieldBodyPlaceholder}
+              placeholder={bodyPlaceholder}
             />
           </label>
 
@@ -637,7 +669,7 @@ export default function CapsuleCreatePage() {
                 rows={4}
                 value={form.keyMoments}
                 onChange={e => update('keyMoments', e.target.value)}
-                placeholder={t.fieldKeywordsPlaceholder}
+                placeholder={keyMomentsPlaceholder}
                 className="w-full h-28 resize-none rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400/60 box-border"
               />
             </label>
@@ -647,7 +679,7 @@ export default function CapsuleCreatePage() {
                 rows={4}
                 value={form.nonNegotiables}
                 onChange={e => update('nonNegotiables', e.target.value)}
-                placeholder={t.fieldRulesPlaceholder}
+                placeholder={rulesPlaceholder}
                 className="w-full h-28 resize-none rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400/60 box-border"
               />
             </label>
@@ -657,7 +689,7 @@ export default function CapsuleCreatePage() {
                 rows={4}
                 value={form.messageToFuture}
                 onChange={e => update('messageToFuture', e.target.value)}
-                placeholder={t.fieldLastWordsPlaceholder}
+                placeholder={lastWordsPlaceholder}
                 className="w-full h-28 resize-none rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400/60 box-border"
               />
             </label>
@@ -707,6 +739,41 @@ export default function CapsuleCreatePage() {
                 </ul>
               </div>
             </div>
+            {indexExplanation && (
+              <div className="h-full">
+                <div className="wizard-result-card h-full flex flex-col gap-3">
+                  <h3>{t.resultExplainIndexTitle}</h3>
+                  <p className="text-sm text-zinc-300">{indexExplanation.summary}</p>
+                  <div className="space-y-2 text-sm">
+                    {indexExplanation.breakdown.map(item => {
+                      const label = primaryLang === 'zh' ? item.labelZh : item.labelEn;
+                      return (
+                        <div key={item.key} className="flex items-center justify-between rounded-md bg-zinc-900/40 px-3 py-2">
+                          <span className="text-zinc-200">{label}</span>
+                          <span className="text-zinc-100">{item.score} / {item.maxScore}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-zinc-100">{t.resultExplainAdviceTitle}</h4>
+                    <ul className="list-disc space-y-1 pl-4 text-sm text-zinc-200">
+                      {(primaryLang === 'en'
+                        ? indexExplanation.recommendationsEn
+                        : indexExplanation.recommendationsZh.length > 0
+                          ? indexExplanation.recommendationsZh
+                          : indexExplanation.recommendationsEn
+                      ).map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                      {indexExplanation.recommendationsZh.length === 0 && indexExplanation.recommendationsEn.length === 0 && (
+                        <li>{primaryLang === 'zh' ? '看起来结构完整，可以直接下载保存。' : 'Looks solid—feel free to download and store it.'}</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="h-full">
               <div className="wizard-result-card h-full flex flex-col">
                 <h3>{t.resultInfoTitle}</h3>
