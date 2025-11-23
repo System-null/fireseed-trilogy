@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import JSZip from "jszip";
 import { computeFireseedIndex } from '@/lib/fireseedIndex';
 import type { FireseedIndexResult } from '@/lib/fireseedIndex';
 import type { Scenario } from '@/lib/capsule/oneClick';
+import { encryptJsonWithPassword } from "@/lib/encryption";
 import type { FireseedManifestCapsuleEntry } from '@/packages/core/manifest/types';
 import { upsertCapsule } from '../../../lib/manifestStore';
 import type { OneClickApiResponse } from '../../../types/capsule';
@@ -180,7 +182,6 @@ interface CapsuleFormState {
   messageToFuture: string;
   aiAssist: boolean;
   includeTechCapsule: boolean;
-  encryptionPassword: string;
 }
 
 interface ProgressStep {
@@ -219,7 +220,6 @@ const defaultState: CapsuleFormState = {
   messageToFuture: '',
   aiAssist: false,
   includeTechCapsule: false,
-  encryptionPassword: '',
 };
 
 export default function CapsuleCreatePage() {
@@ -246,6 +246,7 @@ export default function CapsuleCreatePage() {
   const [serverIndex, setServerIndex] = useState<FireseedIndexResult | null>(null);
   const [capsuleId, setCapsuleId] = useState<string | null>(null);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
+  const [encryptionPassword, setEncryptionPassword] = useState('');
   const [encryptionError, setEncryptionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -278,7 +279,7 @@ export default function CapsuleCreatePage() {
     return JSON.stringify(oneClickResult.capsule, null, 2);
   }, [oneClickResult]);
 
-  const isEncryptionPasswordValid = form.encryptionPassword.trim().length >= 8;
+  const isEncryptionPasswordValid = encryptionPassword.trim().length >= 8;
 
   function buildManifestEntry(
     result: OneClickApiResponse,
@@ -373,7 +374,6 @@ export default function CapsuleCreatePage() {
       messageToFuture: form.messageToFuture,
       aiAssist: form.aiAssist,
       includeTechCapsule: form.includeTechCapsule,
-      password: form.encryptionPassword?.trim() || '',
     };
 
     try {
@@ -428,37 +428,64 @@ export default function CapsuleCreatePage() {
     }
   }
 
-  const handleDownloadZip = useCallback(() => {
-    if (!oneClickResult?.capsuleId || !oneClickResult?.zipBase64) {
-      alert('请先在上方完成一次火种胶囊生成，然后再下载 ZIP。');
-      return;
-    }
+  const handleDownloadZip = useCallback(async () => {
+    const capsuleResult = oneClickResult;
+    if (!capsuleResult) return;
 
-    try {
-      const { capsuleId: generatedCapsuleId, zipBase64 } = oneClickResult;
+    setEncryptionError(null);
 
-      const binary = atob(zipBase64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
+    const { capsule, meta, humanReadable, readmeText } = capsuleResult as any;
+    const capsuleIdValue =
+      meta?.capsuleId ?? meta?.id ?? capsule?.meta?.capsuleId ?? capsule?.id ?? 'unknown';
+
+    const metaToWrite: Record<string, any> = { ...(meta ?? {}) };
+
+    const zip = new JSZip();
+    const folderName = `fireseed-capsule-${capsuleIdValue}`;
+    const folder = zip.folder(folderName)!;
+
+    const useEncryption = encryptionEnabled && encryptionPassword.trim().length >= 8;
+
+    if (useEncryption) {
+      try {
+        const { cipher, salt, iv, iterations, kdf } =
+          await encryptJsonWithPassword(capsule, encryptionPassword.trim());
+
+        metaToWrite.encryption = 'aes-256-gcm';
+        metaToWrite.encryptionParams = { salt, iv, iterations, kdf };
+
+        folder.file('capsule.enc', cipher);
+      } catch (e) {
+        console.error(e);
+        setEncryptionError('加密失败，请稍后重试 / Encryption failed, please try again.');
+        return;
       }
+    } else {
+      metaToWrite.encryption = 'none';
+      delete metaToWrite.encryptionParams;
 
-      const blob = new Blob([bytes], { type: 'application/zip' });
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `fireseed-capsule-${generatedCapsuleId}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('download zip failed', err);
-      alert('生成 ZIP 文件时出错，请稍后重试。');
+      folder.file('capsule.json', JSON.stringify(capsule, null, 2));
     }
-  }, [oneClickResult]);
+
+    folder.file('meta.json', JSON.stringify(metaToWrite, null, 2));
+
+    if (humanReadable) {
+      folder.file('HUMAN_READABLE.md', humanReadable);
+    }
+    if (readmeText) {
+      folder.file('README.txt', readmeText);
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [encryptionEnabled, encryptionPassword, oneClickResult]);
   const titlePlaceholder =
     lang === 'zh' ? '写给 30 年后的自己' : 'A letter to myself 30 years from now';
 
@@ -493,7 +520,8 @@ export default function CapsuleCreatePage() {
 
   const scenarioLabel = lang === 'zh' ? '人生总账 / 自我总结' : 'Life log / self-summary';
 
-  const encryptionStatus = meta?.encryption ?? (encryptionEnabled ? 'aes-256-gcm' : 'none');
+  const encryptionStatus =
+    meta?.encryption ?? (encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none');
   const encryptionLabel =
     encryptionStatus === 'aes-256-gcm'
       ? `${t.encryptionLabel}${lang === 'zh' ? '' : ' '}${t.encryptionAes}`
@@ -708,9 +736,9 @@ export default function CapsuleCreatePage() {
                   <div className="space-y-1">
                     <input
                       type="password"
-                      value={form.encryptionPassword}
+                      value={encryptionPassword}
                       onChange={e => {
-                        update('encryptionPassword', e.target.value);
+                        setEncryptionPassword(e.target.value);
                         setEncryptionError(null);
                       }}
                       placeholder={t.encryptionPasswordPlaceholder}
@@ -731,7 +759,7 @@ export default function CapsuleCreatePage() {
                   type="button"
                   onClick={handleDownloadZip}
                   className="wizard-download"
-                  disabled={!oneClickResult?.zipBase64 || isGenerating}
+                  disabled={!oneClickResult || isGenerating}
                 >
                   {t.downloadZip}
                 </button>
