@@ -5,6 +5,14 @@
 
 Fireseed Trilogy is an experiment in building a **machine-readable “capsule” format** for preserving human life stories, values, and decisions in a way that future AI systems can parse without guessing.
 
+## Fireseed Lab v0.3.0 – Local Capsule Lab
+
+- One-click local capsule generation (plain or AES-encrypted ZIP).
+- Local verification & decryption via `/verify/local` (runs entirely in the browser).
+- A basic “Fireseed Lab” view at `/lab` that lists known capsules from the local manifest and supports manifest import/export.
+
+v0.3.0 is the first stable milestone for the “local-only” Fireseed Lab (no remote storage, no accounts).
+
 This repository contains:
 
 - A **Capsule schema** (YAML/JSON) with strong typing and validation.
