@@ -28,6 +28,7 @@ export interface OneClickCapsuleOutput {
   };
   humanReadable: string; // HUMAN_READABLE.md 内容（中英双语）
   readmeText: string; // README.txt 内容（中英双语）
+  encryptedCapsule?: Uint8Array; // AES-GCM 密文（如启用加密）
 }
 
 export function buildOneClickCapsule(

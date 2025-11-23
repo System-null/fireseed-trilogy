@@ -70,18 +70,24 @@ export async function POST(req: NextRequest) {
       messageToFuture,
     });
 
-    const { capsule, meta, humanReadable, readmeText } = capsuleResult;
+    const { capsule, meta, humanReadable, readmeText, encryptedCapsule } =
+      capsuleResult;
 
     const capsuleId = meta?.capsuleId ?? "fireseed-capsule";
     const files: CapsuleFiles = {
-      capsuleJson: JSON.stringify(capsule, null, 2),
       metaJson: JSON.stringify(meta, null, 2),
       humanReadable,
       readme: readmeText,
     };
 
+    if (encryptedCapsule) {
+      files.encryptedCapsule = encryptedCapsule;
+    } else {
+      files.capsuleJson = JSON.stringify(capsule, null, 2);
+    }
+
     const storageResult = await localZipAdapter.saveCapsule(capsuleId, files);
-    const zipBytes = (storageResult.extra as any)?.zipBytes as
+    const zipBytes = (storageResult.extra as any)?.zipData as
       | Uint8Array
       | Buffer
       | undefined;

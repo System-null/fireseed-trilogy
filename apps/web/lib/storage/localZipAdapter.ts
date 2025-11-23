@@ -12,7 +12,7 @@ export const localZipAdapter: StorageAdapter = {
     capsuleId: string,
     files: CapsuleFiles
   ): Promise<StorageResult> {
-    const zipBytes = await createCapsuleZip(files, { capsuleId });
+    const zipData = await createCapsuleZip(files);
     const createdAt = new Date().toISOString();
     const downloadUrl = `download://fireseed-capsule-${capsuleId}.zip`;
 
@@ -22,7 +22,7 @@ export const localZipAdapter: StorageAdapter = {
       location: downloadUrl,
       downloadUrl,
       createdAt,
-      extra: { zipBytes },
+      extra: { zipData },
     } satisfies StorageResult;
   },
   async loadCapsule(
