@@ -138,7 +138,7 @@ const translations = {
     resultInfoTitle: 'Capsule details',
     resultExplainTitle: 'Notes & next steps',
     resultJsonTitle: 'Machine-readable version (JSON)',
-    downloadZip: 'Download capsule ZIP',
+    downloadZip: '一键下载胶囊 ZIP',
     errorBodyRequired: 'Body text is required. Please add some content before generating.',
     errorFormHint: 'Add a little content so we can estimate the Fireseed Index.',
     errorDownload: 'An error occurred while downloading the ZIP. Please try again later.',
@@ -240,11 +240,9 @@ export default function CapsuleCreatePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<ProgressStep[]>(baseSteps);
   const [generateError, setGenerateError] = useState<string | null>(null);
-  const [capsuleResult, setCapsuleResult] = useState<OneClickApiResponse | null>(null);
+  const [oneClickResult, setOneClickResult] = useState<OneClickApiResponse | null>(null);
   const [serverIndex, setServerIndex] = useState<FireseedIndexResult | null>(null);
   const [capsuleId, setCapsuleId] = useState<string | null>(null);
-  const [downloadPath, setDownloadPath] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [encryptionPassword, setEncryptionPassword] = useState('');
   const [encryptionError, setEncryptionError] = useState<string | null>(null);
@@ -275,9 +273,9 @@ export default function CapsuleCreatePage() {
   }, [form]);
 
   const capsuleJson = useMemo(() => {
-    if (!capsuleResult) return '';
-    return JSON.stringify(capsuleResult.capsule, null, 2);
-  }, [capsuleResult]);
+    if (!oneClickResult) return '';
+    return JSON.stringify(oneClickResult.capsule, null, 2);
+  }, [oneClickResult]);
 
   const isEncryptionPasswordValid = encryptionPassword.trim().length >= 8;
 
@@ -353,11 +351,9 @@ export default function CapsuleCreatePage() {
     e.preventDefault();
     setTouched(true);
     setGenerateError(null);
-    setError(null);
-    setCapsuleResult(null);
+    setOneClickResult(null);
     setServerIndex(null);
     setCapsuleId(null);
-    setDownloadPath(null);
     setEncryptionError(null);
 
     if (!form.body.trim()) {
@@ -406,10 +402,9 @@ export default function CapsuleCreatePage() {
 
       setStepStatus('prepare', 'done');
       setStepStatus('score', 'active');
-      setCapsuleResult(json);
+      setOneClickResult(json);
       setServerIndex(json.fireseedIndex ?? json.meta?.fireseedIndex ?? null);
       setCapsuleId(json.capsuleId ?? json.meta?.capsuleId ?? json.capsule?.meta?.capsuleId ?? json.capsule?.id ?? null);
-      setDownloadPath(json.downloadPath ?? json.meta?.downloadPath ?? null);
       const manifestEntry = buildManifestEntry(
         json,
         encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none',
@@ -433,47 +428,44 @@ export default function CapsuleCreatePage() {
   }
 
   const handleDownloadZip = useCallback(() => {
-    setError(null);
-
-    if (!capsuleId) {
-      setError(
-        lang === 'zh'
-          ? '请先在上方完成“生成火种胶囊”，再下载 ZIP。'
-          : 'Please generate a capsule first before downloading the ZIP.',
-      );
+    if (!oneClickResult?.capsuleId || !oneClickResult?.zipBase64) {
+      alert('请先在上方完成一次火种胶囊生成，然后再下载 ZIP。');
       return;
     }
 
-    const url =
-      downloadPath && typeof downloadPath === 'string'
-        ? downloadPath
-        : `/api/capsule/download?id=${encodeURIComponent(capsuleId)}`;
-
     try {
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = '';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const { capsuleId: generatedCapsuleId, zipBase64 } = oneClickResult;
+
+      const binary = atob(zipBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fireseed-capsule-${generatedCapsuleId}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('[capsule/create] download zip failed:', err);
-      setError(
-        lang === 'zh'
-          ? '下载火种胶囊 ZIP 失败，请稍后重试。'
-          : 'Failed to download capsule ZIP. Please try again.',
-      );
+      console.error('download zip failed', err);
+      alert('生成 ZIP 文件时出错，请稍后重试。');
     }
-  }, [capsuleId, downloadPath, lang]);
+  }, [oneClickResult]);
   const titlePlaceholder =
     lang === 'zh' ? '写给 30 年后的自己' : 'A letter to myself 30 years from now';
 
   const audiencePlaceholder =
     lang === 'zh' ? '未来的自己 / 家人' : 'Future self / family';
 
-  const meta = capsuleResult?.meta;
-  const capsule = capsuleResult?.capsule as any | undefined;
+  const meta = oneClickResult?.meta;
+  const capsule = oneClickResult?.capsule as any | undefined;
   const capsuleIdDisplay =
     capsuleId ?? meta?.capsuleId ?? capsule?.meta?.capsuleId ?? capsule?.id ?? '-';
 
@@ -666,8 +658,8 @@ export default function CapsuleCreatePage() {
 
         <section className="wizard-card">
           <h2>{t.step3}</h2>
-        {!capsuleResult && <p className="wizard-placeholder">{t.resultDesc}</p>}
-        {capsuleResult && (
+        {!oneClickResult && <p className="wizard-placeholder">{t.resultDesc}</p>}
+        {oneClickResult && (
           <div className="wizard-result">
             <div className="h-full">
               <div className="wizard-result-card h-full flex flex-col">
@@ -675,9 +667,9 @@ export default function CapsuleCreatePage() {
                 <div className="wizard-score">
                   {serverIndex != null ? `${serverIndex.score} / 100` : '- / 100'}
                 </div>
-                <p>{capsuleResult.indexResult?.discoveryProbability || '-'}</p>
+                <p>{oneClickResult.indexResult?.discoveryProbability || '-'}</p>
                 <ul>
-                  {Object.entries(capsuleResult.indexResult?.diagnostics ?? {}).map(([key, value]) => (
+                  {Object.entries(oneClickResult.indexResult?.diagnostics ?? {}).map(([key, value]) => (
                     <li key={key}>
                       <strong>{key}</strong>
                       <span>{typeof value === 'number' ? value.toString() : value}</span>
@@ -735,15 +727,14 @@ export default function CapsuleCreatePage() {
                   type="button"
                   onClick={handleDownloadZip}
                   className="wizard-download"
-                  disabled={!capsuleId || isGenerating}
+                  disabled={!oneClickResult?.zipBase64 || isGenerating}
                 >
-                  {lang === 'zh' ? '一键下载胶囊 ZIP' : 'Download capsule ZIP'}
+                  {t.downloadZip}
                 </button>
-                {error && <p className="wizard-error mt-2">{error}</p>}
               </div>
             </div>
             <div className="h-full">
-              <div className="wizard-result-card h-full flex flex-col">
+              <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-6 flex flex-col justify-between h-full text-sm leading-relaxed text-slate-200">
                 <h3>{t.resultExplainTitle}</h3>
                 <div className="flex-1 whitespace-pre-line text-sm leading-relaxed">{nextStepsText}</div>
               </div>

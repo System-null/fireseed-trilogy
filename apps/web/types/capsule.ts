@@ -16,7 +16,10 @@ export interface OneClickApiResponse {
   ok?: boolean;
   capsuleId?: string;
   fireseedIndex?: { score: number; detail: Record<string, any> };
+  fireseedIndexDetail?: Record<string, any> | null;
   downloadPath?: string | null;
+  zipBase64?: string | null;
+  capsuleMeta?: Record<string, any>;
   error?: string;
   capsule: {
     id?: string;
