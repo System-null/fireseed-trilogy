@@ -8,6 +8,7 @@ import {
   exportManifest,
   getManifest,
   importManifest,
+  upsertCapsule,
 } from "../../lib/manifestStore";
 import type { FireseedManifest } from "../../../packages/core/manifest/types";
 
@@ -17,6 +18,13 @@ export default function FireseedLabPage() {
   const [filterEncryption, setFilterEncryption] = useState<
     "all" | "none" | "aes-256-gcm"
   >("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "draft" | "final" | "archived"
+  >("all");
+  const [filterLanguage, setFilterLanguage] = useState<
+    "all" | "zh" | "en" | "mixed"
+  >("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState<
     "createdAtDesc" | "createdAtAsc" | "title"
   >("createdAtDesc");
@@ -82,6 +90,59 @@ export default function FireseedLabPage() {
     }
   };
 
+  const formatDate = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "final":
+        return "Final / 定稿";
+      case "archived":
+        return "Archived / 归档";
+      case "draft":
+      default:
+        return "Draft / 草稿";
+    }
+  };
+
+  const renderStatusTag = (status: string) => {
+    const color =
+      status === "final"
+        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+        : status === "archived"
+          ? "bg-gray-100 text-gray-700 border-gray-200"
+          : "bg-blue-100 text-blue-700 border-blue-200";
+    return (
+      <span className={`inline-block rounded-full border px-2 py-0.5 text-xs ${color}`}>
+        {getStatusLabel(status)}
+      </span>
+    );
+  };
+
+  const handleStatusChange = async (
+    capsuleId: string,
+    status: "draft" | "final" | "archived"
+  ) => {
+    if (!manifest) return;
+    const current = manifest.capsules.find((capsule) => capsule.capsuleId === capsuleId);
+    if (!current) return;
+
+    await upsertCapsule({ ...current, status });
+    await refreshManifest();
+  };
+
+  const handleBackedUpToggle = async (capsuleId: string) => {
+    if (!manifest) return;
+    const current = manifest.capsules.find((capsule) => capsule.capsuleId === capsuleId);
+    if (!current) return;
+
+    await upsertCapsule({ ...current, backedUp: !(current.backedUp ?? false) });
+    await refreshManifest();
+  };
+
   const filteredCapsules = (() => {
     if (!manifest) return [];
 
@@ -89,6 +150,25 @@ export default function FireseedLabPage() {
 
     if (filterEncryption !== "all") {
       capsules = capsules.filter((capsule) => capsule.encryption === filterEncryption);
+    }
+
+    if (filterStatus !== "all") {
+      capsules = capsules.filter(
+        (capsule) => (capsule.status ?? "draft") === filterStatus
+      );
+    }
+
+    if (filterLanguage !== "all") {
+      capsules = capsules.filter((capsule) => capsule.primaryLanguage === filterLanguage);
+    }
+
+    if (searchTerm.trim()) {
+      const keyword = searchTerm.trim().toLowerCase();
+      capsules = capsules.filter(
+        (capsule) =>
+          capsule.capsuleId.toLowerCase().includes(keyword) ||
+          (capsule.title ?? "").toLowerCase().includes(keyword)
+      );
     }
 
     switch (sortOption) {
@@ -227,6 +307,36 @@ export default function FireseedLabPage() {
           </select>
         </div>
         <div className="flex items-center gap-2">
+          <span className="text-gray-600">状态 Status</span>
+          <select
+            className="rounded border px-2 py-1"
+            value={filterStatus}
+            onChange={(event) =>
+              setFilterStatus(event.target.value as typeof filterStatus)
+            }
+          >
+            <option value="all">全部 / All</option>
+            <option value="draft">Draft / 草稿</option>
+            <option value="final">Final / 定稿</option>
+            <option value="archived">Archived / 归档</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-600">语言 Language</span>
+          <select
+            className="rounded border px-2 py-1"
+            value={filterLanguage}
+            onChange={(event) =>
+              setFilterLanguage(event.target.value as typeof filterLanguage)
+            }
+          >
+            <option value="all">全部 / All</option>
+            <option value="zh">中文 / zh</option>
+            <option value="en">English / en</option>
+            <option value="mixed">Mixed / 双语</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
           <span className="text-gray-600">排序 Sort</span>
           <select
             className="rounded border px-2 py-1"
@@ -239,6 +349,15 @@ export default function FireseedLabPage() {
             <option value="createdAtAsc">最早创建 / Oldest</option>
             <option value="title">标题 / Title</option>
           </select>
+        </div>
+        <div className="flex flex-1 items-center gap-2">
+          <span className="text-gray-600">搜索 Search</span>
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="w-full min-w-[200px] rounded border px-2 py-1"
+            placeholder="标题或胶囊 ID / Title or Capsule ID"
+          />
         </div>
       </div>
 
@@ -256,97 +375,138 @@ export default function FireseedLabPage() {
                 <th className="border px-3 py-2">Created At</th>
                 <th className="border px-3 py-2">Primary Language</th>
                 <th className="border px-3 py-2">Encryption</th>
+                <th className="border px-3 py-2">Status</th>
+                <th className="border px-3 py-2">Backup</th>
                 <th className="border px-3 py-2">Replicas</th>
                 <th className="border px-3 py-2">Actions</th>
               </tr>
             </thead>
-            {filteredCapsules.map((capsule) => (
-              <tbody key={capsule.capsuleId} className="text-sm">
-                <tr className="align-top">
-                  <td className="border px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleExpanded(capsule.capsuleId)}
-                        className="rounded border px-2 py-1 text-xs hover:bg-gray-100"
-                      >
-                        {expandedCapsules.has(capsule.capsuleId) ? "折叠" : "展开"}
-                      </button>
-                      <div>
-                        <div className="font-medium">{capsule.title || "(untitled)"}</div>
-                        {capsule.scenario ? (
-                          <div className="text-xs text-gray-600">{capsule.scenario}</div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="border px-3 py-2 font-mono">{capsule.capsuleId}</td>
-                  <td className="border px-3 py-2">{capsule.createdAt}</td>
-                  <td className="border px-3 py-2">{capsule.primaryLanguage || "-"}</td>
-                  <td className="border px-3 py-2">{capsule.encryption}</td>
-                  <td className="border px-3 py-2 text-center">
-                    {capsule.replicas?.length ?? 0}
-                  </td>
-                  <td className="border px-3 py-2 space-y-2 text-center">
-                    <Link
-                      href="/verify/local"
-                      className="inline-block rounded border px-2 py-1 text-xs hover:bg-gray-50"
-                    >
-                      查看/验证
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => openReplicaModal(capsule.capsuleId)}
-                      className="block w-full rounded border px-2 py-1 text-xs hover:bg-gray-50"
-                    >
-                      手动添加副本
-                    </button>
-                  </td>
-                </tr>
-                {expandedCapsules.has(capsule.capsuleId) ? (
-                  <tr>
-                    <td colSpan={7} className="border-t bg-gray-50 px-4 py-3">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex flex-wrap gap-4 text-gray-700">
-                          <span>
-                            <span className="font-medium">Scenario: </span>
-                            {capsule.scenario || "-"}
-                          </span>
-                          <span>
-                            <span className="font-medium">Fireseed Index: </span>
-                            {capsule.fireseedIndex ?? "-"}
-                          </span>
-                        </div>
+            {filteredCapsules.map((capsule) => {
+              const statusValue = capsule.status ?? "draft";
+              const backedUp = capsule.backedUp ?? false;
+              return (
+                <tbody key={capsule.capsuleId} className="text-sm">
+                  <tr className="align-top">
+                    <td className="border px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(capsule.capsuleId)}
+                          className="rounded border px-2 py-1 text-xs hover:bg-gray-100"
+                        >
+                          {expandedCapsules.has(capsule.capsuleId) ? "折叠" : "展开"}
+                        </button>
                         <div>
-                          <div className="mb-1 font-medium">Replicas 副本列表</div>
-                          {capsule.replicas && capsule.replicas.length > 0 ? (
-                            <div className="space-y-2">
-                              {capsule.replicas.map((replica, idx) => (
-                                <div
-                                  key={`${replica.adapterId}-${idx}`}
-                                  className="rounded border bg-white p-2"
-                                >
-                                  <div className="flex flex-wrap justify-between gap-2 text-xs text-gray-700">
-                                    <span className="font-mono">{replica.adapterId}</span>
-                                    <span>Updated: {replica.lastUpdatedAt}</span>
-                                  </div>
-                                  <div className="text-xs text-gray-700">{replica.location}</div>
-                                  {replica.notes ? (
-                                    <div className="text-xs text-gray-500">{replica.notes}</div>
-                                  ) : null}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-gray-500">暂无副本 / No replicas recorded.</p>
-                          )}
+                          <div className="font-medium">
+                            {capsule.title || "未命名胶囊 / Untitled"}
+                          </div>
+                          {capsule.scenario ? (
+                            <div className="text-xs text-gray-600">{capsule.scenario}</div>
+                          ) : null}
                         </div>
                       </div>
                     </td>
+                    <td className="border px-3 py-2 font-mono">{capsule.capsuleId}</td>
+                    <td className="border px-3 py-2">{formatDate(capsule.createdAt)}</td>
+                    <td className="border px-3 py-2">{capsule.primaryLanguage || "-"}</td>
+                    <td className="border px-3 py-2">{capsule.encryption}</td>
+                    <td className="border px-3 py-2">
+                      <div className="space-y-2">
+                        {renderStatusTag(statusValue)}
+                        <select
+                          className="w-full rounded border px-2 py-1 text-xs"
+                          value={statusValue}
+                          onChange={(event) =>
+                            handleStatusChange(
+                              capsule.capsuleId,
+                              event.target.value as typeof statusValue
+                            )
+                          }
+                        >
+                          <option value="draft">Draft / 草稿</option>
+                          <option value="final">Final / 定稿</option>
+                          <option value="archived">Archived / 归档</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td className="border px-3 py-2 text-center">
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium">
+                          {backedUp ? "✅ 已备份 / Confirmed" : "⚠️ 未确认 / Not confirmed"}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleBackedUpToggle(capsule.capsuleId)}
+                          className="rounded border px-2 py-1 text-xs hover:bg-gray-100"
+                        >
+                          {backedUp ? "标记为未确认" : "标记已备份"}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="border px-3 py-2 text-center">
+                      {capsule.replicas?.length ?? 0}
+                    </td>
+                    <td className="border px-3 py-2 space-y-2 text-center">
+                      <Link
+                        href="/verify/local"
+                        className="inline-block rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                      >
+                        查看/验证
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => openReplicaModal(capsule.capsuleId)}
+                        className="block w-full rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                      >
+                        手动添加副本
+                      </button>
+                    </td>
                   </tr>
-                ) : null}
-              </tbody>
-            ))}
+                  {expandedCapsules.has(capsule.capsuleId) ? (
+                    <tr>
+                      <td colSpan={9} className="border-t bg-gray-50 px-4 py-3">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex flex-wrap gap-4 text-gray-700">
+                            <span>
+                              <span className="font-medium">Scenario: </span>
+                              {capsule.scenario || "-"}
+                            </span>
+                            <span>
+                              <span className="font-medium">Fireseed Index: </span>
+                              {capsule.fireseedIndex ?? "-"}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="mb-1 font-medium">Replicas 副本列表</div>
+                            {capsule.replicas && capsule.replicas.length > 0 ? (
+                              <div className="space-y-2">
+                                {capsule.replicas.map((replica, idx) => (
+                                  <div
+                                    key={`${replica.adapterId}-${idx}`}
+                                    className="rounded border bg-white p-2"
+                                  >
+                                    <div className="flex flex-wrap justify-between gap-2 text-xs text-gray-700">
+                                      <span className="font-mono">{replica.adapterId}</span>
+                                      <span>Updated: {replica.lastUpdatedAt}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-700">{replica.location}</div>
+                                    {replica.notes ? (
+                                      <div className="text-xs text-gray-500">{replica.notes}</div>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-500">暂无副本 / No replicas recorded.</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              );
+            })}
           </table>
         </div>
       )}

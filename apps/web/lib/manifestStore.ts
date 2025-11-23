@@ -83,9 +83,19 @@ export async function upsertCapsule(
   );
 
   if (index >= 0) {
-    manifest.capsules[index] = entry;
+    const existing = manifest.capsules[index];
+    manifest.capsules[index] = {
+      ...existing,
+      ...entry,
+      status: entry.status ?? existing.status,
+      backedUp: entry.backedUp ?? existing.backedUp,
+    };
   } else {
-    manifest.capsules.push(entry);
+    manifest.capsules.push({
+      ...entry,
+      status: entry.status ?? "draft",
+      backedUp: entry.backedUp ?? false,
+    });
   }
 
   await saveManifest(manifest);

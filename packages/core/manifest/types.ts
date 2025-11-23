@@ -2,6 +2,7 @@ export interface FireseedManifest {
   schema: "FireseedManifest_v0.1";
   toolVersion: string;
   capsules: FireseedManifestCapsuleEntry[];
+  lastUpdated?: string;
 }
 
 export interface FireseedManifestCapsuleEntry {
@@ -13,6 +14,8 @@ export interface FireseedManifestCapsuleEntry {
   encryption: "none" | "aes-256-gcm";
   fireseedIndex?: number;
   replicas: FireseedManifestReplica[];
+  status?: "draft" | "final" | "archived";
+  backedUp?: boolean;
 }
 
 export interface FireseedManifestReplica {
