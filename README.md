@@ -209,6 +209,11 @@ The repository currently includes:
 
 ⚠️ **Important**: Do not put high-value secrets in this system. Treat it as a research prototype for structured “life capsules”, not as a secure vault.
 
+### Security notes
+
+Fireseed Lab is an experimental, local-first toolset.  
+See [docs/SECURITY-NOTES.md](docs/SECURITY-NOTES.md) for the current threat model and security assumptions.
+
 ---
 
 ## 5. Security & Threat Model

@@ -607,6 +607,17 @@ export default function CapsuleCreatePage() {
         <p>{t.subtitle}</p>
       </header>
 
+      <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+        <p>
+          🔬 实验性工具 / Experimental tool： 本页面用于在本机生成 Fireseed 火种胶囊。表单内容会通过 HTTPS 发送到本站后端，
+          用于一次性生成 ZIP，当前代码没有持久化存储逻辑，但你仍应将其视为敏感数据已经过本网站服务器。
+        </p>
+        <p className="mt-1">
+          👉 建议： 请勿在公用设备上使用；不要在这里填写你不愿意任何第三方看到的极端敏感信息。你可以随时查看开源代码以自行验证实现方式。
+          / Do not use this on shared/public devices, and avoid putting extremely sensitive data here. You can always inspect the open-source code to verify behaviour.
+        </p>
+      </div>
+
       <section className="wizard-card">
         <h2>{t.step1}</h2>
         <form className="wizard-form" onSubmit={handleSubmit}>
@@ -821,8 +832,11 @@ export default function CapsuleCreatePage() {
                     <p key={idx}>{line}</p>
                   ))}
                 </div>
-                <div className="mt-2 space-y-2 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
-                  <label className="flex items-center gap-2 text-sm text-zinc-100">
+                <div className="mt-4 rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-800 space-y-1.5">
+                  <div className="font-semibold">
+                    🔐 启用密码加密（实验功能） / Enable password encryption (experimental)
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-slate-800">
                     <input
                       type="checkbox"
                       checked={encryptionEnabled}
@@ -843,24 +857,27 @@ export default function CapsuleCreatePage() {
                       }}
                       placeholder={t.encryptionPasswordPlaceholder}
                       disabled={!encryptionEnabled}
-                      className="w-full rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
                     />
-                    <div className="space-y-1 text-xs text-zinc-500">
-                      <p>{translations.zh.encryptionLocalLine1}</p>
-                      <p>{translations.zh.encryptionLocalLine2}</p>
-                      <p>{translations.en.encryptionLocalLine1}</p>
-                      <p>{translations.en.encryptionLocalLine2}</p>
-                    </div>
                     {encryptionEnabled && !isEncryptionPasswordValid && (
-                      <p className="text-xs text-red-400">{translations.zh.encryptionPasswordTooShortBilingual}</p>
+                      <p className="text-xs text-red-600">{translations.zh.encryptionPasswordTooShortBilingual}</p>
                     )}
-                    {encryptionError && <p className="text-xs text-red-400">{encryptionError}</p>}
+                    {encryptionError && <p className="text-xs text-red-600">{encryptionError}</p>}
                   </div>
-                  <div className="space-y-0.5 text-sm text-zinc-200">
-                    {encryptionSummaryLines.map((line, idx) => (
-                      <p key={`summary-${idx}`}>{line}</p>
-                    ))}
-                  </div>
+                  <ul className="list-disc pl-4 text-slate-700">
+                    <li>
+                      加密范围：仅对 <code>capsule.json</code> 进行 AES-256-GCM 加密，HUMAN_READABLE.md 和 README.txt 仍为明文。
+                      / Scope: only <code>capsule.json</code> is encrypted with AES-256-GCM. HUMAN_READABLE.md and README.txt stay in clear text.
+                    </li>
+                    <li>
+                      密码流向：密码只用于在浏览器端派生加密密钥，不会作为明文写入 ZIP；但整个 ZIP 仍会通过你当前使用的网站后端传输和下载。
+                      / Password handling: the password is used client-side to derive an encryption key and is not stored in the ZIP. The ZIP itself is still transmitted via this site’s backend.
+                    </li>
+                    <li className="font-semibold text-red-700">
+                      忘记密码 = 永久丢失内容，我们无任何方式帮你找回。
+                      / Forgetting the password means permanent loss of this capsule’s content. There is no recovery.
+                    </li>
+                  </ul>
                 </div>
                 <button
                   type="button"
@@ -874,6 +891,10 @@ export default function CapsuleCreatePage() {
                   <p>{translations.zh.encryptionScopeNoteZh}</p>
                   <p>{translations.en.encryptionScopeNoteEn}</p>
                 </div>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  说明：Fireseed 指数仅用于描述这份文字的结构和信息丰富度，并不评价你的人生价值。加密模式只影响本 ZIP 中 capsule.json 的读取方式。
+                  / Note: The Fireseed Index describes the structure and richness of your text; it does not judge your life. The encryption mode only controls how <code>capsule.json</code> inside this ZIP can be read.
+                </p>
               </div>
             </div>
             <div className="h-full">
