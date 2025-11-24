@@ -11,6 +11,7 @@ import React, {
 import type {
   FireseedManifest,
   FireseedManifestCapsuleEntry,
+  FireseedManifestReplica,
 } from '@/packages/core/manifest/types';
 import {
   getManifest,
@@ -18,6 +19,8 @@ import {
   importManifest,
   getIpfsGatewayConfig,
   saveIpfsGatewayConfig,
+  computeCapsuleHealth,
+  updateReplicaCheckResult,
 } from '../../lib/manifestStore';
 import { exportMDiscStructure, exportQrClueCard } from '../../lib/labExports';
 
@@ -44,6 +47,13 @@ export default function FireseedLabPage() {
   const [ipfsUploadingId, setIpfsUploadingId] = useState<string | null>(null);
   const [ipfsUploading, setIpfsUploading] = useState<boolean>(false);
   const [selectedCapsuleIds, setSelectedCapsuleIds] = useState<string[]>([]);
+  const [runningCheckCapsuleId, setRunningCheckCapsuleId] = useState<string | null>(
+    null,
+  );
+  const [fullCheckProgress, setFullCheckProgress] = useState<
+    { current: number; total: number } | null
+  >(null);
+  const [checkMessage, setCheckMessage] = useState<string | null>(null);
 
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const ipfsFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -123,7 +133,7 @@ export default function FireseedLabPage() {
     selectAllCheckboxRef.current.checked = allVisibleSelected;
   }, [filteredCapsules, selectedCapsuleIds]);
 
-  const refreshManifest = async () => {
+  const refreshManifest = useCallback(async () => {
     try {
       setLoadingManifest(true);
       const m = (await getManifest()) as FireseedManifest;
@@ -134,7 +144,95 @@ export default function FireseedLabPage() {
     } finally {
       setLoadingManifest(false);
     }
-  };
+  }, []);
+
+  const runHealthCheckForCapsule = useCallback(
+    async (entry: FireseedManifestCapsuleEntry) => {
+      setRunningCheckCapsuleId(entry.capsuleId);
+      setCheckMessage(null);
+
+      try {
+        const replicas: FireseedManifestReplica[] = entry.replicas ?? [];
+        if (replicas.length === 0) {
+          setCheckMessage('该胶囊目前没有任何副本记录。/ This capsule has no replicas recorded.');
+          return;
+        }
+
+        const targetReplica =
+          replicas.find((r) => r.adapterId === 'ipfs-http') ||
+          replicas.find((r) => r.adapterId !== 'local-zip') ||
+          replicas[0];
+
+        if (!targetReplica) {
+          setCheckMessage('未找到可检查的副本。/ No replica available for health check.');
+          return;
+        }
+
+        let status: 'ok' | 'failed' | 'unknown' = 'unknown';
+        let message: string | undefined;
+
+        if (targetReplica.adapterId === 'ipfs-http' && targetReplica.location.startsWith('ipfs://')) {
+          const cid = targetReplica.location.replace('ipfs://', '');
+          const gatewayUrl = `https://ipfs.io/ipfs/${cid}`;
+
+          try {
+            const res = await fetch(gatewayUrl, { method: 'HEAD' });
+            if (res.ok) {
+              status = 'ok';
+              message = 'IPFS 网关可访问。/ IPFS gateway responded with OK.';
+            } else {
+              status = 'failed';
+              message = `IPFS 网关返回状态码 ${res.status}。/ IPFS gateway responded with status ${res.status}.`;
+            }
+          } catch (e) {
+            console.error(e);
+            status = 'failed';
+            message = '无法访问 IPFS 网关（网络错误或 CORS 限制）。/ Failed to reach IPFS gateway (network error or CORS).';
+          }
+        } else {
+          status = 'unknown';
+          message = '当前适配器暂未实现自动检查，请手动确认。/ Health check is not yet implemented for this adapter; please verify manually.';
+        }
+
+        await updateReplicaCheckResult({
+          capsuleId: entry.capsuleId,
+          adapterId: targetReplica.adapterId,
+          location: targetReplica.location,
+          status,
+          message,
+        });
+
+        await refreshManifest();
+        setCheckMessage(message ?? null);
+      } catch (err) {
+        console.error(err);
+        setCheckMessage('检查过程中出现错误，请查看控制台。/ Error occurred during health check, see console.');
+      } finally {
+        setRunningCheckCapsuleId(null);
+      }
+    },
+    [refreshManifest],
+  );
+
+  const runFullHealthCheck = useCallback(
+    async (capsulesToCheck: FireseedManifestCapsuleEntry[]) => {
+      if (!capsulesToCheck.length) return;
+      setFullCheckProgress({ current: 0, total: capsulesToCheck.length });
+      setCheckMessage(null);
+
+      for (let i = 0; i < capsulesToCheck.length; i += 1) {
+        const entry = capsulesToCheck[i];
+        setFullCheckProgress({ current: i + 1, total: capsulesToCheck.length });
+        if (entry.replicas && entry.replicas.length > 0) {
+          // eslint-disable-next-line no-await-in-loop
+          await runHealthCheckForCapsule(entry);
+        }
+      }
+
+      setFullCheckProgress(null);
+    },
+    [runHealthCheckForCapsule],
+  );
 
   // 导出 manifest.json
   const handleExportManifest = async () => {
@@ -460,6 +558,16 @@ export default function FireseedLabPage() {
               ? '正在加载 manifest...'
               : `共 ${capsules.length} 个胶囊，当前筛选出 ${filteredCapsules.length} 个。`}
           </span>
+          <button
+            type="button"
+            onClick={() => runFullHealthCheck(filteredCapsules)}
+            disabled={
+              !filteredCapsules.length || !!fullCheckProgress || !!runningCheckCapsuleId
+            }
+            className="rounded border border-amber-500 px-3 py-1 text-xs hover:bg-amber-700 disabled:cursor-not-allowed disabled:border-slate-600 disabled:text-slate-500"
+          >
+            一键体检 / Run health check
+          </button>
           <div className="ml-auto flex items-center gap-2 text-xs">
             <span>搜索：</span>
             <input
@@ -474,6 +582,17 @@ export default function FireseedLabPage() {
               </span>
           </div>
         </div>
+
+        {fullCheckProgress && (
+          <p className="text-[11px] text-slate-300">
+            正在检查 {fullCheckProgress.current} / {fullCheckProgress.total} 个胶囊… / Checking
+            {` ${fullCheckProgress.current} / ${fullCheckProgress.total} `}
+            capsules…
+          </p>
+        )}
+        {checkMessage && (
+          <p className="mt-1 text-[11px] text-slate-300">{checkMessage}</p>
+        )}
 
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse text-xs">
@@ -508,81 +627,110 @@ export default function FireseedLabPage() {
                 </tr>
               )}
 
-              {filteredCapsules.map((c) => (
-                <tr
-                  key={c.capsuleId}
-                  className="border-b border-slate-800/80 hover:bg-slate-800/40"
-                >
-                  <td className="px-2 py-2 align-top">
-                    <input
-                      type="checkbox"
-                      checked={selectedCapsuleIds.includes(c.capsuleId)}
-                      onChange={() => handleToggleSelect(c.capsuleId)}
-                      className="h-4 w-4 accent-emerald-500"
-                    />
-                  </td>
-                  <td className="px-2 py-2 align-top">
-                    <div className="max-w-xs truncate font-medium">
-                      {c.title || '(未命名胶囊)'}
-                    </div>
-                    {c.scenario && (
-                      <div className="mt-0.5 max-w-xs truncate text-[10px] text-slate-400">
-                        {c.scenario}
+              {filteredCapsules.map((c) => {
+                const health = computeCapsuleHealth(c);
+                return (
+                  <tr
+                    key={c.capsuleId}
+                    className="border-b border-slate-800/80 hover:bg-slate-800/40"
+                  >
+                    <td className="px-2 py-2 align-top">
+                      <input
+                        type="checkbox"
+                        checked={selectedCapsuleIds.includes(c.capsuleId)}
+                        onChange={() => handleToggleSelect(c.capsuleId)}
+                        className="h-4 w-4 accent-emerald-500"
+                      />
+                    </td>
+                    <td className="px-2 py-2 align-top">
+                      <div className="max-w-xs truncate font-medium">
+                        {c.title || '(未命名胶囊)'}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-2 py-2 align-top font-mono text-[11px]">
-                    {c.capsuleId}
-                  </td>
-                  <td className="px-2 py-2 align-top text-[11px]">
-                    {c.createdAt}
-                  </td>
-                  <td className="px-2 py-2 align-top text-[11px]">
-                    {c.primaryLanguage || '-'}
-                  </td>
-                  <td className="px-2 py-2 align-top text-[11px]">
-                    {c.encryption === 'aes-256-gcm'
-                      ? 'AES-256-GCM'
-                      : c.encryption || 'none'}
-                  </td>
-                  <td className="px-2 py-2 align-top text-[11px]">
-                    {c.fireseedIndex ?? '-'}
-                  </td>
-                  <td className="px-2 py-2 align-top text-[11px]">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          // 简单跳转到验证页，由用户手动上传 ZIP
-                          window.location.href = '/verify/local';
-                        }}
-                        className="rounded border border-slate-500 px-2 py-0.5 text-[11px] hover:bg-slate-700"
-                      >
-                        查看/验证
-                      </button>
+                      {c.scenario && (
+                        <div className="mt-0.5 max-w-xs truncate text-[10px] text-slate-400">
+                          {c.scenario}
+                        </div>
+                      )}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                        <span>
+                          状态 / Status：
+                          {health.status === 'draft' && '草稿（未记录任何副本） / Draft (no replicas yet)'}
+                          {health.status === 'no-replica' && '仅本地副本（尚未远端备份） / Local only (no remote backup)'}
+                          {health.status === 'backed-up' && '已记录副本（未体检） / Has replicas (not checked yet)'}
+                          {health.status === 'healthy' && '副本已通过检查 / Replicas passed health check'}
+                          {health.status === 'error' && '副本存在问题 / Replica check reported issues'}
+                        </span>
+                        {health.lastCheckAt && (
+                          <span className="text-[10px] text-slate-400">
+                            上次检查 / Last check：{new Date(health.lastCheckAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-2 py-2 align-top font-mono text-[11px]">
+                      {c.capsuleId}
+                    </td>
+                    <td className="px-2 py-2 align-top text-[11px]">
+                      {c.createdAt}
+                    </td>
+                    <td className="px-2 py-2 align-top text-[11px]">
+                      {c.primaryLanguage || '-'}
+                    </td>
+                    <td className="px-2 py-2 align-top text-[11px]">
+                      {c.encryption === 'aes-256-gcm'
+                        ? 'AES-256-GCM'
+                        : c.encryption || 'none'}
+                    </td>
+                    <td className="px-2 py-2 align-top text-[11px]">
+                      {c.fireseedIndex ?? '-'}
+                    </td>
+                    <td className="px-2 py-2 align-top text-[11px]">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // 简单跳转到验证页，由用户手动上传 ZIP
+                            window.location.href = '/verify/local';
+                          }}
+                          className="rounded border border-slate-500 px-2 py-0.5 text-[11px] hover:bg-slate-700"
+                        >
+                          查看/验证
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleClickUploadIpfs(c.capsuleId)}
-                        disabled={ipfsUploading}
-                        className="rounded border border-sky-500 px-2 py-0.5 text-[11px] hover:bg-sky-700 disabled:cursor-not-allowed disabled:border-slate-600 disabled:text-slate-500"
-                      >
-                        {ipfsUploading && ipfsUploadingId === c.capsuleId
-                          ? '上传中…'
-                          : '上传到 IPFS'}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleClickUploadIpfs(c.capsuleId)}
+                          disabled={ipfsUploading}
+                          className="rounded border border-sky-500 px-2 py-0.5 text-[11px] hover:bg-sky-700 disabled:cursor-not-allowed disabled:border-slate-600 disabled:text-slate-500"
+                        >
+                          {ipfsUploading && ipfsUploadingId === c.capsuleId
+                            ? '上传中…'
+                            : '上传到 IPFS'}
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleExportQrForEntry(c)}
-                        className="rounded border border-emerald-500 px-2 py-0.5 text-[11px] hover:bg-emerald-700"
-                      >
-                        QR 线索卡 / QR clue card
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button
+                          type="button"
+                          onClick={() => handleExportQrForEntry(c)}
+                          className="rounded border border-emerald-500 px-2 py-0.5 text-[11px] hover:bg-emerald-700"
+                        >
+                          QR 线索卡 / QR clue card
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => runHealthCheckForCapsule(c)}
+                          disabled={runningCheckCapsuleId === c.capsuleId}
+                          className="rounded border border-amber-500 px-2 py-0.5 text-[11px] hover:bg-amber-700 disabled:cursor-not-allowed disabled:border-slate-600 disabled:text-slate-500"
+                        >
+                          {runningCheckCapsuleId === c.capsuleId
+                            ? '检查中… / Checking…'
+                            : '检查 / Check'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
