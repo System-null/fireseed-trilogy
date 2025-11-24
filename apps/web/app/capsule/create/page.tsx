@@ -83,12 +83,21 @@ const translations = {
     advancedLocalVerifyNote: '(浏览器本地解析，不上传 ZIP)',
     encryptionToggle: '启用密码加密（实验功能）',
     encryptionPasswordPlaceholder: '请输入本地保存用的密码',
-    encryptionWarning:
-      '注意：密码只保存在你自己脑子里，我们无法帮你找回。忘记密码意味着这份火种胶囊永远无法解密。',
-    encryptionPasswordTooShort: '请使用至少 8 个字符的密码再启用加密。',
+    encryptionLocalLine1: '注意：密码只在你的浏览器本地使用，不会上传到服务器。我们无法帮你找回密码。',
+    encryptionLocalLine2: '忘记密码 = 这份胶囊永远无法解密。',
+    encryptionPasswordTooShort: '请使用至少 8 位密码。',
+    encryptionPasswordTooShortBilingual: '请使用至少 8 位密码。 / Please use a password of at least 8 characters.',
     encryptionLabel: '加密模式：',
     encryptionNone: '未加密（明文本地保存）',
     encryptionAes: 'AES-256-GCM（需要密码解密）',
+    encryptionSummaryNone: '加密模式：未加密（适合完全离线、本机保存）',
+    encryptionSummaryNoneEn: 'Encryption: none (best for fully offline, local-only storage)',
+    encryptionSummaryAes: '加密模式：AES-256-GCM（Fireseed 官方参数，本地密码保护）',
+    encryptionSummaryAesEn: 'Encryption: AES-256-GCM (Fireseed official parameters, protected by your local password)',
+    encryptionScopeNoteZh:
+      '「Fireseed 加密只保护 capsule.json 结构化内容。HUMAN_READABLE.md 仍然是明文，请不要在其中写入你无法接受泄露的隐私细节。」',
+    encryptionScopeNoteEn:
+      'Fireseed encryption protects the structured capsule.json only. HUMAN_READABLE.md remains plaintext. Do not put anything there that you cannot accept being seen.',
   },
   en: {
     title: 'Fireseed Capsule – One-Click Wizard',
@@ -166,12 +175,22 @@ const translations = {
     advancedLocalVerifyNote: '(runs entirely in your browser)',
     encryptionToggle: 'Enable password encryption (experimental)',
     encryptionPasswordPlaceholder: 'Enter a password for local encryption',
-    encryptionWarning:
-      'Warning: The password is never sent to the server. If you forget it, this capsule cannot be recovered.',
-    encryptionPasswordTooShort: 'Password must be at least 8 characters to enable encryption.',
+    encryptionLocalLine1:
+      'Warning: The password is used only locally in your browser and is never sent to the server. We cannot help you recover it.',
+    encryptionLocalLine2: 'Forgetting the password means this capsule cannot be decrypted.',
+    encryptionPasswordTooShort: 'Please use a password of at least 8 characters.',
+    encryptionPasswordTooShortBilingual: 'Please use a password of at least 8 characters. / 请使用至少 8 位密码。',
     encryptionLabel: 'Encryption:',
     encryptionNone: 'none (plaintext on local disk)',
     encryptionAes: 'AES-256-GCM (password required to decrypt)',
+    encryptionSummaryNone: 'Encryption: none (best for fully offline, local-only storage)',
+    encryptionSummaryNoneEn: '加密模式：未加密（适合完全离线、本机保存）',
+    encryptionSummaryAes: 'Encryption: AES-256-GCM (Fireseed official parameters, protected by your local password)',
+    encryptionSummaryAesEn: '加密模式：AES-256-GCM（Fireseed 官方参数，本地密码保护）',
+    encryptionScopeNoteZh:
+      '「Fireseed encryption protects the structured capsule.json only. HUMAN_READABLE.md remains plaintext. Do not put anything there that you cannot accept being seen.」',
+    encryptionScopeNoteEn:
+      'Fireseed encryption protects the structured capsule.json only. HUMAN_READABLE.md remains plaintext. Do not put anything there that you cannot accept being seen.',
   },
 } as const;
 
@@ -438,6 +457,15 @@ export default function CapsuleCreatePage() {
 
     setEncryptionError(null);
 
+    if (encryptionEnabled && !isEncryptionPasswordValid) {
+      setEncryptionError(
+        lang === 'zh'
+          ? translations.zh.encryptionPasswordTooShortBilingual
+          : translations.en.encryptionPasswordTooShortBilingual,
+      );
+      return;
+    }
+
     const { capsule, meta, humanReadable, readmeText } = capsuleResult as any;
     const capsuleIdValue =
       meta?.capsuleId ?? meta?.id ?? capsule?.meta?.capsuleId ?? capsule?.id ?? 'unknown';
@@ -448,7 +476,7 @@ export default function CapsuleCreatePage() {
     const folderName = `fireseed-capsule-${capsuleIdValue}`;
     const folder = zip.folder(folderName)!;
 
-    const useEncryption = encryptionEnabled && encryptionPassword.trim().length >= 8;
+    const useEncryption = encryptionEnabled && isEncryptionPasswordValid;
 
     if (useEncryption) {
       try {
@@ -489,7 +517,7 @@ export default function CapsuleCreatePage() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  }, [encryptionEnabled, encryptionPassword, oneClickResult]);
+  }, [encryptionEnabled, encryptionPassword, isEncryptionPasswordValid, lang, oneClickResult]);
   const titlePlaceholder =
     form.language === 'zh' ? '写给 30 年后的自己' : 'A letter to myself 30 years from now';
 
@@ -554,10 +582,10 @@ export default function CapsuleCreatePage() {
 
   const encryptionStatus =
     meta?.encryption ?? (encryptionEnabled && isEncryptionPasswordValid ? 'aes-256-gcm' : 'none');
-  const encryptionLabel =
+  const encryptionSummaryLines =
     encryptionStatus === 'aes-256-gcm'
-      ? `${t.encryptionLabel}${lang === 'zh' ? '' : ' '}${t.encryptionAes}`
-      : `${t.encryptionLabel}${lang === 'zh' ? '' : ' '}${t.encryptionNone}`;
+      ? [translations.zh.encryptionSummaryAes, translations.en.encryptionSummaryAes]
+      : [translations.zh.encryptionSummaryNone, translations.en.encryptionSummaryNone];
 
   const nextStepsText =
     lang === 'zh'
@@ -788,6 +816,11 @@ export default function CapsuleCreatePage() {
                 <p>
                   {lengthLabel}
                 </p>
+                <div className="mt-2 space-y-0.5 text-sm text-zinc-200">
+                  {encryptionSummaryLines.map((line, idx) => (
+                    <p key={idx}>{line}</p>
+                  ))}
+                </div>
                 <div className="mt-2 space-y-2 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
                   <label className="flex items-center gap-2 text-sm text-zinc-100">
                     <input
@@ -812,15 +845,22 @@ export default function CapsuleCreatePage() {
                       disabled={!encryptionEnabled}
                       className="w-full rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-60"
                     />
-                    <p className="text-xs text-zinc-500">
-                      {t.encryptionWarning}
-                    </p>
+                    <div className="space-y-1 text-xs text-zinc-500">
+                      <p>{translations.zh.encryptionLocalLine1}</p>
+                      <p>{translations.zh.encryptionLocalLine2}</p>
+                      <p>{translations.en.encryptionLocalLine1}</p>
+                      <p>{translations.en.encryptionLocalLine2}</p>
+                    </div>
                     {encryptionEnabled && !isEncryptionPasswordValid && (
-                      <p className="text-xs text-amber-400">{t.encryptionPasswordTooShort}</p>
+                      <p className="text-xs text-red-400">{translations.zh.encryptionPasswordTooShortBilingual}</p>
                     )}
                     {encryptionError && <p className="text-xs text-red-400">{encryptionError}</p>}
                   </div>
-                  <p className="text-sm text-zinc-200">{encryptionLabel}</p>
+                  <div className="space-y-0.5 text-sm text-zinc-200">
+                    {encryptionSummaryLines.map((line, idx) => (
+                      <p key={`summary-${idx}`}>{line}</p>
+                    ))}
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -830,6 +870,10 @@ export default function CapsuleCreatePage() {
                 >
                   {t.downloadZip}
                 </button>
+                <div className="mt-2 space-y-1 text-xs text-zinc-500">
+                  <p>{translations.zh.encryptionScopeNoteZh}</p>
+                  <p>{translations.en.encryptionScopeNoteEn}</p>
+                </div>
               </div>
             </div>
             <div className="h-full">

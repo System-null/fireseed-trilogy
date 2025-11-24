@@ -11,6 +11,9 @@ import {
   upsertCapsule,
 } from '../../../lib/manifestStore';
 import { type FireseedManifestCapsuleEntry } from '../../../../packages/core/manifest/types';
+import { FIRESEED_KDF, FIRESEED_KDF_ITERATIONS } from '@/lib/encryption';
+
+type CryptoStatus = 'none' | 'official' | 'weaker' | 'unknown';
 
 export default function VerifyLocalPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,6 +28,8 @@ export default function VerifyLocalPage() {
   const [isInManifest, setIsInManifest] = useState<boolean | null>(null);
   const [manifestError, setManifestError] = useState<string | null>(null);
   const [isSavingToManifest, setIsSavingToManifest] = useState(false);
+  const [cryptoStatus, setCryptoStatus] = useState<CryptoStatus>('none');
+  const [cryptoWarning, setCryptoWarning] = useState<string | null>(null);
 
   const extractFireseedIndex = useCallback((raw: unknown): number | undefined => {
     if (typeof raw === 'number') return raw;
@@ -41,6 +46,54 @@ export default function VerifyLocalPage() {
     const date = new Date(value as string);
     if (Number.isNaN(date.getTime())) return '未知 / Unknown';
     return date.toLocaleString();
+  }, []);
+
+  const evaluateCryptoStatus = useCallback((meta: Record<string, unknown> | undefined) => {
+    if (!meta) {
+      setCryptoStatus('unknown');
+      setCryptoWarning('无法读取加密信息 / Unable to read encryption info.');
+      return;
+    }
+
+    const encryptionMode = (meta.encryption as string | undefined) ?? 'none';
+    const params = meta.encryptionParams as
+      | { salt?: string; iv?: string; iterations?: number; kdf?: string }
+      | undefined;
+
+    if (!encryptionMode || encryptionMode === 'none') {
+      setCryptoStatus('none');
+      setCryptoWarning(null);
+      return;
+    }
+
+    if (encryptionMode !== 'aes-256-gcm') {
+      setCryptoStatus('unknown');
+      setCryptoWarning('检测到非官方加密算法或参数，请谨慎对待。/ Detected non-official crypto parameters. Handle this capsule with extra care.');
+      return;
+    }
+
+    if (!params?.kdf || !params.iterations || !params.salt || !params.iv) {
+      setCryptoStatus('unknown');
+      setCryptoWarning('加密参数缺失，无法确认安全性。/ Encryption parameters are incomplete; security cannot be confirmed.');
+      return;
+    }
+
+    if (params.kdf === FIRESEED_KDF && params.iterations >= FIRESEED_KDF_ITERATIONS) {
+      setCryptoStatus('official');
+      setCryptoWarning(null);
+      return;
+    }
+
+    if (params.kdf === FIRESEED_KDF && params.iterations < FIRESEED_KDF_ITERATIONS) {
+      setCryptoStatus('weaker');
+      setCryptoWarning(
+        '加密参数弱于当前 Fireseed 官方推荐配置，可能来自早期版本或非官方工具。/ Encryption parameters are weaker than the current Fireseed recommended defaults. This capsule may come from an older or non-official tool.',
+      );
+      return;
+    }
+
+    setCryptoStatus('unknown');
+    setCryptoWarning('检测到非官方加密算法或参数，请谨慎对待。/ Detected non-official crypto parameters. Handle this capsule with extra care.');
   }, []);
 
   const loadCapsuleFromFile = useCallback(
@@ -64,10 +117,13 @@ export default function VerifyLocalPage() {
     setError(null);
     setDecryptedCapsule(null);
     setDecryptedMeta(null);
+    setCryptoStatus('none');
+    setCryptoWarning(null);
 
     try {
       const parsed = await loadCapsuleFromFile(file);
       setResult(parsed);
+      evaluateCryptoStatus(parsed.meta as Record<string, unknown> | undefined);
     } catch (e) {
       console.error(e);
       let message = e instanceof Error ? e.message : '';
@@ -83,6 +139,8 @@ export default function VerifyLocalPage() {
       setResult(null);
       setDecryptedCapsule(null);
       setDecryptedMeta(null);
+      setCryptoStatus('none');
+      setCryptoWarning(null);
     } finally {
       setIsParsing(false);
     }
@@ -105,14 +163,15 @@ export default function VerifyLocalPage() {
       setResult(parsed);
       setDecryptedCapsule(parsed.capsule ?? null);
       setDecryptedMeta(parsed.meta ?? null);
+      evaluateCryptoStatus(parsed.meta as Record<string, unknown> | undefined);
     } catch (e) {
-      setError('解密失败：密码不正确或数据已损坏 / Decryption failed: wrong password or corrupted data.');
+      setError('解密失败：密码不正确或胶囊数据已损坏。 / Decryption failed: wrong password or corrupted capsule data.');
       setDecryptedCapsule(null);
       setDecryptedMeta(null);
     } finally {
       setIsParsing(false);
     }
-  }, [password, result, selectedFile]);
+  }, [evaluateCryptoStatus, password, result, selectedFile]);
 
   const handleExportDecrypted = useCallback(async () => {
     if (!decryptedCapsule || !decryptedMeta) return;
@@ -296,6 +355,19 @@ export default function VerifyLocalPage() {
     const fireseedIndex = extractFireseedIndex(
       meta.fireseedIndex ?? metrics?.fireseedIndex ?? metrics?.fireseed_index
     );
+    const encryptionStatusLabel = (() => {
+      switch (cryptoStatus) {
+        case 'none':
+          return '加密模式：未加密（capsule.json 为明文，仅适合本地离线保存） / Encryption: none (capsule.json is plaintext; suitable for local offline storage only)';
+        case 'official':
+          return '加密模式：AES-256-GCM（Fireseed 官方参数） / Encryption: AES-256-GCM (Fireseed official parameters)';
+        case 'weaker':
+          return '加密模式：AES-256-GCM（参数弱于当前官方推荐） / Encryption: AES-256-GCM (weaker than current official defaults)';
+        case 'unknown':
+        default:
+          return '加密模式：未知或非官方加密参数 / Encryption: unknown or non-official parameters';
+      }
+    })();
 
     return (
       <div className="mt-4 space-y-2 text-sm text-zinc-200">
@@ -319,6 +391,8 @@ export default function VerifyLocalPage() {
           <span className="font-medium text-zinc-100">encryption：</span>
           <span className="text-emerald-300">{result.encryptionMode}</span>
         </p>
+        <p className="text-xs text-amber-200">{encryptionStatusLabel}</p>
+        {cryptoWarning && <p className="text-xs text-amber-300">{cryptoWarning}</p>}
         <p className="text-xs text-zinc-400">
           {result.hasHumanReadable
             ? '包含 HUMAN_READABLE.md / HUMAN_READABLE.md included'

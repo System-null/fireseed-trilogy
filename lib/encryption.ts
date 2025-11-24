@@ -1,7 +1,9 @@
-const PBKDF2_ITERATIONS = 210000;
+export const FIRESEED_KDF = "PBKDF2-SHA256" as const;
+export const FIRESEED_KDF_ITERATIONS = 210_000;
+export const FIRESEED_SALT_BYTES = 16; // 128-bit salt
+export const FIRESEED_IV_BYTES = 12; // 96-bit IV for AES-GCM
+
 const AES_KEY_LENGTH = 256;
-const IV_LENGTH = 12;
-const SALT_LENGTH = 16;
 
 function getCrypto(): Crypto {
   const cryptoObject = (globalThis as any).crypto;
@@ -78,15 +80,15 @@ export async function encryptJsonWithPassword(
   salt: string;
   iv: string;
   iterations: number;
-  kdf: "PBKDF2-SHA256";
+  kdf: typeof FIRESEED_KDF;
 }> {
   const cryptoObject = getCrypto();
-  const saltBytes = new Uint8Array(SALT_LENGTH);
-  const ivBytes = new Uint8Array(IV_LENGTH);
+  const saltBytes = new Uint8Array(FIRESEED_SALT_BYTES);
+  const ivBytes = new Uint8Array(FIRESEED_IV_BYTES);
   cryptoObject.getRandomValues(saltBytes);
   cryptoObject.getRandomValues(ivBytes);
 
-  const iterations = PBKDF2_ITERATIONS;
+  const iterations = FIRESEED_KDF_ITERATIONS;
   const key = await deriveKeyFromPassword(password, saltBytes, iterations);
   const subtle = getWebCrypto();
 
@@ -100,23 +102,37 @@ export async function encryptJsonWithPassword(
     salt: bytesToBase64(saltBytes),
     iv: bytesToBase64(ivBytes),
     iterations,
-    kdf: "PBKDF2-SHA256",
+    kdf: FIRESEED_KDF,
   };
 }
 
+/**
+ * Decrypts a capsule payload with Fireseed's expected encryption schema.
+ * params is expected to include: salt (base64), iv (base64), iterations (number), kdf (string).
+ */
 export async function decryptJsonWithPassword<T = unknown>(
   cipher: Uint8Array,
   password: string,
   params: { salt: string; iv: string; iterations: number; kdf: string },
 ): Promise<T> {
-  if (params.kdf !== "PBKDF2-SHA256") {
-    throw new Error(`Unsupported kdf: ${params.kdf}`);
+  if (params.kdf !== FIRESEED_KDF) {
+    throw new Error("不支持的 KDF 算法 / Unsupported KDF algorithm");
   }
 
+  if (!Number.isFinite(params.iterations) || params.iterations <= 0) {
+    throw new Error("无效的 KDF 迭代次数 / Invalid KDF iterations");
+  }
+
+  const iterationsToUse = Math.floor(params.iterations);
+  const weakerThanOfficial = iterationsToUse < FIRESEED_KDF_ITERATIONS;
+
   try {
+    if (weakerThanOfficial) {
+      console.warn("PBKDF2 iterations weaker than Fireseed official defaults; proceeding with provided params.");
+    }
     const saltBytes = base64ToBytes(params.salt);
     const ivBytes = base64ToBytes(params.iv);
-    const key = await deriveKeyFromPassword(password, saltBytes, params.iterations);
+    const key = await deriveKeyFromPassword(password, saltBytes, iterationsToUse);
     const subtle = getWebCrypto();
 
     const plaintextBuffer = await subtle.decrypt({ name: "AES-GCM", iv: ivBytes }, key, cipher);
