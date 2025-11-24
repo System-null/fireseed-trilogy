@@ -398,6 +398,17 @@ export default function VerifyLocalPage() {
             ? '包含 HUMAN_READABLE.md / HUMAN_READABLE.md included'
             : '未包含 HUMAN_READABLE.md / HUMAN_READABLE.md missing'}
         </p>
+        {result.encryptionMode === 'aes-256-gcm' ? (
+          <p className="mt-1 text-[11px] text-slate-500">
+            说明：这是加密胶囊，本工具只能在你提供正确密码的前提下解密 <code>capsule.json</code> 内容。我们不会保存你的密码。
+            / Note: This is an encrypted capsule. The tool can only decrypt <code>capsule.json</code> if you provide the correct password. The password is never stored.
+          </p>
+        ) : (
+          <p className="mt-1 text-[11px] text-slate-500">
+            说明：这是未加密胶囊。建议只在受信任的设备上保留此 ZIP，并考虑在本地或物理介质上做额外备份。
+            / Note: This capsule is not encrypted. Prefer storing this ZIP on trusted devices and consider additional local/physical backups.
+          </p>
+        )}
       </div>
     );
   };
@@ -573,9 +584,16 @@ export default function VerifyLocalPage() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-2xl font-bold text-white">本地 Fireseed 胶囊验证 / Local Fireseed Capsule Verification</h1>
-      <p className="mt-2 text-sm text-zinc-400">
-        所有验证步骤均在浏览器本地完成，ZIP 内容不会上传到服务器。 All verification steps run locally in your browser. The ZIP contents are not uploaded to any server.
-      </p>
+      <div className="mb-4 mt-3 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+        <p>
+          ✅ 本页的所有解析和验证步骤均在浏览器本地完成，ZIP 文件不会上传到任何服务器。
+          / All parsing and verification here run locally in your browser. The ZIP file is not uploaded to any server.
+        </p>
+        <p className="mt-1">
+          你可以使用它来确认生成的火种胶囊结构是否完整、加密参数是否正确，以及密码是否能够成功解密。
+          / You can use this to confirm that your Fireseed capsule structure is intact, encryption metadata is valid, and your password can successfully decrypt it.
+        </p>
+      </div>
 
       <div className="mt-6 space-y-4 rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-6 shadow-lg">
         <div

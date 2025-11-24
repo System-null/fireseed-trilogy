@@ -461,83 +461,76 @@ export default function FireseedLabPage() {
             className="hidden"
             onChange={handleImportManifestFile}
           />
-
-          <button
-            type="button"
-            onClick={handleExportMDiscStructure}
-            className="rounded border border-emerald-500 px-3 py-1 text-xs hover:bg-emerald-700"
-          >
-            导出 M-Disc 结构 / Export M-Disc structure
-          </button>
-
-          <span className="text-[11px] text-slate-300">
-            （对选中胶囊导出；如果未选，则导出全部）/ (Exports selected capsules; if none selected,
-            exports all)
-          </span>
-
-          <span className="ml-auto text-[11px] text-amber-300">
-            ⚠ 实验性视图：请确认本地 manifest 中不含你不想公开的信息，再导出或分享。
-          </span>
         </div>
       </section>
 
       {/* IPFS 配置区 */}
-      <section className="rounded-lg border border-slate-700 bg-slate-900/60 p-4">
-        <h2 className="text-base font-semibold">IPFS 网关配置 / IPFS Gateway</h2>
-        <p className="mt-1 text-[11px] text-slate-300">
-          使用你自己的 IPFS HTTP API 网关（如 Kubo /api/v0）。系统会在后方自动拼接
-          <code className="mx-1 rounded bg-slate-800 px-1 py-0.5 text-[10px]">
-            /add?pin=true
-          </code>
-          用于上传 ZIP 文件。
+      <section className="mt-6 rounded-md border border-purple-300 bg-purple-50 px-3 py-3 text-xs text-purple-900 space-y-2">
+        <div className="font-semibold">
+          🌐 高级功能：自建 IPFS 上传 / Advanced: self-hosted IPFS upload
+        </div>
+        <p>
+          这里的配置假设你已经有自己的 IPFS 节点或第三方 Pinning 服务。本工具只会把你选择的火种胶囊 ZIP 通过 HTTP API 上传到你填写的地址，不提供任何托管或长期可用性保证。
+          / This section assumes you already operate your own IPFS node or pinning service. The tool only sends your selected capsule ZIP to the HTTP API you configure; it does not provide hosting or availability guarantees.
+        </p>
+        <p>
+          提醒：如果你使用公共网关或第三方服务，胶囊内容可能被长期公开保存。请确保你理解并接受对应的隐私与合规风险。
+          / Reminder: If you use a public gateway or third-party service, the capsule content may be stored and publicly accessible. Make sure you understand and accept the associated privacy and compliance risks.
         </p>
 
-        <div className="mt-3 flex flex-col gap-3 text-xs">
-          <label className="flex flex-col gap-1">
-            <span>Gateway Base URL（必须包含 /api/v0）</span>
-            <input
-              type="text"
-              value={ipfsConfig.baseUrl ?? ''}
-              onChange={(e) =>
-                setIpfsConfig((cfg) => ({
-                  ...cfg,
-                  baseUrl: e.target.value,
-                }))
-              }
-              placeholder="例如：http://127.0.0.1:5001/api/v0"
-              className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs outline-none focus:border-sky-500"
-            />
-          </label>
+        <div className="rounded-lg border border-slate-300 bg-white/80 p-4 text-slate-900 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-900">IPFS 网关配置 / IPFS Gateway</h2>
+          <p className="mt-1 text-[11px] text-slate-600">
+            使用你自己的 IPFS HTTP API 网关（如 Kubo /api/v0）。系统会在后方自动拼接
+            <code className="mx-1 rounded bg-slate-800 px-1 py-0.5 text-[10px] text-white">/add?pin=true</code>
+            用于上传 ZIP 文件。
+          </p>
 
-          <label className="flex flex-col gap-1">
-            <span>Auth Token（可选）</span>
-            <input
-              type="text"
-              value={ipfsConfig.authToken ?? ''}
-              onChange={(e) =>
-                setIpfsConfig((cfg) => ({
-                  ...cfg,
-                  authToken: e.target.value,
-                }))
-              }
-              placeholder="如果网关需要授权，可以填 Bearer token"
-              className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs outline-none focus:border-sky-500"
-            />
-          </label>
+          <div className="mt-3 flex flex-col gap-3 text-xs text-slate-800">
+            <label className="flex flex-col gap-1">
+              <span>Gateway Base URL（必须包含 /api/v0）</span>
+              <input
+                type="text"
+                value={ipfsConfig.baseUrl ?? ''}
+                onChange={(e) =>
+                  setIpfsConfig((cfg) => ({
+                    ...cfg,
+                    baseUrl: e.target.value,
+                  }))
+                }
+                placeholder="例如：http://127.0.0.1:5001/api/v0"
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs outline-none focus:border-sky-500"
+              />
+            </label>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSaveIpfsConfig}
-              className="rounded border border-slate-500 px-3 py-1 text-xs hover:bg-slate-700"
-            >
-              保存并记住 IPFS 网关配置
-            </button>
-            {ipfsMessage && (
-              <span className="text-[11px] text-emerald-300">
-                {ipfsMessage}
-              </span>
-            )}
+            <label className="flex flex-col gap-1">
+              <span>Auth Token（可选）</span>
+              <input
+                type="text"
+                value={ipfsConfig.authToken ?? ''}
+                onChange={(e) =>
+                  setIpfsConfig((cfg) => ({
+                    ...cfg,
+                    authToken: e.target.value,
+                  }))
+                }
+                placeholder="如果网关需要授权，可以填 Bearer token"
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs outline-none focus:border-sky-500"
+              />
+            </label>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSaveIpfsConfig}
+                className="rounded border border-slate-500 px-3 py-1 text-xs hover:bg-slate-200"
+              >
+                保存并记住 IPFS 网关配置
+              </button>
+              {ipfsMessage && (
+                <span className="text-[11px] text-emerald-700">{ipfsMessage}</span>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -548,6 +541,49 @@ export default function FireseedLabPage() {
           {error}
         </div>
       )}
+
+      <section className="mt-6 rounded-md border border-slate-300 bg-slate-50 px-3 py-3 text-xs text-slate-900 space-y-2">
+        <div className="font-semibold">💿 M-Disc / 只读介质导出 / M-Disc & read-only media export</div>
+        <p>
+          该导出会将选中的火种胶囊打包成一个适合刻录到光盘或只读移动介质的目录结构，并附带清单 manifest.json 与说明文件。
+          / This export bundles selected capsules into a directory structure suitable for burning onto optical media or other read-only storage, along with a manifest.json and a README.
+        </p>
+        <p>
+          建议：在刻录前先在本机解压并用 /verify/local 工具抽查，把 ZIP 与清单至少保存在两个互相独立的物理位置。
+          / Recommendation: Before burning, unzip and spot-check with /verify/local, and keep the ZIP + manifest in at least two independent physical locations.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-900">
+          <button
+            type="button"
+            onClick={handleExportMDiscStructure}
+            className="rounded border border-emerald-500 px-3 py-1 text-xs hover:bg-emerald-100"
+          >
+            导出 M-Disc 结构 / Export M-Disc structure
+          </button>
+          <span className="text-[11px] text-slate-600">
+            （对选中胶囊导出；如果未选，则导出全部）/ (Exports selected capsules; if none selected, exports all)
+          </span>
+          <span className="ml-auto text-[11px] text-amber-700">
+            ⚠ 实验性视图：请确认本地 manifest 中不含你不想公开的信息，再导出或分享。
+          </span>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-md border border-indigo-300 bg-indigo-50 px-3 py-3 text-xs text-indigo-900 space-y-2">
+        <div className="font-semibold">🧾 纸质线索卡导出 / Paper clue card export</div>
+        <p>
+          这里生成的二维码并不会包含完整的胶囊内容，而是一个「文明线索卡」：记录 capsuleId、哈希、以及部分副本定位信息。
+          / The QR codes generated here do not contain the full capsule content. They act as a “civilization clue card”: encoding the capsuleId, hashes, and some replica locator hints.
+        </p>
+        <p>
+          只要任意一处线上或本地副本仍然存在，未来的人或系统就有机会沿着这张纸上留下的线索追溯到你的火种。
+          / As long as at least one replica (online or local) survives, future humans or systems can follow the hints printed on this paper to reconstruct your Fireseed.
+        </p>
+        <p className="text-[11px] text-indigo-800">
+          使用下方「QR 线索卡 / QR clue card」按钮为每个胶囊生成对应的线索卡 PNG。
+        </p>
+      </section>
 
       {/* 查询 + 列表 */}
       <section className="rounded-lg border border-slate-700 bg-slate-900/60 p-4">
