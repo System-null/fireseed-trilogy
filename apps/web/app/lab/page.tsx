@@ -15,6 +15,7 @@ import {
   saveIpfsGatewayConfig,
   uploadCapsuleZipToIpfs,
 } from "../../lib/adapters/ipfsHttp";
+import { buildMDiscBundleZip } from "../../lib/export/mDisc";
 import type { FireseedManifest } from "../../../packages/core/manifest/types";
 
 export default function FireseedLabPage() {
@@ -51,6 +52,7 @@ export default function FireseedLabPage() {
   const [ipfsUploadState, setIpfsUploadState] = useState<
     Record<string, { uploading?: boolean; message?: string; error?: string }>
   >({});
+  const [selectedCapsuleIds, setSelectedCapsuleIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -117,6 +119,14 @@ export default function FireseedLabPage() {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleString();
+  };
+
+  const formatTodayString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}${month}${day}`;
   };
 
   const getStatusLabel = (status: string) => {
@@ -238,6 +248,15 @@ export default function FireseedLabPage() {
     setReplicaModal((prev) => ({ ...prev, open: false, error: "", saving: false }));
   };
 
+  const toggleCapsuleSelection = (capsuleId: string) => {
+    setSelectedCapsuleIds((prev) => {
+      if (prev.includes(capsuleId)) {
+        return prev.filter((id) => id !== capsuleId);
+      }
+      return [...prev, capsuleId];
+    });
+  };
+
   const handleReplicaSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!replicaModal.capsuleId) return;
@@ -347,6 +366,25 @@ export default function FireseedLabPage() {
     input.click();
   };
 
+  const handleExportMDiscStructure = async () => {
+    if (selectedCapsuleIds.length === 0) {
+      alert("请至少选择一个火种胶囊 / Please select at least one capsule.");
+      return;
+    }
+
+    const currentManifest = await getManifest();
+    const zipBlob = await buildMDiscBundleZip(currentManifest, selectedCapsuleIds);
+    const url = URL.createObjectURL(zipBlob);
+
+    const anchor = document.createElement("a");
+    const dateString = formatTodayString();
+    anchor.href = url;
+    anchor.download = `fireseed-disc-${dateString}.zip`;
+    anchor.click();
+
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="space-y-4">
       <header className="flex items-center justify-between">
@@ -363,6 +401,13 @@ export default function FireseedLabPage() {
             className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
           >
             Export Manifest
+          </button>
+          <button
+            type="button"
+            onClick={handleExportMDiscStructure}
+            className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
+          >
+            导出 M-Disc 结构 / Export M-Disc structure
           </button>
           <button
             type="button"
@@ -527,6 +572,7 @@ export default function FireseedLabPage() {
           <table className="min-w-full border-collapse">
             <thead>
               <tr className="bg-gray-50 text-left text-sm">
+                <th className="border px-3 py-2">选择</th>
                 <th className="border px-3 py-2">Title</th>
                 <th className="border px-3 py-2">Capsule ID</th>
                 <th className="border px-3 py-2">Created At</th>
@@ -544,6 +590,14 @@ export default function FireseedLabPage() {
               return (
                 <tbody key={capsule.capsuleId} className="text-sm">
                   <tr className="align-top">
+                    <td className="border px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedCapsuleIds.includes(capsule.capsuleId)}
+                        onChange={() => toggleCapsuleSelection(capsule.capsuleId)}
+                        aria-label={`Select capsule ${capsule.capsuleId}`}
+                      />
+                    </td>
                     <td className="border px-3 py-2">
                       <div className="flex items-center gap-2">
                         <button
@@ -646,7 +700,7 @@ export default function FireseedLabPage() {
                   </tr>
                   {expandedCapsules.has(capsule.capsuleId) ? (
                     <tr>
-                      <td colSpan={9} className="border-t bg-gray-50 px-4 py-3">
+                      <td colSpan={10} className="border-t bg-gray-50 px-4 py-3">
                         <div className="space-y-2 text-sm">
                           <div className="flex flex-wrap gap-4 text-gray-700">
                             <span>
