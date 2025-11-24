@@ -6,7 +6,12 @@ import React, {
   useRef,
   useState,
   ChangeEvent,
+  useCallback,
 } from 'react';
+import type {
+  FireseedManifest,
+  FireseedManifestCapsuleEntry,
+} from '@/packages/core/manifest/types';
 import {
   getManifest,
   exportManifest,
@@ -14,23 +19,7 @@ import {
   getIpfsGatewayConfig,
   saveIpfsGatewayConfig,
 } from '../../lib/manifestStore';
-
-type FireseedManifestCapsuleEntry = {
-  capsuleId: string;
-  title?: string;
-  createdAt: string;
-  scenario?: string;
-  primaryLanguage?: string;
-  encryption?: string;
-  fireseedIndex?: number;
-  replicas?: { adapterId: string; location: string; lastUpdatedAt?: string }[];
-};
-
-type FireseedManifest = {
-  schema: string;
-  toolVersion: string;
-  capsules: FireseedManifestCapsuleEntry[];
-};
+import { exportMDiscStructure, exportQrClueCard } from '../../lib/labExports';
 
 type IpfsGatewayConfig = {
   baseUrl?: string;
@@ -54,9 +43,13 @@ export default function FireseedLabPage() {
   const [search, setSearch] = useState<string>('');
   const [ipfsUploadingId, setIpfsUploadingId] = useState<string | null>(null);
   const [ipfsUploading, setIpfsUploading] = useState<boolean>(false);
+  const [selectedCapsuleIds, setSelectedCapsuleIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const ipfsFileInputRef = useRef<HTMLInputElement | null>(null);
+  const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null);
 
   // 加载 manifest + IPFS 配置
   useEffect(() => {
@@ -87,6 +80,10 @@ export default function FireseedLabPage() {
     run();
   }, []);
 
+  useEffect(() => {
+    setSelectedCapsuleIds(new Set());
+  }, [manifest?.capsules]);
+
   const capsules: FireseedManifestCapsuleEntry[] = useMemo(
     () => manifest?.capsules ?? [],
     [manifest],
@@ -106,6 +103,25 @@ export default function FireseedLabPage() {
       );
     });
   }, [capsules, search]);
+
+  const selectedCapsules = useMemo(() => {
+    if (selectedCapsuleIds.size === 0) return capsules;
+    const selectedSet = new Set(selectedCapsuleIds);
+    return capsules.filter((c) => selectedSet.has(c.capsuleId));
+  }, [capsules, selectedCapsuleIds]);
+
+  useEffect(() => {
+    if (!selectAllCheckboxRef.current) return;
+    const allVisibleSelected =
+      filteredCapsules.length > 0 &&
+      filteredCapsules.every((c) => selectedCapsuleIds.has(c.capsuleId));
+    const anyVisibleSelected = filteredCapsules.some((c) =>
+      selectedCapsuleIds.has(c.capsuleId),
+    );
+    selectAllCheckboxRef.current.indeterminate =
+      anyVisibleSelected && !allVisibleSelected;
+    selectAllCheckboxRef.current.checked = allVisibleSelected;
+  }, [filteredCapsules, selectedCapsuleIds]);
 
   const refreshManifest = async () => {
     try {
@@ -138,6 +154,74 @@ export default function FireseedLabPage() {
       setError('导出 manifest 失败。');
     }
   };
+
+  const handleExportMDiscStructure = useCallback(async () => {
+    if (!manifest) {
+      setError('尚未加载 manifest，无法导出。');
+      return;
+    }
+
+    try {
+      setError(null);
+      const targetCapsules = selectedCapsules.length
+        ? selectedCapsules
+        : capsules;
+
+      if (targetCapsules.length === 0) {
+        setError('没有可导出的胶囊。');
+        return;
+      }
+
+      await exportMDiscStructure(manifest, targetCapsules);
+    } catch (e) {
+      console.error(e);
+      setError('导出 M-Disc 结构失败。');
+    }
+  }, [capsules, manifest, selectedCapsules]);
+
+  const handleExportQrClue = useCallback(
+    async (entry: FireseedManifestCapsuleEntry) => {
+      if (!manifest) {
+        setError('尚未加载 manifest，无法生成线索卡。');
+        return;
+      }
+
+      try {
+        setError(null);
+        await exportQrClueCard(entry, manifest);
+      } catch (e) {
+        console.error(e);
+        setError('生成 QR 线索卡失败。');
+      }
+    },
+    [manifest],
+  );
+
+  const handleToggleSelect = useCallback((capsuleId: string) => {
+    setSelectedCapsuleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(capsuleId)) {
+        next.delete(capsuleId);
+      } else {
+        next.add(capsuleId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAll = useCallback(() => {
+    setSelectedCapsuleIds((prev) => {
+      const visibleIds = filteredCapsules.map((c) => c.capsuleId);
+      const hasAllVisible = visibleIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (hasAllVisible) {
+        visibleIds.forEach((id) => next.delete(id));
+      } else {
+        visibleIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, [filteredCapsules]);
 
   // 导入 manifest.json
   const handleImportManifestFile = async (
@@ -289,6 +373,14 @@ export default function FireseedLabPage() {
             onChange={handleImportManifestFile}
           />
 
+          <button
+            type="button"
+            onClick={handleExportMDiscStructure}
+            className="rounded border border-emerald-500 px-3 py-1 text-xs hover:bg-emerald-700"
+          >
+            导出 M-Disc 结构 / Export M-Disc structure
+          </button>
+
           <span className="ml-auto text-[11px] text-amber-300">
             ⚠ 实验性视图：请确认本地 manifest 中不含你不想公开的信息，再导出或分享。
           </span>
@@ -381,6 +473,9 @@ export default function FireseedLabPage() {
               placeholder="按标题 / ID / 场景关键字过滤"
               className="w-56 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs outline-none focus:border-sky-500"
             />
+            <span className="text-[11px] text-slate-400">
+              已选 {selectedCapsuleIds.size} 个
+            </span>
           </div>
         </div>
 
@@ -388,6 +483,14 @@ export default function FireseedLabPage() {
           <table className="min-w-full border-collapse text-xs">
             <thead>
               <tr className="border-b border-slate-700 bg-slate-900/80 text-[11px] uppercase tracking-wide">
+                <th className="px-2 py-2 text-left">
+                  <input
+                    ref={selectAllCheckboxRef}
+                    type="checkbox"
+                    onChange={handleToggleSelectAll}
+                    className="h-4 w-4 accent-emerald-500"
+                  />
+                </th>
                 <th className="px-2 py-2 text-left">Title</th>
                 <th className="px-2 py-2 text-left">Capsule ID</th>
                 <th className="px-2 py-2 text-left">Created At</th>
@@ -401,7 +504,7 @@ export default function FireseedLabPage() {
               {filteredCapsules.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-2 py-6 text-center text-[11px] text-slate-400"
                   >
                     暂无记录，或当前筛选条件下没有匹配的胶囊。
@@ -414,6 +517,14 @@ export default function FireseedLabPage() {
                   key={c.capsuleId}
                   className="border-b border-slate-800/80 hover:bg-slate-800/40"
                 >
+                  <td className="px-2 py-2 align-top">
+                    <input
+                      type="checkbox"
+                      checked={selectedCapsuleIds.has(c.capsuleId)}
+                      onChange={() => handleToggleSelect(c.capsuleId)}
+                      className="h-4 w-4 accent-emerald-500"
+                    />
+                  </td>
                   <td className="px-2 py-2 align-top">
                     <div className="max-w-xs truncate font-medium">
                       {c.title || '(未命名胶囊)'}
@@ -463,6 +574,14 @@ export default function FireseedLabPage() {
                         {ipfsUploading && ipfsUploadingId === c.capsuleId
                           ? '上传中…'
                           : '上传到 IPFS'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleExportQrClue(c)}
+                        className="rounded border border-emerald-500 px-2 py-0.5 text-[11px] hover:bg-emerald-700"
+                      >
+                        QR 线索卡
                       </button>
                     </div>
                   </td>
