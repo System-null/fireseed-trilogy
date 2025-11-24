@@ -12,7 +12,17 @@ Status: v0.3.0 implements the first local-only Lab milestone (capsule generation
 - [ ] Remote adapters (e.g., S3/IPFS) with health checks
 - [ ] Multi-replica sync and recovery policies
 
-**Phase 2.1 status:**  
+## Multi-Replica / Storage Adapters
+
+- [x] Local ZIP + Manifest + Lab: local generation, verification, and manifest editing are available today.
+- [ ] IPFS / Arweave / M-Disc / QR Export: Planned (BYO infra); adapters will write replica records into the manifest without hosting third-party storage.
+
+## 多副本 / 存储适配器
+
+- [x] 本地 ZIP + Manifest + Lab：已完成本地生成、验证与清单管理闭环。
+- [ ] IPFS / Arweave / M-Disc / QR 导出：规划中（用户自备基础设施）；适配器仅写入副本信息，不托管第三方存储。
+
+**Phase 2.1 status:**
 The project now provides a closed local loop: **generate → (optionally) encrypt → verify → register in the Lab manifest**, with no server-side storage or user accounts involved.
 
 **Phase 2.1 状态：**  

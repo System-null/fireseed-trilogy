@@ -3,7 +3,6 @@ import type {
   FireseedManifest,
   FireseedManifestCapsuleEntry,
   FireseedManifestReplica,
-  FireseedManifestReplicaInput,
 } from "../../../packages/core/manifest/types";
 import { version as currentToolVersion } from "../package.json";
 
@@ -103,26 +102,34 @@ export async function upsertCapsule(
 
 export async function addReplicaToCapsule(
   capsuleId: string,
-  replica: FireseedManifestReplicaInput
-): Promise<FireseedManifest | null> {
+  replica: FireseedManifestReplica
+): Promise<void> {
   const manifest = await getManifest();
-  const entry = manifest.capsules.find(
+  const entryIndex = manifest.capsules.findIndex(
     (capsule) => capsule.capsuleId === capsuleId
   );
 
-  if (!entry) {
-    return null;
+  if (entryIndex < 0) {
+    const newEntry: FireseedManifestCapsuleEntry = {
+      capsuleId,
+      title: "(unknown from Lab)",
+      createdAt: new Date().toISOString(),
+      encryption: "none",
+      replicas: [replica],
+      status: "draft",
+      backedUp: false,
+    };
+
+    manifest.capsules.push(newEntry);
+  } else {
+    const existing = manifest.capsules[entryIndex];
+    manifest.capsules[entryIndex] = {
+      ...existing,
+      replicas: [...(existing.replicas ?? []), replica],
+    };
   }
 
-  const nextReplica: FireseedManifestReplica = {
-    ...replica,
-    lastUpdatedAt: replica.lastUpdatedAt ?? new Date().toISOString(),
-  };
-
-  entry.replicas = [...(entry.replicas ?? []), nextReplica];
-
   await saveManifest(manifest);
-  return manifest;
 }
 
 export async function findCapsuleById(
