@@ -16,7 +16,9 @@ import {
   uploadCapsuleZipToIpfs,
 } from "../../lib/adapters/ipfsHttp";
 import { buildMDiscBundleZip } from "../../lib/export/mDisc";
+import { buildQrPayloadFromManifestEntry, generateQrDataUrl } from "../../lib/export/qrCard";
 import type { FireseedManifest } from "../../../packages/core/manifest/types";
+import type { FireseedManifestCapsuleEntry } from "../../../packages/core/manifest/types";
 
 export default function FireseedLabPage() {
   const [manifest, setManifest] = useState<FireseedManifest | null>(null);
@@ -53,6 +55,11 @@ export default function FireseedLabPage() {
     Record<string, { uploading?: boolean; message?: string; error?: string }>
   >({});
   const [selectedCapsuleIds, setSelectedCapsuleIds] = useState<string[]>([]);
+  const [qrPreviewDataUrl, setQrPreviewDataUrl] = useState<string>("");
+  const [qrPreviewPayload, setQrPreviewPayload] = useState<
+    ReturnType<typeof buildQrPayloadFromManifestEntry> | null
+  >(null);
+  const [qrPreviewError, setQrPreviewError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -366,6 +373,28 @@ export default function FireseedLabPage() {
     input.click();
   };
 
+  const handleOpenQrPreview = async (entry: FireseedManifestCapsuleEntry) => {
+    setQrPreviewError("");
+    try {
+      const payload = buildQrPayloadFromManifestEntry(entry);
+      const dataUrl = await generateQrDataUrl(payload);
+      setQrPreviewPayload(payload);
+      setQrPreviewDataUrl(dataUrl);
+    } catch (error) {
+      setQrPreviewPayload(null);
+      setQrPreviewDataUrl("");
+      setQrPreviewError(
+        (error as Error).message ||
+          "生成 QR 线索卡失败 / Failed to generate QR clue card."
+      );
+    }
+  };
+
+  const closeQrPreview = () => {
+    setQrPreviewPayload(null);
+    setQrPreviewDataUrl("");
+  };
+
   const handleExportMDiscStructure = async () => {
     if (selectedCapsuleIds.length === 0) {
       alert("请至少选择一个火种胶囊 / Please select at least one capsule.");
@@ -666,6 +695,13 @@ export default function FireseedLabPage() {
                     </Link>
                     <button
                       type="button"
+                      onClick={() => handleOpenQrPreview(capsule)}
+                      className="block w-full rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                    >
+                      QR 线索卡 / QR clue card
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => openReplicaModal(capsule.capsuleId)}
                       className="block w-full rounded border px-2 py-1 text-xs hover:bg-gray-50"
                     >
@@ -746,6 +782,74 @@ export default function FireseedLabPage() {
           </table>
         </div>
       )}
+
+      {qrPreviewError ? (
+        <p className="text-sm text-red-600">{qrPreviewError}</p>
+      ) : null}
+
+      {qrPreviewPayload && qrPreviewDataUrl ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded bg-white p-4 shadow-lg">
+            <div className="mb-3 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">QR 线索卡 / QR clue card</h2>
+                <p className="text-sm text-gray-600">
+                  本地生成的胶囊索引提示。This QR is generated locally as a clue, not full content.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeQrPreview}
+                className="rounded px-2 py-1 text-sm hover:bg-gray-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex items-center justify-center rounded border bg-gray-50 p-3">
+                <img
+                  src={qrPreviewDataUrl}
+                  alt={`QR clue card for capsule ${qrPreviewPayload.capsuleId}`}
+                  className="max-h-80 object-contain"
+                />
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="rounded border bg-gray-50 p-3 font-mono text-xs">
+                  <div>capsuleId: {qrPreviewPayload.capsuleId}</div>
+                  <div>schemaVersion: {qrPreviewPayload.schemaVersion}</div>
+                  <div>replicas: {qrPreviewPayload.replicas?.length ?? 0}</div>
+                  <div>generatedAt: {qrPreviewPayload.generatedAt}</div>
+                </div>
+                <p className="rounded border bg-white p-3 text-gray-700">
+                  这是“火种线索卡”而不是完整内容。<br />
+                  只要任意一个副本（ipfs:// 或 ar:// 等）仍然可用，未来系统就可以根据这个 QR 提供的线索去追溯原始胶囊。
+                </p>
+                <p className="rounded border bg-white p-3 text-gray-700">
+                  This is a “clue card”, not the full capsule. <br />
+                  As long as any replica (ipfs:// or ar:// etc.) is still reachable, a future system can use this QR payload as a hint to rediscover the original capsule.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={qrPreviewDataUrl}
+                    download={`fireseed-qr-${qrPreviewPayload.capsuleId}.png`}
+                    className="rounded bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700"
+                  >
+                    下载 PNG / Download PNG
+                  </a>
+                  <button
+                    type="button"
+                    onClick={closeQrPreview}
+                    className="rounded border px-3 py-2 text-xs hover:bg-gray-50"
+                  >
+                    关闭 / Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {replicaModal.open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
