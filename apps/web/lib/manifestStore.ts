@@ -3,6 +3,7 @@ import type {
   FireseedManifest,
   FireseedManifestCapsuleEntry,
   FireseedManifestReplica,
+  FireseedReplicaCheckStatus,
 } from "../../../packages/core/manifest/types";
 import { version as currentToolVersion } from "../package.json";
 
@@ -137,4 +138,94 @@ export async function findCapsuleById(
 ): Promise<FireseedManifestCapsuleEntry | undefined> {
   const manifest = await getManifest();
   return manifest.capsules.find((capsule) => capsule.capsuleId === capsuleId);
+}
+
+export async function updateReplicaCheckResult(options: {
+  capsuleId: string;
+  adapterId: string;
+  location?: string;
+  status: FireseedReplicaCheckStatus;
+  message?: string;
+  checkedAt?: string;
+}): Promise<void> {
+  const { capsuleId, adapterId, location, status, message, checkedAt } = options;
+  const manifest = await getManifest();
+  const now = checkedAt ?? new Date().toISOString();
+
+  const entry = manifest.capsules.find((capsule) => capsule.capsuleId === capsuleId);
+  if (!entry) {
+    console.warn("[manifestStore] updateReplicaCheckResult: capsule not found", capsuleId);
+    return;
+  }
+
+  if (!entry.replicas || entry.replicas.length === 0) {
+    console.warn(
+      "[manifestStore] updateReplicaCheckResult: capsule has no replicas",
+      capsuleId
+    );
+    return;
+  }
+
+  const replica = entry.replicas.find((r) => {
+    if (r.adapterId !== adapterId) return false;
+    if (location && r.location !== location) return false;
+    return true;
+  });
+
+  if (!replica) {
+    console.warn("[manifestStore] updateReplicaCheckResult: replica not found", {
+      capsuleId,
+      adapterId,
+      location,
+    });
+    return;
+  }
+
+  replica.lastCheckAt = now;
+  replica.lastCheckStatus = status;
+  replica.lastCheckMessage = message;
+
+  await saveManifest(manifest);
+}
+
+export type CapsuleHealthStatus = "draft" | "no-replica" | "backed-up" | "healthy" | "error";
+
+export function computeCapsuleHealth(entry: FireseedManifestCapsuleEntry): {
+  status: CapsuleHealthStatus;
+  hasRemoteReplica: boolean;
+  lastCheckAt?: string;
+} {
+  const replicas = entry.replicas ?? [];
+  if (replicas.length === 0) {
+    return {
+      status: "draft",
+      hasRemoteReplica: false,
+    };
+  }
+
+  const hasRemoteReplica = replicas.some((replica) => replica.adapterId !== "local-zip");
+
+  const lastCheck = replicas
+    .map((replica) => replica.lastCheckAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  const hasFailed = replicas.some((replica) => replica.lastCheckStatus === "failed");
+  const hasOk = replicas.some((replica) => replica.lastCheckStatus === "ok");
+
+  let status: CapsuleHealthStatus = "backed-up";
+  if (hasFailed) {
+    status = "error";
+  } else if (hasOk) {
+    status = "healthy";
+  } else if (!hasRemoteReplica) {
+    status = "no-replica";
+  }
+
+  return {
+    status,
+    hasRemoteReplica,
+    lastCheckAt: lastCheck,
+  };
 }
