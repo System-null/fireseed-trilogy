@@ -10,6 +10,11 @@ import {
   importManifest,
   upsertCapsule,
 } from "../../lib/manifestStore";
+import {
+  loadIpfsGatewayConfig,
+  saveIpfsGatewayConfig,
+  uploadCapsuleZipToIpfs,
+} from "../../lib/adapters/ipfsHttp";
 import type { FireseedManifest } from "../../../packages/core/manifest/types";
 
 export default function FireseedLabPage() {
@@ -38,6 +43,14 @@ export default function FireseedLabPage() {
     saving: false,
     error: "",
   });
+  const [ipfsConfig, setIpfsConfig] = useState({ baseUrl: "", authToken: "" });
+  const [ipfsConfigSaved, setIpfsConfigSaved] = useState({
+    message: "",
+    isError: false,
+  });
+  const [ipfsUploadState, setIpfsUploadState] = useState<
+    Record<string, { uploading?: boolean; message?: string; error?: string }>
+  >({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -51,6 +64,16 @@ export default function FireseedLabPage() {
     };
 
     loadManifest();
+  }, []);
+
+  useEffect(() => {
+    const savedConfig = loadIpfsGatewayConfig();
+    if (savedConfig) {
+      setIpfsConfig({
+        baseUrl: savedConfig.baseUrl,
+        authToken: savedConfig.authToken ?? "",
+      });
+    }
   }, []);
 
   const handleExport = async () => {
@@ -239,6 +262,91 @@ export default function FireseedLabPage() {
     }
   };
 
+  const handleSaveIpfsConfig = () => {
+    try {
+      const trimmedBaseUrl = ipfsConfig.baseUrl.trim();
+      const trimmedToken = ipfsConfig.authToken.trim();
+      if (!trimmedBaseUrl) {
+        setIpfsConfigSaved({ message: "请填写 baseUrl / Base URL required", isError: true });
+        return;
+      }
+      saveIpfsGatewayConfig({ baseUrl: trimmedBaseUrl, authToken: trimmedToken || undefined });
+      setIpfsConfig((prev) => ({ ...prev, baseUrl: trimmedBaseUrl, authToken: trimmedToken }));
+      setIpfsConfigSaved({
+        message: "已保存 IPFS 网关配置 / IPFS gateway saved",
+        isError: false,
+      });
+    } catch (error) {
+      setIpfsConfigSaved({ message: (error as Error).message, isError: true });
+    }
+  };
+
+  const handleUploadToIpfs = (capsuleId: string) => {
+    const config = loadIpfsGatewayConfig() ?? {
+      baseUrl: ipfsConfig.baseUrl.trim(),
+      authToken: ipfsConfig.authToken.trim() || undefined,
+    };
+
+    if (!config.baseUrl) {
+      setIpfsUploadState((prev) => ({
+        ...prev,
+        [capsuleId]: {
+          uploading: false,
+          message: "",
+          error: "请先配置 IPFS 网关 / Please configure IPFS gateway first.",
+        },
+      }));
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".zip";
+    input.onchange = async (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (!file) return;
+
+      setIpfsUploadState((prev) => ({
+        ...prev,
+        [capsuleId]: { uploading: true, message: "", error: "" },
+      }));
+
+      try {
+        const { cid } = await uploadCapsuleZipToIpfs(file, config);
+        await addReplicaToCapsule(capsuleId, {
+          adapterId: "ipfs-http",
+          medium: "ipfs",
+          location: `ipfs://${cid}`,
+          lastUpdatedAt: new Date().toISOString(),
+          label: "IPFS (BYO gateway)",
+        });
+        await refreshManifest();
+        setIpfsUploadState((prev) => ({
+          ...prev,
+          [capsuleId]: {
+            uploading: false,
+            message: `上传成功 / Uploaded: ipfs://${cid}`,
+            error: "",
+          },
+        }));
+      } catch (error) {
+        setIpfsUploadState((prev) => ({
+          ...prev,
+          [capsuleId]: {
+            uploading: false,
+            message: "",
+            error:
+              (error as Error).message ||
+              "IPFS 上传失败 / IPFS upload failed. 请检查配置或网络。",
+          },
+        }));
+      }
+    };
+
+    input.click();
+  };
+
   return (
     <main className="space-y-4">
       <header className="flex items-center justify-between">
@@ -281,6 +389,63 @@ export default function FireseedLabPage() {
           ⚠️ Experimental view: verify your local manifest entries before sharing; avoid
           exposing capsule locations or keys in untrusted environments.
         </p>
+      </div>
+
+      <div className="space-y-3 rounded border bg-white p-4 shadow-sm">
+        <div>
+          <h2 className="text-lg font-semibold">IPFS 网关配置 / IPFS Gateway</h2>
+          <p className="text-sm text-gray-600">
+            使用你自己的 IPFS HTTP API 网关（如 Kubo /api/v0），配置后可在下方直接上传 ZIP
+            胶囊文件。
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">Gateway Base URL</label>
+            <input
+              value={ipfsConfig.baseUrl}
+              onChange={(event) => {
+                setIpfsConfigSaved({ message: "", isError: false });
+                setIpfsConfig((prev) => ({ ...prev, baseUrl: event.target.value }));
+              }}
+              placeholder="http://127.0.0.1:5001/api/v0"
+              className="w-full rounded border px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-gray-500">
+              需包含 /api/v0，系统会在后方拼接 /add?pin=true
+            </p>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">Auth Token (可选)</label>
+            <input
+              type="password"
+              value={ipfsConfig.authToken}
+              onChange={(event) => {
+                setIpfsConfigSaved({ message: "", isError: false });
+                setIpfsConfig((prev) => ({ ...prev, authToken: event.target.value }));
+              }}
+              placeholder="Bearer token (optional)"
+              className="w-full rounded border px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-gray-500">如果网关需要鉴权，可填写 Bearer token。</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSaveIpfsConfig}
+            className="rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+          >
+            保存配置
+          </button>
+          {ipfsConfigSaved.message ? (
+            <span
+              className={`text-sm ${ipfsConfigSaved.isError ? "text-red-700" : "text-green-700"}`}
+            >
+              {ipfsConfigSaved.message}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded border bg-gray-50 p-3 text-sm">
@@ -438,21 +603,46 @@ export default function FireseedLabPage() {
                     <td className="border px-3 py-2 text-center">
                       {capsule.replicas?.length ?? 0}
                     </td>
-                    <td className="border px-3 py-2 space-y-2 text-center">
-                      <Link
-                        href="/verify/local"
-                        className="inline-block rounded border px-2 py-1 text-xs hover:bg-gray-50"
-                      >
-                        查看/验证
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => openReplicaModal(capsule.capsuleId)}
-                        className="block w-full rounded border px-2 py-1 text-xs hover:bg-gray-50"
-                      >
-                        手动添加副本
-                      </button>
-                    </td>
+                  <td className="border px-3 py-2 space-y-2 text-center">
+                    <Link
+                      href="/verify/local"
+                      className="inline-block rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                    >
+                      查看/验证
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => openReplicaModal(capsule.capsuleId)}
+                      className="block w-full rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                    >
+                      手动添加副本
+                    </button>
+                    <div className="space-y-1 rounded border px-2 py-2 text-left text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">IPFS</span>
+                        <button
+                          type="button"
+                          onClick={() => handleUploadToIpfs(capsule.capsuleId)}
+                          className="rounded border px-2 py-1 hover:bg-gray-50 disabled:opacity-60"
+                          disabled={ipfsUploadState[capsule.capsuleId]?.uploading}
+                        >
+                          {ipfsUploadState[capsule.capsuleId]?.uploading
+                            ? "上传中…"
+                            : "上传到 IPFS / Upload to IPFS"}
+                        </button>
+                      </div>
+                      {ipfsUploadState[capsule.capsuleId]?.message ? (
+                        <p className="text-green-700">
+                          {ipfsUploadState[capsule.capsuleId]?.message}
+                        </p>
+                      ) : null}
+                      {ipfsUploadState[capsule.capsuleId]?.error ? (
+                        <p className="text-red-600">
+                          {ipfsUploadState[capsule.capsuleId]?.error}
+                        </p>
+                      ) : null}
+                    </div>
+                  </td>
                   </tr>
                   {expandedCapsules.has(capsule.capsuleId) ? (
                     <tr>
