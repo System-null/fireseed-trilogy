@@ -1,700 +1,486 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ChangeEvent,
+} from 'react';
 import {
-  addReplicaToCapsule,
-  exportManifest,
   getManifest,
+  exportManifest,
   importManifest,
-  upsertCapsule,
-} from "../../lib/manifestStore";
-import {
-  loadIpfsGatewayConfig,
+  getIpfsGatewayConfig,
   saveIpfsGatewayConfig,
-  uploadCapsuleZipToIpfs,
-} from "../../lib/adapters/ipfsHttp";
-import { buildMDiscBundleZip } from "../../lib/export/mDisc";
-import { buildQrPayloadFromManifestEntry, generateQrDataUrl } from "../../lib/export/qrCard";
-import type { FireseedManifest } from "../../../packages/core/manifest/types";
-import type { FireseedManifestCapsuleEntry } from "../../../packages/core/manifest/types";
+} from '../../lib/manifestStore';
+
+type FireseedManifestCapsuleEntry = {
+  capsuleId: string;
+  title?: string;
+  createdAt: string;
+  scenario?: string;
+  primaryLanguage?: string;
+  encryption?: string;
+  fireseedIndex?: number;
+  replicas?: { adapterId: string; location: string; lastUpdatedAt?: string }[];
+};
+
+type FireseedManifest = {
+  schema: string;
+  toolVersion: string;
+  capsules: FireseedManifestCapsuleEntry[];
+};
+
+type IpfsGatewayConfig = {
+  baseUrl?: string;
+  authToken?: string | null;
+};
+
+const emptyIpfsConfig: IpfsGatewayConfig = {
+  baseUrl: '',
+  authToken: '',
+};
 
 export default function FireseedLabPage() {
   const [manifest, setManifest] = useState<FireseedManifest | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [filterEncryption, setFilterEncryption] = useState<
-    "all" | "none" | "aes-256-gcm"
-  >("all");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "draft" | "final" | "archived"
-  >("all");
-  const [filterLanguage, setFilterLanguage] = useState<
-    "all" | "zh" | "en" | "mixed"
-  >("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortOption, setSortOption] = useState<
-    "createdAtDesc" | "createdAtAsc" | "title"
-  >("createdAtDesc");
-  const [expandedCapsules, setExpandedCapsules] = useState<Set<string>>(new Set());
-  const [replicaModal, setReplicaModal] = useState({
-    open: false,
-    capsuleId: "",
-    adapterId: "",
-    location: "",
-    notes: "",
-    saving: false,
-    error: "",
-  });
-  const [ipfsConfig, setIpfsConfig] = useState({ baseUrl: "", authToken: "" });
-  const [ipfsConfigSaved, setIpfsConfigSaved] = useState({
-    message: "",
-    isError: false,
-  });
-  const [ipfsUploadState, setIpfsUploadState] = useState<
-    Record<string, { uploading?: boolean; message?: string; error?: string }>
-  >({});
-  const [selectedCapsuleIds, setSelectedCapsuleIds] = useState<string[]>([]);
-  const [qrPreviewDataUrl, setQrPreviewDataUrl] = useState<string>("");
-  const [qrPreviewPayload, setQrPreviewPayload] = useState<
-    ReturnType<typeof buildQrPayloadFromManifestEntry> | null
-  >(null);
-  const [qrPreviewError, setQrPreviewError] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [loadingManifest, setLoadingManifest] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
+  const [ipfsConfig, setIpfsConfig] =
+    useState<IpfsGatewayConfig>(emptyIpfsConfig);
+  const [ipfsMessage, setIpfsMessage] = useState<string | null>(null);
+
+  const [search, setSearch] = useState<string>('');
+  const [ipfsUploadingId, setIpfsUploadingId] = useState<string | null>(null);
+  const [ipfsUploading, setIpfsUploading] = useState<boolean>(false);
+
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const ipfsFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 加载 manifest + IPFS 配置
   useEffect(() => {
-    const loadManifest = async () => {
+    const run = async () => {
       try {
-        const data = await getManifest();
-        setManifest(data);
+        setLoadingManifest(true);
+        const m = (await getManifest()) as FireseedManifest;
+        setManifest(m);
+      } catch (e) {
+        console.error(e);
+        setError('无法加载本地 Fireseed manifest。');
       } finally {
-        setLoading(false);
+        setLoadingManifest(false);
+      }
+
+      try {
+        const cfg = (await getIpfsGatewayConfig()) as IpfsGatewayConfig | null;
+        if (cfg) {
+          setIpfsConfig({
+            baseUrl: cfg.baseUrl ?? '',
+            authToken: cfg.authToken ?? '',
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to load IPFS gateway config', e);
       }
     };
-
-    loadManifest();
+    run();
   }, []);
 
-  useEffect(() => {
-    const savedConfig = loadIpfsGatewayConfig();
-    if (savedConfig) {
-      setIpfsConfig({
-        baseUrl: savedConfig.baseUrl,
-        authToken: savedConfig.authToken ?? "",
-      });
-    }
-  }, []);
+  const capsules: FireseedManifestCapsuleEntry[] = useMemo(
+    () => manifest?.capsules ?? [],
+    [manifest],
+  );
 
-  const handleExport = async () => {
-    const json = await exportManifest();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "manifest.json";
-    anchor.click();
-
-    URL.revokeObjectURL(url);
-  };
+  const filteredCapsules = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return capsules;
+    return capsules.filter((c) => {
+      const title = c.title ?? '';
+      const id = c.capsuleId ?? '';
+      const scenario = c.scenario ?? '';
+      return (
+        title.toLowerCase().includes(q) ||
+        id.toLowerCase().includes(q) ||
+        scenario.toLowerCase().includes(q)
+      );
+    });
+  }, [capsules, search]);
 
   const refreshManifest = async () => {
-    const data = await getManifest();
-    setManifest(data);
+    try {
+      setLoadingManifest(true);
+      const m = (await getManifest()) as FireseedManifest;
+      setManifest(m);
+    } catch (e) {
+      console.error(e);
+      setError('刷新 manifest 失败。');
+    } finally {
+      setLoadingManifest(false);
+    }
   };
 
-  const handleImport = async () => {
-    fileInputRef.current?.click();
+  // 导出 manifest.json
+  const handleExportManifest = async () => {
+    try {
+      const json = await exportManifest();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'fireseed-manifest.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      setError('导出 manifest 失败。');
+    }
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+  // 导入 manifest.json
+  const handleImportManifestFile = async (
+    e: ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
+    const file = e.target.files?.[0];
     if (!file) return;
-
-    const text = await file.text();
-    await importManifest(text);
-    await refreshManifest();
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    try {
+      const text = await file.text();
+      const result = await importManifest(text);
+      console.log('importManifest result', result);
+      setIpfsMessage(
+        `导入完成：新增 ${result?.added ?? 0} 条，更新 ${
+          result?.updated ?? 0
+        } 条。`,
+      );
+      await refreshManifest();
+    } catch (err) {
+      console.error(err);
+      setError('导入 manifest 失败：JSON 格式或 schema 不正确。');
+    } finally {
+      e.target.value = '';
     }
   };
 
-  const formatDate = (value: string) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString();
-  };
-
-  const formatTodayString = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}${month}${day}`;
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "final":
-        return "Final / 定稿";
-      case "archived":
-        return "Archived / 归档";
-      case "draft":
-      default:
-        return "Draft / 草稿";
+  // 保存 IPFS 网关配置
+  const handleSaveIpfsConfig = async () => {
+    try {
+      setIpfsMessage(null);
+      await saveIpfsGatewayConfig(ipfsConfig);
+      setIpfsMessage('IPFS 网关配置已保存到本地（浏览器存储）。');
+    } catch (e) {
+      console.error(e);
+      setError('保存 IPFS 网关配置失败。');
     }
   };
 
-  const renderStatusTag = (status: string) => {
-    const color =
-      status === "final"
-        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-        : status === "archived"
-          ? "bg-gray-100 text-gray-700 border-gray-200"
-          : "bg-blue-100 text-blue-700 border-blue-200";
-    return (
-    <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold leading-tight">火种实验室 / Fireseed Lab</h1>
-            <p className="text-sm text-slate-600">
-              Inspect local Fireseed manifests, export snapshots, or import updates.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleExport}
-              className="rounded-md border border-slate-200 bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800"
-            >
-              Export Manifest
-            </button>
-            <button
-              type="button"
-              onClick={handleExportMDiscStructure}
-              className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              导出 M-Disc 模板 / Export M-Disc structure
-            </button>
-            <button
-              type="button"
-              onClick={handleImport}
-              className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              Import Manifest
-            </button>
-            <Link
-              href="/verify/local"
-              className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              选择本地 ZIP / Import capsules from ZIP
-            </Link>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-        </div>
+  // 选择 ZIP 文件用于上传到 IPFS
+  const handleClickUploadIpfs = (capsuleId: string) => {
+    setIpfsUploadingId(capsuleId);
+    setIpfsMessage(null);
+    setError(null);
+    if (ipfsFileInputRef.current) {
+      ipfsFileInputRef.current.value = '';
+      ipfsFileInputRef.current.click();
+    }
+  };
 
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <p className="font-medium">
-            ⚠️ 实验性视图：请确保本地 manifest 内容安全，不要在公共环境泄露敏感胶囊信息。
-          </p>
-          <p>
-            ⚠️ Experimental view: verify your local manifest entries before sharing; avoid
-            exposing capsule locations or keys in untrusted environments.
-          </p>
-        </div>
-      </div>
+  // 真正执行 IPFS 上传
+  const handleIpfsFileSelected = async (
+    e: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !ipfsUploadingId) return;
 
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold">IPFS 网关配置 / IPFS Gateway</h2>
-          <p className="text-xs text-yellow-600">
-            使用你自己的 IPFS HTTP API 网关（如 Kubo /api/v0），配置后可在下方直接上传 ZIP 胶囊文件。
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-slate-700">Gateway Base URL</label>
-            <input
-              value={ipfsConfig.baseUrl}
-              onChange={(event) => {
-                setIpfsConfigSaved({ message: "", isError: false });
-                setIpfsConfig((prev) => ({ ...prev, baseUrl: event.target.value }));
-              }}
-              placeholder="http://127.0.0.1:5001/api/v0"
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-slate-400 focus:outline-none"
-            />
-            <p className="text-xs text-slate-500">需包含 /api/v0，系统会在后方拼接 /add?pin=true</p>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-slate-700">Auth Token (可选)</label>
-            <input
-              type="password"
-              value={ipfsConfig.authToken}
-              onChange={(event) => {
-                setIpfsConfigSaved({ message: "", isError: false });
-                setIpfsConfig((prev) => ({ ...prev, authToken: event.target.value }));
-              }}
-              placeholder="Bearer token (optional)"
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-slate-400 focus:outline-none"
-            />
-            <p className="text-xs text-slate-500">如果网关需要鉴权，可填写 Bearer token。</p>
-          </div>
-        </div>
+    if (!ipfsConfig.baseUrl) {
+      setError('请先在上方配置 IPFS HTTP API 地址。');
+      return;
+    }
+
+    const base = (ipfsConfig.baseUrl ?? '').replace(/\/+$/, '');
+    const uploadUrl = `${base}/add?pin=true`;
+
+    setIpfsUploading(true);
+    setError(null);
+    setIpfsMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+
+      const headers: Record<string, string> = {};
+      if (ipfsConfig.authToken) {
+        headers['Authorization'] = `Bearer ${ipfsConfig.authToken}`;
+      }
+
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+        headers,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+
+      const text = await res.text();
+      let cid = text.trim();
+      try {
+        const parsed = JSON.parse(text);
+        cid =
+          (parsed && (parsed.Hash || parsed.cid || parsed.Cid))?.toString() ??
+          cid;
+      } catch {
+        // 非 JSON 输出，直接使用原始文本
+      }
+
+      setIpfsMessage(
+        `IPFS 上传成功。Capsule ${ipfsUploadingId} → CID: ${cid}`,
+      );
+      console.log('IPFS upload result', { capsuleId: ipfsUploadingId, cid });
+      // 这里暂时不修改 manifest，仅作为“自托管 IPFS”助手。
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        `IPFS 上传失败：${err?.message ?? '网络错误或网关未响应'}。`,
+      );
+    } finally {
+      setIpfsUploading(false);
+      setIpfsUploadingId(null);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 text-sm text-slate-100">
+      <header className="border-b border-slate-700 pb-4">
+        <h1 className="text-2xl font-semibold">火种实验室 / Fireseed Lab</h1>
+        <p className="mt-2 text-xs text-slate-300">
+          Inspect local Fireseed manifests, export snapshots, or push capsules
+          to your own storage backends.
+        </p>
+      </header>
+
+      {/* 顶部工具区：Manifest 导入导出 */}
+      <section className="rounded-lg border border-slate-700 bg-slate-900/60 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={handleSaveIpfsConfig}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+            onClick={handleExportManifest}
+            className="rounded border border-slate-500 px-3 py-1 text-xs hover:bg-slate-700"
           >
-            保存配置
+            导出 Manifest / Export Manifest
           </button>
-          {ipfsConfigSaved.message ? (
-            <span
-              className={`text-sm ${ipfsConfigSaved.isError ? "text-red-700" : "text-emerald-700"}`}
-            >
-              {ipfsConfigSaved.message}
-            </span>
-          ) : null}
-        </div>
-      </div>
 
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">筛选 / Filters</h2>
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className="rounded border border-slate-500 px-3 py-1 text-xs hover:bg-slate-700"
+          >
+            导入 Manifest / Import Manifest
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={handleImportManifestFile}
+          />
+
+          <span className="ml-auto text-[11px] text-amber-300">
+            ⚠ 实验性视图：请确认本地 manifest 中不含你不想公开的信息，再导出或分享。
+          </span>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <div className="flex min-w-[140px] flex-col gap-1 text-xs text-slate-600">
-            <span className="font-semibold">加密 / Encryption</span>
-            <select
-              className="rounded-md border border-slate-200 px-2 py-1 text-sm shadow-sm"
-              value={filterEncryption}
-              onChange={(event) => setFilterEncryption(event.target.value as typeof filterEncryption)}
-            >
-              <option value="all">全部 / All</option>
-              <option value="none">未加密 / none</option>
-              <option value="aes-256-gcm">AES-256-GCM</option>
-            </select>
-          </div>
-          <div className="flex min-w-[140px] flex-col gap-1 text-xs text-slate-600">
-            <span className="font-semibold">状态 / Status</span>
-            <select
-              className="rounded-md border border-slate-200 px-2 py-1 text-sm shadow-sm"
-              value={filterStatus}
-              onChange={(event) => setFilterStatus(event.target.value as typeof filterStatus)}
-            >
-              <option value="all">全部 / All</option>
-              <option value="draft">草稿 / Draft</option>
-              <option value="final">已定稿 / Final</option>
-              <option value="archived">归档 / Archived</option>
-            </select>
-          </div>
-          <div className="flex min-w-[140px] flex-col gap-1 text-xs text-slate-600">
-            <span className="font-semibold">语言 / Language</span>
-            <select
-              className="rounded-md border border-slate-200 px-2 py-1 text-sm shadow-sm"
-              value={filterLanguage}
-              onChange={(event) =>
-                setFilterLanguage(event.target.value as typeof filterLanguage)
-              }
-            >
-              <option value="all">全部 / All</option>
-              <option value="zh">中文 / zh</option>
-              <option value="en">English / en</option>
-              <option value="mixed">Mixed / 双语</option>
-            </select>
-          </div>
-          <div className="flex min-w-[160px] flex-col gap-1 text-xs text-slate-600">
-            <span className="font-semibold">排序 / Sort</span>
-            <select
-              className="rounded-md border border-slate-200 px-2 py-1 text-sm shadow-sm"
-              value={sortOption}
-              onChange={(event) =>
-                setSortOption(event.target.value as typeof sortOption)
-              }
-            >
-              <option value="createdAtDesc">最新创建 / Newest</option>
-              <option value="createdAtAsc">最早创建 / Oldest</option>
-              <option value="title">标题 / Title</option>
-            </select>
-          </div>
-          <div className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs text-slate-600">
-            <span className="font-semibold">搜索 / Search</span>
+      </section>
+
+      {/* IPFS 配置区 */}
+      <section className="rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+        <h2 className="text-base font-semibold">IPFS 网关配置 / IPFS Gateway</h2>
+        <p className="mt-1 text-[11px] text-slate-300">
+          使用你自己的 IPFS HTTP API 网关（如 Kubo /api/v0）。系统会在后方自动拼接
+          <code className="mx-1 rounded bg-slate-800 px-1 py-0.5 text-[10px]">
+            /add?pin=true
+          </code>
+          用于上传 ZIP 文件。
+        </p>
+
+        <div className="mt-3 flex flex-col gap-3 text-xs">
+          <label className="flex flex-col gap-1">
+            <span>Gateway Base URL（必须包含 /api/v0）</span>
             <input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-slate-400 focus:outline-none"
-              placeholder="标题或胶囊 ID / Title or Capsule ID"
+              type="text"
+              value={ipfsConfig.baseUrl ?? ''}
+              onChange={(e) =>
+                setIpfsConfig((cfg) => ({
+                  ...cfg,
+                  baseUrl: e.target.value,
+                }))
+              }
+              placeholder="例如：http://127.0.0.1:5001/api/v0"
+              className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs outline-none focus:border-sky-500"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span>Auth Token（可选）</span>
+            <input
+              type="text"
+              value={ipfsConfig.authToken ?? ''}
+              onChange={(e) =>
+                setIpfsConfig((cfg) => ({
+                  ...cfg,
+                  authToken: e.target.value,
+                }))
+              }
+              placeholder="如果网关需要授权，可以填 Bearer token"
+              className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs outline-none focus:border-sky-500"
+            />
+          </label>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveIpfsConfig}
+              className="rounded border border-slate-500 px-3 py-1 text-xs hover:bg-slate-700"
+            >
+              保存并记住 IPFS 网关配置
+            </button>
+            {ipfsMessage && (
+              <span className="text-[11px] text-emerald-300">
+                {ipfsMessage}
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 错误提示 */}
+      {error && (
+        <div className="rounded border border-rose-600 bg-rose-900/40 p-3 text-[11px] text-rose-100">
+          {error}
+        </div>
+      )}
+
+      {/* 查询 + 列表 */}
+      <section className="rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <h2 className="text-base font-semibold">本地火种清单 / Local Capsules</h2>
+          <span className="text-[11px] text-slate-400">
+            {loadingManifest
+              ? '正在加载 manifest...'
+              : `共 ${capsules.length} 个胶囊，当前筛选出 ${filteredCapsules.length} 个。`}
+          </span>
+          <div className="ml-auto flex items-center gap-2 text-xs">
+            <span>搜索：</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="按标题 / ID / 场景关键字过滤"
+              className="w-56 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs outline-none focus:border-sky-500"
             />
           </div>
         </div>
-      </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold">本地 Fireseed 胶囊 / Local Fireseed capsules</h2>
-            <p className="text-sm text-slate-600">查看、筛选并导出本地保存的胶囊。</p>
-          </div>
-          <span className="text-sm text-slate-500">({filteredCapsules.length})</span>
-        </div>
-        <div className="px-6 py-4">
-          {loading ? (
-            <p className="text-sm text-slate-600">Loading manifest…</p>
-          ) : !manifest || manifest.capsules.length === 0 ? (
-            <p className="text-sm text-slate-600">No capsules found in the current manifest.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border-t border-slate-200">
-                <thead>
-                  <tr className="bg-slate-50 text-left text-xs font-semibold text-slate-600">
-                    <th className="px-3 py-2">选择</th>
-                    <th className="px-3 py-2">Title</th>
-                    <th className="px-3 py-2">Capsule ID</th>
-                    <th className="px-3 py-2">Created At</th>
-                    <th className="px-3 py-2">Primary Language</th>
-                    <th className="px-3 py-2">Encryption</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2">Replicas</th>
-                    <th className="px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                {filteredCapsules.map((capsule) => {
-                  const statusValue = capsule.status ?? "draft";
-                  const backedUp = capsule.backedUp ?? false;
-                  return (
-                    <tbody key={capsule.capsuleId} className="align-top">
-                      <tr className="hover:bg-slate-50">
-                        <td className="px-3 py-2 align-middle">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-slate-300"
-                            checked={selectedCapsuleIds.includes(capsule.capsuleId)}
-                            onChange={() => toggleCapsuleSelection(capsule.capsuleId)}
-                            aria-label={`Select capsule ${capsule.capsuleId}`}
-                          />
-                        </td>
-                        <td className="px-3 py-2 align-middle">
-                          <div className="flex items-start gap-2">
-                            <button
-                              type="button"
-                              onClick={() => toggleExpanded(capsule.capsuleId)}
-                              className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                            >
-                              {expandedCapsules.has(capsule.capsuleId) ? "折叠" : "展开"}
-                            </button>
-                            <div className="space-y-1">
-                              <div className="text-sm font-semibold text-slate-900">
-                                {capsule.title || "未命名胶囊 / Untitled"}
-                              </div>
-                              {capsule.scenario ? (
-                                <div className="text-xs text-slate-500">{capsule.scenario}</div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 align-middle font-mono text-xs text-slate-600">
-                          {capsule.capsuleId}
-                        </td>
-                        <td className="px-3 py-2 align-middle text-slate-700">{formatDate(capsule.createdAt)}</td>
-                        <td className="px-3 py-2 align-middle text-slate-700">
-                          {capsule.primaryLanguage || "-"}
-                        </td>
-                        <td className="px-3 py-2 align-middle text-slate-700">{capsule.encryption}</td>
-                        <td className="px-3 py-2 align-middle">
-                          <div className="space-y-2">
-                            {renderStatusTag(statusValue)}
-                            <select
-                              className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs shadow-sm"
-                              value={statusValue}
-                              onChange={(event) =>
-                                handleStatusChange(
-                                  capsule.capsuleId,
-                                  event.target.value as typeof statusValue
-                                )
-                              }
-                            >
-                              <option value="draft">Draft / 草稿</option>
-                              <option value="final">Final / 定稿</option>
-                              <option value="archived">Archived / 归档</option>
-                            </select>
-                            <div className="space-y-1 text-xs">
-                              <span className="text-yellow-500">
-                                {backedUp ? "已确认 / Confirmed" : "未确认 / Not confirmed"}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleBackedUpToggle(capsule.capsuleId)}
-                                className="w-full rounded-md border border-dashed border-slate-300 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-                              >
-                                {backedUp ? "标记为未确认" : "标记已备份"}
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 align-middle">
-                          <div className="space-y-1 text-sm text-slate-800">
-                            <span className="font-semibold">{capsule.replicas?.length ?? 0}</span>
-                            <span className="text-xs text-slate-500">副本 / copies</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 align-middle">
-                          <div className="flex flex-col gap-2 text-xs font-medium text-slate-700">
-                            <Link
-                              href="/verify/local"
-                              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-center shadow-sm hover:bg-slate-50"
-                            >
-                              查看验证 / Verify
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenQrPreview(capsule)}
-                              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-center shadow-sm hover:bg-slate-50"
-                            >
-                              QR 火种卡 / QR clue card
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleUploadToIpfs(capsule.capsuleId)}
-                              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-center shadow-sm hover:bg-slate-50 disabled:opacity-60"
-                              disabled={ipfsUploadState[capsule.capsuleId]?.uploading}
-                            >
-                              {ipfsUploadState[capsule.capsuleId]?.uploading
-                                ? "上传中…"
-                                : "上传 IPFS / Upload to IPFS"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openReplicaModal(capsule.capsuleId)}
-                              className="w-full rounded-md border border-dashed border-slate-300 px-3 py-2 text-center shadow-sm hover:bg-slate-50"
-                            >
-                              手动添加副本
-                            </button>
-                            {ipfsUploadState[capsule.capsuleId]?.message ? (
-                              <p className="text-xs text-emerald-600">
-                                {ipfsUploadState[capsule.capsuleId]?.message}
-                              </p>
-                            ) : null}
-                            {ipfsUploadState[capsule.capsuleId]?.error ? (
-                              <p className="text-xs text-red-500">
-                                {ipfsUploadState[capsule.capsuleId]?.error}
-                              </p>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                      {expandedCapsules.has(capsule.capsuleId) ? (
-                        <tr>
-                          <td colSpan={9} className="bg-slate-50 px-4 py-3">
-                            <div className="space-y-3 text-sm text-slate-700">
-                              <div className="flex flex-wrap gap-4">
-                                <span>
-                                  <span className="font-medium">Scenario: </span>
-                                  {capsule.scenario || "-"}
-                                </span>
-                                <span>
-                                  <span className="font-medium">Fireseed Index: </span>
-                                  {capsule.fireseedIndex ?? "-"}
-                                </span>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="font-medium">Replicas 副本列表</div>
-                                {capsule.replicas && capsule.replicas.length > 0 ? (
-                                  <div className="grid gap-2 md:grid-cols-2">
-                                    {capsule.replicas.map((replica, idx) => (
-                                      <div
-                                        key={`${replica.adapterId}-${idx}`}
-                                        className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-                                      >
-                                        <div className="flex flex-wrap justify-between gap-2 text-xs text-slate-600">
-                                          <span className="font-mono text-slate-700">{replica.adapterId}</span>
-                                          <span>Updated: {replica.lastUpdatedAt}</span>
-                                        </div>
-                                        <div className="text-xs text-slate-700">{replica.location}</div>
-                                        {replica.notes ? (
-                                          <div className="text-xs text-slate-500">{replica.notes}</div>
-                                        ) : null}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-xs text-slate-500">暂无副本 / No replicas recorded.</p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  );
-                })}
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {qrPreviewError ? (
-        <p className="text-sm text-red-600">{qrPreviewError}</p>
-      ) : null}
-
-      {qrPreviewPayload && qrPreviewDataUrl ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl rounded bg-white p-4 shadow-lg">
-            <div className="mb-3 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">QR 线索卡 / QR clue card</h2>
-                <p className="text-sm text-gray-600">
-                  本地生成的胶囊索引提示。This QR is generated locally as a clue, not full content.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeQrPreview}
-                className="rounded px-2 py-1 text-sm hover:bg-gray-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex items-center justify-center rounded border bg-gray-50 p-3">
-                <img
-                  src={qrPreviewDataUrl}
-                  alt={`QR clue card for capsule ${qrPreviewPayload.capsuleId}`}
-                  className="max-h-80 object-contain"
-                />
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="rounded border bg-gray-50 p-3 font-mono text-xs">
-                  <div>capsuleId: {qrPreviewPayload.capsuleId}</div>
-                  <div>schemaVersion: {qrPreviewPayload.schemaVersion}</div>
-                  <div>replicas: {qrPreviewPayload.replicas?.length ?? 0}</div>
-                  <div>generatedAt: {qrPreviewPayload.generatedAt}</div>
-                </div>
-                <p className="rounded border bg-white p-3 text-gray-700">
-                  这是“火种线索卡”而不是完整内容。<br />
-                  只要任意一个副本（ipfs:// 或 ar:// 等）仍然可用，未来系统就可以根据这个 QR 提供的线索去追溯原始胶囊。
-                </p>
-                <p className="rounded border bg-white p-3 text-gray-700">
-                  This is a “clue card”, not the full capsule. <br />
-                  As long as any replica (ipfs:// or ar:// etc.) is still reachable, a future system can use this QR payload as a hint to rediscover the original capsule.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={qrPreviewDataUrl}
-                    download={`fireseed-qr-${qrPreviewPayload.capsuleId}.png`}
-                    className="rounded bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700"
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-slate-700 bg-slate-900/80 text-[11px] uppercase tracking-wide">
+                <th className="px-2 py-2 text-left">Title</th>
+                <th className="px-2 py-2 text-left">Capsule ID</th>
+                <th className="px-2 py-2 text-left">Created At</th>
+                <th className="px-2 py-2 text-left">Language</th>
+                <th className="px-2 py-2 text-left">Encryption</th>
+                <th className="px-2 py-2 text-left">Index</th>
+                <th className="px-2 py-2 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCapsules.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-2 py-6 text-center text-[11px] text-slate-400"
                   >
-                    下载 PNG / Download PNG
-                  </a>
-                  <button
-                    type="button"
-                    onClick={closeQrPreview}
-                    className="rounded border px-3 py-2 text-xs hover:bg-gray-50"
-                  >
-                    关闭 / Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                    暂无记录，或当前筛选条件下没有匹配的胶囊。
+                  </td>
+                </tr>
+              )}
 
-      {replicaModal.open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded bg-white p-4 shadow-lg">
-            <div className="mb-3 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">手动添加副本 / Add Replica</h2>
-                <p className="text-sm text-gray-600">
-                  为胶囊 {replicaModal.capsuleId} 添加新的存储记录。
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeReplicaModal}
-                className="rounded px-2 py-1 text-sm hover:bg-gray-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleReplicaSubmit} className="space-y-3 text-sm">
-              <div className="space-y-1">
-                <label className="block font-medium">Adapter ID</label>
-                <input
-                  required
-                  value={replicaModal.adapterId}
-                  onChange={(event) =>
-                    setReplicaModal((prev) => ({ ...prev, adapterId: event.target.value }))
-                  }
-                  className="w-full rounded border px-2 py-1"
-                  placeholder="e.g. ipfs, s3, gdrive"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block font-medium">Location</label>
-                <input
-                  required
-                  value={replicaModal.location}
-                  onChange={(event) =>
-                    setReplicaModal((prev) => ({ ...prev, location: event.target.value }))
-                  }
-                  className="w-full rounded border px-2 py-1"
-                  placeholder="存储路径 / URL"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block font-medium">Notes (可选)</label>
-                <textarea
-                  value={replicaModal.notes}
-                  onChange={(event) =>
-                    setReplicaModal((prev) => ({ ...prev, notes: event.target.value }))
-                  }
-                  className="w-full rounded border px-2 py-1"
-                  rows={3}
-                  placeholder="附加说明 / Additional context"
-                />
-              </div>
-
-              {replicaModal.error ? (
-                <div className="rounded border border-red-200 bg-red-50 px-2 py-1 text-sm text-red-700">
-                  {replicaModal.error}
-                </div>
-              ) : null}
-
-              <div className="flex justify-end gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={closeReplicaModal}
-                  className="rounded border px-3 py-2 hover:bg-gray-50"
-                  disabled={replicaModal.saving}
+              {filteredCapsules.map((c) => (
+                <tr
+                  key={c.capsuleId}
+                  className="border-b border-slate-800/80 hover:bg-slate-800/40"
                 >
-                  取消 / Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded bg-blue-600 px-3 py-2 text-white hover:bg-blue-700 disabled:opacity-60"
-                  disabled={replicaModal.saving}
-                >
-                  {replicaModal.saving ? "保存中…" : "保存副本"}
-                </button>
-              </div>
-            </form>
-          </div>
+                  <td className="px-2 py-2 align-top">
+                    <div className="max-w-xs truncate font-medium">
+                      {c.title || '(未命名胶囊)'}
+                    </div>
+                    {c.scenario && (
+                      <div className="mt-0.5 max-w-xs truncate text-[10px] text-slate-400">
+                        {c.scenario}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-2 py-2 align-top font-mono text-[11px]">
+                    {c.capsuleId}
+                  </td>
+                  <td className="px-2 py-2 align-top text-[11px]">
+                    {c.createdAt}
+                  </td>
+                  <td className="px-2 py-2 align-top text-[11px]">
+                    {c.primaryLanguage || '-'}
+                  </td>
+                  <td className="px-2 py-2 align-top text-[11px]">
+                    {c.encryption === 'aes-256-gcm'
+                      ? 'AES-256-GCM'
+                      : c.encryption || 'none'}
+                  </td>
+                  <td className="px-2 py-2 align-top text-[11px]">
+                    {c.fireseedIndex ?? '-'}
+                  </td>
+                  <td className="px-2 py-2 align-top text-[11px]">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // 简单跳转到验证页，由用户手动上传 ZIP
+                          window.location.href = '/verify/local';
+                        }}
+                        className="rounded border border-slate-500 px-2 py-0.5 text-[11px] hover:bg-slate-700"
+                      >
+                        查看/验证
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleClickUploadIpfs(c.capsuleId)}
+                        disabled={ipfsUploading}
+                        className="rounded border border-sky-500 px-2 py-0.5 text-[11px] hover:bg-sky-700 disabled:cursor-not-allowed disabled:border-slate-600 disabled:text-slate-500"
+                      >
+                        {ipfsUploading && ipfsUploadingId === c.capsuleId
+                          ? '上传中…'
+                          : '上传到 IPFS'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ) : null}
+      </section>
+
+      {/* 隐藏的文件输入：IPFS 上传 ZIP 用 */}
+      <input
+        ref={ipfsFileInputRef}
+        type="file"
+        accept=".zip,application/zip"
+        className="hidden"
+        onChange={handleIpfsFileSelected}
+      />
     </main>
   );
 }
