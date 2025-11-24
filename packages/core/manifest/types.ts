@@ -23,6 +23,8 @@ export interface FireseedManifestReplica {
   location: string;
   lastUpdatedAt: string;
   notes?: string;
+  medium?: "local-zip" | "ipfs" | "arweave" | "mdisc" | "qr-card" | string;
+  label?: string;
 }
 
 export type FireseedManifestReplicaInput =

@@ -221,22 +221,14 @@ export default function FireseedLabPage() {
 
     setReplicaModal((prev) => ({ ...prev, saving: true, error: "" }));
     try {
-      const updated = await addReplicaToCapsule(replicaModal.capsuleId, {
+      await addReplicaToCapsule(replicaModal.capsuleId, {
         adapterId: replicaModal.adapterId.trim(),
         location: replicaModal.location.trim(),
+        lastUpdatedAt: new Date().toISOString(),
         notes: replicaModal.notes.trim() || undefined,
       });
 
-      if (!updated) {
-        setReplicaModal((prev) => ({
-          ...prev,
-          saving: false,
-          error: "Capsule not found. 请先确认胶囊是否存在。",
-        }));
-        return;
-      }
-
-      setManifest({ ...updated });
+      await refreshManifest();
       setReplicaModal((prev) => ({ ...prev, open: false, saving: false }));
     } catch (error) {
       setReplicaModal((prev) => ({
