@@ -7,7 +7,7 @@
 
 * **《系统外者手册》（System Exodus）** — 第一卷
 * **《超越系统手册》（Beyond the System）** — 第二卷
-* **《终极命题手册》（The Last Interface / The Last Interface）** — 第三卷
+* **《终极命题手册》（The Last Interface）** — 第三卷
 
 代码与实验由 **Fireseed Trilogy Lab** 共同完成。
 
