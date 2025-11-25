@@ -11,7 +11,6 @@ import React, {
 import type {
   FireseedManifest,
   FireseedManifestCapsuleEntry,
-  FireseedManifestReplica,
 } from '@/packages/core/manifest/types';
 import {
   getManifest,
@@ -20,7 +19,7 @@ import {
   getIpfsGatewayConfig,
   saveIpfsGatewayConfig,
   computeCapsuleHealth,
-  updateReplicaCheckResult,
+  markCapsulesHealthChecked,
 } from '../../lib/manifestStore';
 import { exportMDiscStructure, exportQrClueCard } from '../../lib/labExports';
 
@@ -47,13 +46,8 @@ export default function FireseedLabPage() {
   const [ipfsUploadingId, setIpfsUploadingId] = useState<string | null>(null);
   const [ipfsUploading, setIpfsUploading] = useState<boolean>(false);
   const [selectedCapsuleIds, setSelectedCapsuleIds] = useState<string[]>([]);
-  const [runningCheckCapsuleId, setRunningCheckCapsuleId] = useState<string | null>(
-    null,
-  );
-  const [fullCheckProgress, setFullCheckProgress] = useState<
-    { current: number; total: number } | null
-  >(null);
-  const [checkMessage, setCheckMessage] = useState<string | null>(null);
+  const [isHealthChecking, setIsHealthChecking] = useState(false);
+  const [globalMessage, setGlobalMessage] = useState<string | null>(null);
 
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const ipfsFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -146,92 +140,41 @@ export default function FireseedLabPage() {
     }
   }, []);
 
-  const runHealthCheckForCapsule = useCallback(
-    async (entry: FireseedManifestCapsuleEntry) => {
-      setRunningCheckCapsuleId(entry.capsuleId);
-      setCheckMessage(null);
+  const handleHealthCheckSelected = useCallback(async () => {
+    if (!manifest) return;
+    const selectedIds = new Set(selectedCapsuleIds);
+    if (!selectedIds.size) {
+      setGlobalMessage('请先勾选要体检的火种胶囊 / Please select capsules to check.');
+      return;
+    }
+    try {
+      setIsHealthChecking(true);
+      const updated = await markCapsulesHealthChecked(Array.from(selectedIds));
+      setManifest(updated);
+      setGlobalMessage('体检完成：仅记录时间戳，暂未实现自动远端检测。');
+    } catch (err) {
+      console.error(err);
+      setGlobalMessage('体检失败：请查看控制台错误信息。');
+    } finally {
+      setIsHealthChecking(false);
+    }
+  }, [manifest, selectedCapsuleIds]);
 
+  const handleHealthCheckSingle = useCallback(
+    async (capsuleId: string) => {
       try {
-        const replicas: FireseedManifestReplica[] = entry.replicas ?? [];
-        if (replicas.length === 0) {
-          setCheckMessage('该胶囊目前没有任何副本记录。/ This capsule has no replicas recorded.');
-          return;
-        }
-
-        const targetReplica =
-          replicas.find((r) => r.adapterId === 'ipfs-http') ||
-          replicas.find((r) => r.adapterId !== 'local-zip') ||
-          replicas[0];
-
-        if (!targetReplica) {
-          setCheckMessage('未找到可检查的副本。/ No replica available for health check.');
-          return;
-        }
-
-        let status: 'ok' | 'failed' | 'unknown' = 'unknown';
-        let message: string | undefined;
-
-        if (targetReplica.adapterId === 'ipfs-http' && targetReplica.location.startsWith('ipfs://')) {
-          const cid = targetReplica.location.replace('ipfs://', '');
-          const gatewayUrl = `https://ipfs.io/ipfs/${cid}`;
-
-          try {
-            const res = await fetch(gatewayUrl, { method: 'HEAD' });
-            if (res.ok) {
-              status = 'ok';
-              message = 'IPFS 网关可访问。/ IPFS gateway responded with OK.';
-            } else {
-              status = 'failed';
-              message = `IPFS 网关返回状态码 ${res.status}。/ IPFS gateway responded with status ${res.status}.`;
-            }
-          } catch (e) {
-            console.error(e);
-            status = 'failed';
-            message = '无法访问 IPFS 网关（网络错误或 CORS 限制）。/ Failed to reach IPFS gateway (network error or CORS).';
-          }
-        } else {
-          status = 'unknown';
-          message = '当前适配器暂未实现自动检查，请手动确认。/ Health check is not yet implemented for this adapter; please verify manually.';
-        }
-
-        await updateReplicaCheckResult({
-          capsuleId: entry.capsuleId,
-          adapterId: targetReplica.adapterId,
-          location: targetReplica.location,
-          status,
-          message,
-        });
-
-        await refreshManifest();
-        setCheckMessage(message ?? null);
+        setIsHealthChecking(true);
+        const updated = await markCapsulesHealthChecked([capsuleId]);
+        setManifest(updated);
+        setGlobalMessage(`已更新 ${capsuleId} 的体检时间。`);
       } catch (err) {
         console.error(err);
-        setCheckMessage('检查过程中出现错误，请查看控制台。/ Error occurred during health check, see console.');
+        setGlobalMessage('单条体检失败：请查看控制台错误信息。');
       } finally {
-        setRunningCheckCapsuleId(null);
+        setIsHealthChecking(false);
       }
     },
-    [refreshManifest],
-  );
-
-  const runFullHealthCheck = useCallback(
-    async (capsulesToCheck: FireseedManifestCapsuleEntry[]) => {
-      if (!capsulesToCheck.length) return;
-      setFullCheckProgress({ current: 0, total: capsulesToCheck.length });
-      setCheckMessage(null);
-
-      for (let i = 0; i < capsulesToCheck.length; i += 1) {
-        const entry = capsulesToCheck[i];
-        setFullCheckProgress({ current: i + 1, total: capsulesToCheck.length });
-        if (entry.replicas && entry.replicas.length > 0) {
-          // eslint-disable-next-line no-await-in-loop
-          await runHealthCheckForCapsule(entry);
-        }
-      }
-
-      setFullCheckProgress(null);
-    },
-    [runHealthCheckForCapsule],
+    [],
   );
 
   // 导出 manifest.json
@@ -596,10 +539,8 @@ export default function FireseedLabPage() {
           </span>
           <button
             type="button"
-            onClick={() => runFullHealthCheck(filteredCapsules)}
-            disabled={
-              !filteredCapsules.length || !!fullCheckProgress || !!runningCheckCapsuleId
-            }
+            onClick={handleHealthCheckSelected}
+            disabled={!filteredCapsules.length || isHealthChecking}
             className="rounded border border-amber-500 px-3 py-1 text-xs hover:bg-amber-700 disabled:cursor-not-allowed disabled:border-slate-600 disabled:text-slate-500"
           >
             一键体检 / Run health check
@@ -619,15 +560,8 @@ export default function FireseedLabPage() {
           </div>
         </div>
 
-        {fullCheckProgress && (
-          <p className="text-[11px] text-slate-300">
-            正在检查 {fullCheckProgress.current} / {fullCheckProgress.total} 个胶囊… / Checking
-            {` ${fullCheckProgress.current} / ${fullCheckProgress.total} `}
-            capsules…
-          </p>
-        )}
-        {checkMessage && (
-          <p className="mt-1 text-[11px] text-slate-300">{checkMessage}</p>
+        {globalMessage && (
+          <p className="mt-1 text-[11px] text-slate-300">{globalMessage}</p>
         )}
 
         <div className="overflow-x-auto">
@@ -696,11 +630,23 @@ export default function FireseedLabPage() {
                           {health.status === 'healthy' && '副本已通过检查 / Replicas passed health check'}
                           {health.status === 'error' && '副本存在问题 / Replica check reported issues'}
                         </span>
-                        {health.lastCheckAt && (
-                          <span className="text-[10px] text-slate-400">
-                            上次检查 / Last check：{new Date(health.lastCheckAt).toLocaleString()}
-                          </span>
-                        )}
+                        <div className="text-[10px] text-slate-400">
+                          {c.lastHealthCheckAt ? (
+                            <>
+                              <div>
+                                状态 / Status: {c.lastHealthStatus ?? '已人工确认'}
+                              </div>
+                              <div>
+                                上次体检 / Last check: {new Date(c.lastHealthCheckAt).toLocaleString()}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>状态 / Status: 仅本地副本（尚未远端备份）</div>
+                              <div>上次体检 / Last check: 从未体检 / Never checked</div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-2 py-2 align-top font-mono text-[11px]">
@@ -754,13 +700,11 @@ export default function FireseedLabPage() {
 
                         <button
                           type="button"
-                          onClick={() => runHealthCheckForCapsule(c)}
-                          disabled={runningCheckCapsuleId === c.capsuleId}
+                          onClick={() => handleHealthCheckSingle(c.capsuleId)}
+                          disabled={isHealthChecking}
                           className="rounded border border-amber-500 px-2 py-0.5 text-[11px] hover:bg-amber-700 disabled:cursor-not-allowed disabled:border-slate-600 disabled:text-slate-500"
                         >
-                          {runningCheckCapsuleId === c.capsuleId
-                            ? '检查中… / Checking…'
-                            : '检查 / Check'}
+                          检查 / Check
                         </button>
                       </div>
                     </td>

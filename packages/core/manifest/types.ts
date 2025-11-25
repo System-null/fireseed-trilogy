@@ -16,6 +16,8 @@ export interface FireseedManifestCapsuleEntry {
   replicas: FireseedManifestReplica[];
   status?: "draft" | "final" | "archived";
   backedUp?: boolean;
+  lastHealthCheckAt?: string;
+  lastHealthStatus?: string;
 }
 
 export interface FireseedManifestReplica {
