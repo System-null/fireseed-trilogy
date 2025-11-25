@@ -1,266 +1,322 @@
-# Fireseed Trilogy – Machine-Readable Capsule Format
+# Fireseed Trilogy Lab
 
-> 🌏 This is the **English** README.  
-> 如果你更习惯阅读中文，请查看 [中文版说明 (README.zh-CN.md)](README.zh-CN.md)。
+> 🌏 This is the **English** README. For Chinese, see [中文版说明 (README.zh-CN.md)](README.zh-CN.md).
 
-Fireseed Trilogy is an experiment in building a **machine-readable “capsule” format** for preserving human life stories, values, and decisions in a way that future AI systems can parse without guessing.
+Prototype tools for personal **fireseed capsules** —  
+companion project to the book trilogy:
 
-Current status: Public experimental release with local-only capsules, optional AES-256-GCM encryption, Fireseed Lab manifest, BYO IPFS adapter hooks, M-Disc export, QR clue cards, and an Arweave DIY (self-hosted) adapter guide.
+- **System Exodus** (Vol. I)  
+- **Beyond the System** (Vol. II)  
+- **The Last Interface** (Vol. III)
 
-## Fireseed Lab v0.3.0 – Local Capsule Lab
-
-- `/capsule/create` — One-click capsule generator with optional AES-256-GCM encryption.
-- `/verify/local` — Local ZIP verification & decryption (browser-only, no upload).
-- `/lab` — Fireseed Lab: local manifest viewer, M-Disc export, QR clue cards, BYO IPFS adapter.
-
-CID-level inspection is planned for a future version.
-
-v0.3.0 is the first stable milestone for the “local-only” Fireseed Lab (no remote storage, no accounts).
-
-This repository contains:
-
-- A **Capsule schema** (YAML/JSON) with strong typing and validation.
-- A **deterministic signer** that turns a capsule into a DAG-CBOR CID and Ed25519 signature.
-- A **web workspace** (Next.js) for interactive capsule creation and inspection.
-- Security and ethics docs that describe the intended threat model and usage boundaries.
-
-> Status: early-stage, experimental, not production-grade for high-value secrets.
+Code & experiments by **Fireseed Trilogy Lab**.
 
 ---
 
-## 1. Project Structure
+## 1. What is a “Fireseed”?
 
-High-level layout of this repository:
+In the books, a **fireseed** is not your “soul” and not a mystical backup of your consciousness.
 
-- `schemas/` – JSON Schemas for `capsule_v0`, key timelines, and revocation lists.
-- `scripts/` – Node.js tools for deterministic encoding, signing, and CAR building.
-- `app/` – Next.js application (capsule workspace, keystore demo, validator).
-- `public/` – Static HTML tools (legacy generator / validator) and assets.
-- `docs/` – Architecture notes, threat model and ADRs (Architecture Decision Records).
-- `.github/workflows/` – CI pipelines (tests, lint, SBOM, basic security checks).
+It is a **structured bundle of evidence** about how a person saw the world, made decisions, drew boundaries, and dealt with their own illusions — written in a format that:
 
-For a deeper view of how these parts connect, see  
-**[Architecture Overview](docs/ARCHITECTURE.md)**.
+- A human can read as a narrative;
+- A future AGI can parse as structured data;
+- Even a hypothetical higher-level system could treat as a node in a larger graph.
+
+This repository is an **engineering companion** to that idea.  
+It tries to answer a narrow, technical question:
+
+> Given limited tooling and no central authority,  
+> how far can one person go in compressing their life stance  
+> into a self-contained, verifiable “capsule”?
+
+This is **not** an “upload your mind” project.  
+It is a set of small, composable experiments around format, protocol, and responsibility.
 
 ---
 
-## 2. Quick Start
+## 2. Where the Lab Sits in the Trilogy
 
-### 2.1 Install
+The Fireseed Trilogy looks roughly like this:
+
+1. **System Exodus** — an individual waking up and stepping out of existing systems;
+2. **Beyond the System** — possible paths for strong AI and new governance orders;
+3. **The Last Interface** — defining the Fireseed, shaping existence and long-horizon preservation.
+
+This repository mainly supports:
+
+- Vol. I: **System Exodus** — by giving individuals a way to compress their own “system exit logs” into capsules;
+- Vol. II: **Beyond the System** — by treating Fireseeds as inputs into future governance / protocol design;
+- Vol. III: **The Last Interface** — by experimenting with multi-media, multi-replica, self-hosted preservation.
+
+You can enjoy the books without touching the tools.  
+You can also use the tools without reading the books.  
+They share the same **spirit**, not the same target audience.
+
+---
+
+## 3. What This Repo Actually Does (Current Status)
+
+The Lab is intentionally **high-friction** and **self-hosted**.  
+There is no user login, no hosted database, and no API to upload your life.
+
+Instead, you get a set of prototype tools you run yourself.
+
+### 3.1 Web app routes
+
+All routes are part of the Next.js web app in `apps/web`.
+
+#### `/capsule/create` — One-click Fireseed Capsule Wizard
+
+- A step-by-step wizard to draft a fireseed:
+  - Title, context, audience;
+  - Long-form narrative (your story, decisions, regrets, boundaries);
+  - Optional hints and notes for future readers (human or machine).
+- The wizard computes a **Fireseed Index** (0–100) —  
+  a toy, explainable score based on:
+  - Length and structure;
+  - Presence of time-span markers;
+  - Decision-style phrasing (“when X happened, I chose Y…”).
+- When you are ready, it can generate a **capsule ZIP** with:
+
+  ```text
+  fireseed-capsule-<id>/
+    ├─ capsule.json        # structured, machine-readable fireseed
+    ├─ meta.json           # schema version, IDs, index, encryption info
+    ├─ HUMAN_READABLE.md   # narrative view for humans
+    └─ README.txt          # how to back up, what this is (human-facing)
+  ```
+
+#### Optional local encryption
+
+* You can **enable password encryption** for the capsule:
+
+  * All encryption happens locally in your browser using **PBKDF2 + AES-GCM**;
+  * The cleartext `capsule.json` is replaced by a binary `capsule.enc`;
+  * `meta.json` records:
+
+    ```jsonc
+    {
+      "encryption": "aes-256-gcm",
+      "encryptionParams": {
+        "kdf": "PBKDF2-SHA256",
+        "salt": "... base64 ...",
+        "iv": "... base64 ...",
+        "iterations": 210000
+      }
+    }
+    ```
+
+* HUMAN_READABLE.md and README.txt remain in cleartext by design:
+
+  * This is a **threat model choice**:
+    the goal is to block casual snooping, not nation-state adversaries;
+  * The README inside the ZIP explains the risk model in plain language.
+
+#### `/verify/local` — Local capsule verification & decryption
+
+* Upload or drag-and-drop a capsule ZIP;
+* Everything runs in your browser:
+
+  * No file contents are uploaded anywhere;
+  * The page:
+
+    * Validates the folder structure;
+    * Parses `meta.json` and checks schema version;
+    * Detects encryption mode and Fireseed Index.
+* For encrypted capsules:
+
+  * You can enter the password;
+  * The page attempts decryption using the `encryptionParams` from meta;
+  * On success, it shows a small, non-sensitive subset of the capsule;
+  * On failure, it tells you so — without leaking the contents.
+
+#### `/lab` — Fireseed Lab view
+
+Think of this as a **local dashboard** driven by a `Manifest` stored in your browser (IndexedDB):
+
+* See a list of capsules you have generated or imported:
+
+  * `capsuleId`, title, createdAt, primaryLanguage, encryption mode, index;
+  * Basic health status based on what the Manifest knows.
+* **Manifest health check**:
+
+  * A “check all” button runs a light-weight consistency check;
+  * Individual capsules have a “check” action for targeted inspection.
+* **Export / import of the Manifest**:
+
+  * Export a pretty-printed `manifest.json`;
+  * Import a manifest JSON from another device or backup.
+* **M-Disc / external drive export** (disc bundle):
+
+  * Select multiple capsules and export a disk-friendly bundle:
+
+    ```text
+    fireseed-disc-YYYYMMDD/
+      ├─ manifest.json
+      ├─ capsules/
+      │    ├─ <capsuleId1>.zip
+      │    ├─ <capsuleId2>.zip
+      └─ README-MDISC.txt
+    ```
+  * You can then burn / copy this to M-Disc, USB drives, or other media.
+* **Paper “clue cards”**:
+
+  * Generate a minimal JSON “trace” (capsuleId, hashes, known replicas);
+  * Encode it as QR codes and export as PNG for printing;
+  * These function as **physical civilization fragments**.
+* **IPFS / Arweave adapters (self-hosted only)**:
+
+  * Bring-your-own IPFS node / gateway:
+
+    * Configure your HTTP API endpoint in the Lab;
+    * Upload selected capsules, and record `ipfs://<cid>` as replicas.
+  * Experimental Arweave flow:
+
+    * The Lab expects you to provide key material and/or relay endpoints;
+    * All signing and uploads remain on the client side if you choose so;
+    * The Manifest records `ar://<txId>` style locations.
+
+> The Lab does **not** pin, store, or host anything on your behalf.
+> You bring your own infrastructure; the Lab only knows how to talk to it.
+
+---
+
+## 3.2 Core packages
+
+At a high level:
+
+* `packages/core/`
+  Shared types and core logic:
+
+  * Capsule schemas & validators;
+  * StorageAdapter interfaces and storage types;
+  * Manifest types (`FireseedManifest`, `FireseedManifestCapsuleEntry`, etc.).
+* `apps/web/`
+  The Next.js web app implementing `/capsule/create`, `/verify/local`, `/lab` and the related UI.
+* `docs/`
+  Architecture notes, the Phase 2.x roadmap, and protocol drafts.
+
+Interfaces and layout are still evolving.
+The goal is not a polished SaaS dashboard, but a transparent prototype you can inspect, fork, or break.
+
+---
+
+## 4. Self-hosted vs Hosted Service
+
+There are **two** ways to use the Fireseed ecosystem.
+
+### 4.1 Self-hosted (this repository)
+
+If you enjoy doing things with your own hands, or simply want your fate in your own control:
+
+* Clone this repo and run the web app locally;
+* Generate, encrypt, and verify fireseed capsules fully on your own machine;
+* Use the Lab to:
+
+  * Export M-Disc bundles;
+  * Generate QR clue cards;
+  * Talk to your own IPFS / Arweave / storage infrastructure.
+
+All keys and decisions stay with you.
+You are responsible for:
+
+* Secret management;
+* Backup strategy;
+* Long-term durability.
+
+### 4.2 Hosted frontend service (optional, separate)
+
+If you don’t have time or energy to set all this up, but still want to leave behind a serious, well-structured fireseed, the authors are also building a public-facing frontend:
+
+* **Fireseed Frontend Service (experimental)**
+  [https://www.fireseed.net](https://www.fireseed.net)
+
+It runs on the **same open protocol and formats**, but:
+
+* Provides lower-friction guidance for non-technical users;
+* May offer paid custodial options (e.g. managed storage, guided workflows);
+* Does **not** replace this repository.
+
+Think of it as a **one-time fireseed workshop**, not a platform you must depend on forever.
+
+You can:
+
+* Use only the open-source tools;
+* Use only the hosted service;
+* Use both, or neither.
+
+The stance of the project is simple:
+
+> To give you more choices, not to make choices for you.
+
+---
+
+## 5. Status, Non-goals & Warnings
+
+This is **prototype-level** infrastructure.
+
+* Interfaces and implementations will keep changing as the spec evolves;
+* We make **no guarantees** about:
+
+  * Security;
+  * Availability;
+  * Long-term durability;
+* Nothing here is a “digital afterlife” product.
+
+### Non-goals
+
+* No hosted user accounts in this repo;
+* No centralized database of everyone’s fireseeds;
+* No promise that “if you use this, you will be remembered forever”.
+
+If you build serious workflows or products on top of Fireseed:
+
+* Treat this repo as a **reference implementation & protocol sketch**;
+* Perform your own audits, testing, and threat modeling.
+
+---
+
+## 6. Running Locally
+
+A minimal, generic setup (adapt to your toolchain):
 
 ```bash
+# clone
 git clone https://github.com/System-null/fireseed-trilogy.git
 cd fireseed-trilogy
+
+# install dependencies (npm / yarn / pnpm — choose one)
 npm install
-```
+# or: yarn
+# or: pnpm install
 
-### 2.2 Run the web workspace
-
-```bash
+# start the web app
 npm run dev
-# open http://localhost:3000
+
+# by default the Lab is available at:
+#   http://localhost:3000/capsule/create
+#   http://localhost:3000/verify/local
+#   http://localhost:3000/lab
 ```
 
-In the browser you can:
-
-- Explore the capsule workspace.
-- Use the keystore demo to test WebAuthn + IndexedDB fallback.
-- Inspect how a capsule is structured before signing.
-
-### 2.3 Legacy static generator i18n overlay
-
-The legacy static generator lives at `public/generator.html`. To keep its language switch working when served from GitHub Pages or another static host:
-
-1. Make sure `public/lang/*.json` and `public/scripts/fireseed-i18n-overlay.v3.0.js` are present in your `public/` directory.
-2. Before `</body>`, include the overlay script tag:
-
-   ```html
-   <script src="./scripts/fireseed-i18n-overlay.v3.0.js"></script>
-   ```
-
-3. Run the init patch to insert the non-intrusive i18n bootstrap snippet:
-
-   ```bash
-   bash patch_i18n_init.sh
-   ```
-
-4. Commit the resulting `public/generator.html` (and any updated assets), push, and open `/public/generator.html` on your static host. If the page was cached, force refresh.
+Check the `docs/` folder and inline comments for more detailed setup and experimental features.
 
 ---
 
-## Fireseed Lab (Phase 2.0 preview)
+## 7. Licensing & Credits
 
-The repository now exposes Phase 2.0 building blocks:
+* Code in this repository is released under the **MIT License** (see [LICENSE](LICENSE));
+* The books and textual content are © by the author(s) and may have different licensing for commercial publication.
 
-- One-click local capsule generation via `/capsule/create`.
-- Local verification and decryption via `/verify/local`.
-- A Fireseed Lab view at `/lab` that lists capsules known to your local **FireseedManifest**, with export/import for the manifest itself.
+Core roles:
 
-The **FireseedManifest** acts as a local index for capsules and the basis for managing multiple replicas in future adapters.
+* **System Null (杨帆)** — concept design, system architecture, trilogy author;
+* **JiaMing Yang** — GitHub development, implementation, and repository maintenance.
 
----
-
-## Fireseed Lab – Phase 2.1
-
-Phase 2.1 turns the project from a "one-off capsule generator" into a minimal **personal Fireseed workstation**:
-
-- **Capsule Lab (/lab):**
-  - Lists all locally known capsules from the Fireseed Manifest.
-  - Supports filtering by encryption mode (plain/encrypted), status (draft/final/archived), and primary language.
-  - Allows updating per-capsule status (e.g. mark as "final" or "archived") and marking whether it has been backed up on multiple media.
-  - Provides a **doc-only Arweave DIY path** for advanced, self-hosted uploads (no keys or uploads handled by this project).
-
-- **Creation wizard (/capsule/create):**
-  - Still provides one-click capsule generation with optional AES-256-GCM encryption (password-based, local-only).
-  - Fireseed Index is now explained as a breakdown (information density, structure, timeline, decision traces) with lightweight suggestions to improve the narrative.
-  - Placeholders and helper texts adapt to the selected primary language (Chinese / English) to reduce friction.
-
-- **Local verification (/verify/local):**
-  - Verifies Fireseed capsule ZIPs entirely in the browser (no upload).
-  - Shows a "Capsule Health Report" (schema version, encryption mode, Fireseed Index, timestamps, tool version).
-  - For unknown capsules, offers a one-click "Add to Lab manifest" action to register it in the local Fireseed Manifest.
-
-Additional adapters & docs:
-
-- **Arweave (DIY adapter):** Self-hosted path; use your own Arweave/Bundlr tools to upload a Fireseed capsule ZIP and manually register an `ar://<txId>` replica in your manifest. See [`docs/ADAPTER-ARWEAVE.md`](./docs/ADAPTER-ARWEAVE.md). The project does **not** handle keys or on-chain uploads for you.
-
-The Phase 2.1 additions stay aligned with the local-first, no-accounts, no-server-storage philosophy.
+Forks, experiments, and even aggressive refactors are welcome —
+as long as you keep your users as informed and as free as you hope to be.
 
 ---
 
-## Advanced tools
-
-- Capsule Workspace: edit and validate `capsule.json` in a dedicated view.
-- Local ZIP verification: `/verify/local`, parses structure, checks encryption, and supports password-based decryption.
-
-CID-level inspection is planned for a future version.
-
----
-
-## Current milestone — v0.3.0 (Phase 1.5)
-
-The current tagged state of this repo corresponds to **Fireseed Lab v0.3.0**, also referred to as **Phase 1.5**:
-
-- Local-first, one-click Fireseed capsule generation
-- Optional password-based encryption (PBKDF2 + AES-256-GCM)
-- Local verification and decryption via `/verify/local`
-- Ability to export a decrypted capsule ZIP (plaintext `capsule.json`)
-
-The underlying **FireseedCapsule schema** remains in the `0.2.x` line: evolution in this release is additive and backwards-compatible. Phase 2+ (remote storage, multi-replica syncing, etc.) is planned but not yet implemented.
-
----
-
-## Fireseed Capsule（Phase 1：本地实验版）
-## Fireseed Capsule (Phase 1: Local Experimental MVP)
-
-- 当前支持 / Currently supports:
-  - 在 `/capsule/create` 页面填写标题、场景和正文。  
-    Fill in title, scenario, and body on the `/capsule/create` page.
-  - 一键生成本地 Fireseed Capsule 压缩包（ZIP），包含：  
-    One-click generation of a local Fireseed Capsule ZIP, including:
-    - `capsule.json`：结构化胶囊。  
-      `capsule.json`: Structured capsule.
-    - `meta.json`：版本、时间戳、Fireseed Index 指标。  
-      `meta.json`: Schema version, timestamp, and Fireseed Index metrics.
-    - `HUMAN_READABLE.md`：人类可读视图。  
-      `HUMAN_READABLE.md`: Human-readable view.
-    - `README.txt`：使用说明。  
-      `README.txt`: Usage notes.
-
-- Fireseed Index 是什么？  
-  What is the Fireseed Index?
-
-  - 它是一个 0–100 的启发式评分，用来度量文本在以下维度上的“结构化描述质量”：  
-    It is a heuristic 0–100 score measuring the “structured description quality” of the text across:
-    - 篇幅与信息量 / Length & information
-    - 词汇丰富度 / Lexical richness
-    - 结构组织 / Structural organization
-    - 时间跨度 / Time span coverage
-    - 决策与逻辑 / Decisions & reasoning
-    - 情绪与价值词 / Emotion & value words
-
-  - 它不是对人生本身的评分，也不是任何形式的价值审判；  
-    It is not a score on your life itself, nor any kind of moral judgment.
-  - 它只是方便未来系统快速理解文本结构和信息密度的技术指标。  
-    It is only a technical indicator to help future systems quickly grasp structure and information density.
-
-- 当前阶段 / Current stage:
-
-  - Schema 仍处于 `v0.2.x`，未来可能演进到 `v1.0`。  
-    The schema is currently at `v0.2.x` and may evolve to `v1.0` in the future.
-  - 生成的胶囊主要用于实验与自测，不推荐视作最终归档格式。  
-    Generated capsules are mainly for experimentation and self-testing, not yet a final archival format.
-
----
-
-## 3. Capsule Format
-
-A capsule is a structured document that describes:
-
-- **Who**: identity, roles, relationships.
-- **What**: life events, decisions, commitments.
-- **Why**: value system, constraints, and “non-negotiables”.
-- **Evidence**: links, hashes, references to external artifacts.
-
-Key goals:
-
-- **Deterministic**: same content ⇒ same CID.
-- **Machine-readable**: strong schema, no hidden assumptions.
-- **Human-auditable**: writable and reviewable by non-programmers.
-
-See the schema docs for details:  
-`schemas/` and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
----
-
-## 4. Signing & Verification
-
-The repository currently includes:
-
-- A Node.js signer (`scripts/sign-capsule.mjs`) that:
-  - Encodes a capsule via DAG-CBOR.
-  - Computes a CID.
-  - Signs the CID with Ed25519.
-- A Next.js keystore demo that:
-  - Prefers WebAuthn / Passkeys where possible.
-  - Falls back to SubtleCrypto + IndexedDB in the browser.
-
-⚠️ **Important**: Do not put high-value secrets in this system. Treat it as a research prototype for structured “life capsules”, not as a secure vault.
-
-### Security notes
-
-Fireseed Lab is an experimental, local-first toolset.  
-See [docs/SECURITY-NOTES.md](docs/SECURITY-NOTES.md) for the current threat model and security assumptions.
-
----
-
-## 5. Security & Threat Model
-
-This repo includes:
-
-- `SECURITY.md` – how to report vulnerabilities and what we consider in scope.
-- `docs/threat-model.md` – what we assume and what we explicitly do not protect against.
-- `docs/adr/` – selected design decisions (deterministic encoding, CID choices, etc.).
-
-Security is a moving target. If in doubt, assume this is not safe for irreversible, high-stakes archives.
-
----
-
-## 6. Contributing
-
-Contributions are welcome, especially in the following areas:
-
-- Better schemas and validation for capsule content.
-- Stronger, more auditable signing and key management.
-- Independent implementations in other languages.
-- Better UIs for non-technical users.
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening issues or PRs.
-
----
-
-## 7. License
-
-- **Code**: MIT License
-- **Textual content**: CC BY 4.0
-
+- Links: [Repository](https://github.com/System-null/fireseed-trilogy) · [Hosted frontend (experimental)](https://www.fireseed.net)
