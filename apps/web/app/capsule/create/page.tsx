@@ -74,11 +74,10 @@ const translations = {
     resultAiAssist: 'AI 协助（启用后在说明文档中注明）',
     resultTechCapsule: '包含技术胶囊（附加工程化提示）',
     advancedToolsTitle: '高级工具（可选）',
-    advancedToolsDesc: '如果你熟悉 JSON / CID，可以在生成火种胶囊之后，使用下面的实验工具做更深入的检查。',
-    advancedWorkspace: 'Capsule Workspace · 直接编辑 / 校验 capsule JSON',
+    advancedToolsDesc:
+      '如果你熟悉 JSON，可以在生成火种胶囊之后，使用下面的工具做更深入的检查。',
+    advancedWorkspace: 'Capsule Workspace · 编辑 / 校验 capsule JSON',
     advancedWorkspaceNote: '(面向高级用户)',
-    advancedVerify: 'Verify CID · 体验用 CID 检查 CAR / 胶囊结构',
-    advancedVerifyNote: '(当前使用 demo CID，未来可替换为真实 CID)',
     advancedLocalVerify: '本地验证工具：上传你刚才生成的 ZIP，检查结构与加密状态',
     advancedLocalVerifyNote: '(浏览器本地解析，不上传 ZIP)',
     encryptionToggle: '启用密码加密（实验功能）',
@@ -166,11 +165,9 @@ const translations = {
     resultTechCapsule: 'Also generate a technical capsule (for AGI / tools)',
     advancedToolsTitle: 'Advanced tools (optional)',
     advancedToolsDesc:
-      'If you are comfortable with JSON / CIDs, explore these experimental tools after generating your capsule.',
+      'If you are comfortable with JSON, you can use these tools for deeper inspection after generating a capsule.',
     advancedWorkspace: 'Capsule Workspace · Edit / validate capsule JSON directly',
     advancedWorkspaceNote: '(for advanced users)',
-    advancedVerify: 'Verify CID · Inspect capsule structure from a CID',
-    advancedVerifyNote: '(uses a demo CID for now; replace with a real one later)',
     advancedLocalVerify: 'Local verification: upload your ZIP to check structure and encryption status',
     advancedLocalVerifyNote: '(runs entirely in your browser)',
     encryptionToggle: 'Enable password encryption (experimental)',
@@ -920,12 +917,6 @@ export default function CapsuleCreatePage() {
             <a href="/capsule" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300">
               <span>{t.advancedWorkspace}</span>
               <span className="text-xs text-zinc-500">{t.advancedWorkspaceNote}</span>
-            </a>
-          </li>
-          <li>
-            <a href="/verify/cid/demo" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300">
-              <span>{t.advancedVerify}</span>
-              <span className="text-xs text-zinc-500">{t.advancedVerifyNote}</span>
             </a>
           </li>
           <li>
