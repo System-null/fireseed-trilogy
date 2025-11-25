@@ -485,6 +485,30 @@ export default function FireseedLabPage() {
         </div>
       )}
 
+      <section className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-xs text-amber-900 space-y-2">
+        <div className="font-semibold">🔥 Arweave 自助路径 / Arweave DIY Path</div>
+        <p>
+          这是面向高阶用户的自托管上链路径：使用你自己的 Arweave / Bundlr 工具将 Fireseed 胶囊 ZIP 上传，并在本地 manifest 中手动登记
+          <code className="mx-1 rounded bg-amber-200 px-1 py-0.5 text-[10px] text-amber-900">ar://&lt;txId&gt;</code>
+          副本。仓库不会代你托管私钥或执行上链操作。
+        </p>
+        <p>
+          This is a self-hosted path for advanced users. Use your own Arweave / Bundlr tools to upload a Fireseed capsule ZIP
+          and manually register an <code className="mx-1 rounded bg-amber-200 px-1 py-0.5 text-[10px] text-amber-900">ar://&lt;txId&gt;</code>
+          replica inside your local manifest.
+        </p>
+        <div>
+          <a
+            href="https://github.com/System-null/fireseed-trilogy/blob/main/docs/ADAPTER-ARWEAVE.md"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center rounded border border-amber-500 bg-white/70 px-3 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
+          >
+            查看 Arweave 自助文档 / Open Arweave DIY guide
+          </a>
+        </div>
+      </section>
+
       <section className="mt-6 rounded-md border border-slate-300 bg-slate-50 px-3 py-3 text-xs text-slate-900 space-y-2">
         <div className="font-semibold">💿 M-Disc / 只读介质导出 / M-Disc & read-only media export</div>
         <p>

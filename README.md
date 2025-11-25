@@ -5,7 +5,7 @@
 
 Fireseed Trilogy is an experiment in building a **machine-readable “capsule” format** for preserving human life stories, values, and decisions in a way that future AI systems can parse without guessing.
 
-Current status: Public experimental release with local-only capsules, optional AES-256-GCM encryption, Fireseed Lab manifest, BYO IPFS adapter hooks, M-Disc export, and QR clue cards.
+Current status: Public experimental release with local-only capsules, optional AES-256-GCM encryption, Fireseed Lab manifest, BYO IPFS adapter hooks, M-Disc export, QR clue cards, and an Arweave DIY (self-hosted) adapter guide.
 
 ## Fireseed Lab v0.3.0 – Local Capsule Lab
 
@@ -108,6 +108,7 @@ Phase 2.1 turns the project from a "one-off capsule generator" into a minimal **
   - Lists all locally known capsules from the Fireseed Manifest.
   - Supports filtering by encryption mode (plain/encrypted), status (draft/final/archived), and primary language.
   - Allows updating per-capsule status (e.g. mark as "final" or "archived") and marking whether it has been backed up on multiple media.
+  - Provides a **doc-only Arweave DIY path** for advanced, self-hosted uploads (no keys or uploads handled by this project).
 
 - **Creation wizard (/capsule/create):**
   - Still provides one-click capsule generation with optional AES-256-GCM encryption (password-based, local-only).
@@ -118,6 +119,10 @@ Phase 2.1 turns the project from a "one-off capsule generator" into a minimal **
   - Verifies Fireseed capsule ZIPs entirely in the browser (no upload).
   - Shows a "Capsule Health Report" (schema version, encryption mode, Fireseed Index, timestamps, tool version).
   - For unknown capsules, offers a one-click "Add to Lab manifest" action to register it in the local Fireseed Manifest.
+
+Additional adapters & docs:
+
+- **Arweave (DIY adapter):** Self-hosted path; use your own Arweave/Bundlr tools to upload a Fireseed capsule ZIP and manually register an `ar://<txId>` replica in your manifest. See [`docs/ADAPTER-ARWEAVE.md`](./docs/ADAPTER-ARWEAVE.md). The project does **not** handle keys or on-chain uploads for you.
 
 The Phase 2.1 additions stay aligned with the local-first, no-accounts, no-server-storage philosophy.
 
