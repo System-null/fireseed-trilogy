@@ -5,11 +5,15 @@
 
 Fireseed Trilogy is an experiment in building a **machine-readable “capsule” format** for preserving human life stories, values, and decisions in a way that future AI systems can parse without guessing.
 
+Current status: Public experimental release with local-only capsules, optional AES-256-GCM encryption, Fireseed Lab manifest, BYO IPFS adapter hooks, M-Disc export, and QR clue cards.
+
 ## Fireseed Lab v0.3.0 – Local Capsule Lab
 
-- One-click local capsule generation (plain or AES-encrypted ZIP).
-- Local verification & decryption via `/verify/local` (runs entirely in the browser).
-- A basic “Fireseed Lab” view at `/lab` that lists known capsules from the local manifest and supports manifest import/export.
+- `/capsule/create` — One-click capsule generator with optional AES-256-GCM encryption.
+- `/verify/local` — Local ZIP verification & decryption (browser-only, no upload).
+- `/lab` — Fireseed Lab: local manifest viewer, M-Disc export, QR clue cards, BYO IPFS adapter.
+
+CID-level inspection is planned for a future version.
 
 v0.3.0 is the first stable milestone for the “local-only” Fireseed Lab (no remote storage, no accounts).
 
@@ -116,6 +120,15 @@ Phase 2.1 turns the project from a "one-off capsule generator" into a minimal **
   - For unknown capsules, offers a one-click "Add to Lab manifest" action to register it in the local Fireseed Manifest.
 
 The Phase 2.1 additions stay aligned with the local-first, no-accounts, no-server-storage philosophy.
+
+---
+
+## Advanced tools
+
+- Capsule Workspace: edit and validate `capsule.json` in a dedicated view.
+- Local ZIP verification: `/verify/local`, parses structure, checks encryption, and supports password-based decryption.
+
+CID-level inspection is planned for a future version.
 
 ---
 

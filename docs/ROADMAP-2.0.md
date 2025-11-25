@@ -1,5 +1,7 @@
 # Phase 2.0 Roadmap (Lab, Manifest, Adapters)
 
+This roadmap reflects the current open-source “high-bar” edition. Hosted services, user accounts, and automatic IPFS/Arweave upload are intentionally out of scope.
+
 Status: v0.3.0 implements the first local-only Lab milestone (capsule generation + encryption + local verification + manifest + basic Lab view).
 
 - [x] StorageAdapter interface & LocalZipAdapter
@@ -8,9 +10,12 @@ Status: v0.3.0 implements the first local-only Lab milestone (capsule generation
 - [x] Integrate creation and verification flows with the manifest:
   - write entries after one-click capsule generation,
   - allow `/verify/local` to register capsules into the manifest.
+- [x] Fireseed Lab: local manifest viewer with IPFS adapter, M-Disc export bundle, and QR clue cards.
+- [x] Local-only encryption + verification loop (`/capsule/create` + `/verify/local`).
 - [ ] CLI utilities for manifest management and adapter operations
 - [ ] Remote adapters (e.g., S3/IPFS) with health checks
 - [ ] Multi-replica sync and recovery policies
+- [ ] CID-level CAR inspector (future, not yet implemented in the public repo).
 
 ## Multi-Replica / Storage Adapters
 
