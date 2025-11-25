@@ -29,6 +29,30 @@ export async function saveManifest(manifest: FireseedManifest): Promise<void> {
   await idbSet(MANIFEST_IDB_KEY, manifest);
 }
 
+export async function markCapsulesHealthChecked(
+  capsuleIds: string[],
+  options?: { note?: string; at?: string }
+): Promise<FireseedManifest> {
+  const manifest = await getManifest();
+  const now = options?.at ?? new Date().toISOString();
+  const note =
+    options?.note ??
+    "Health check not implemented for this adapter; please verify manually.";
+
+  manifest.capsules = manifest.capsules.map((c) =>
+    capsuleIds.includes(c.capsuleId)
+      ? {
+          ...c,
+          lastHealthCheckAt: now,
+          lastHealthStatus: note,
+        }
+      : c
+  );
+
+  await saveManifest(manifest);
+  return manifest;
+}
+
 export async function exportManifest(): Promise<string> {
   const manifest = await getManifest();
   return JSON.stringify(manifest, null, 2);
